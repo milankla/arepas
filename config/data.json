@@ -1,0 +1,185 @@
+{
+  "version": "1.0",
+  "description": "Configuration for data/ folder - Style-based organization",
+  "structure_type": "style-based",
+  "base_path": ".",
+  "datasets": [
+    {
+      "name": "Clayton-Bungalows",
+      "csv_file": "data/Bungalows/Clayton Data - CLEAN.txt",
+      "images_dir": "data/Bungalows/Bungalows - Photos",
+      "metadata": {
+        "neighborhood": "Clayton",
+        "style": "Bungalows"
+      }
+    },
+    {
+      "name": "Cole-Bungalows",
+      "csv_file": "data/Bungalows/Cole Data - CLEAN.txt",
+      "images_dir": "data/Bungalows/Bungalows - Photos",
+      "metadata": {
+        "neighborhood": "Cole",
+        "style": "Bungalows"
+      }
+    },
+    {
+      "name": "Regis-Bungalows",
+      "csv_file": "data/Bungalows/Regis - CLEAN.txt",
+      "images_dir": "data/Bungalows/Bungalows - Photos",
+      "metadata": {
+        "neighborhood": "Regis",
+        "style": "Bungalows"
+      }
+    },
+    {
+      "name": "Skyland-Bungalows",
+      "csv_file": "data/Bungalows/Skyland - CLEAN.txt",
+      "images_dir": "data/Bungalows/Bungalows - Photos",
+      "metadata": {
+        "neighborhood": "Skyland",
+        "style": "Bungalows"
+      }
+    },
+    {
+      "name": "SouthCityPark-Bungalows",
+      "csv_file": "data/Bungalows/South City Park - CLEAN.txt",
+      "images_dir": "data/Bungalows/Bungalows - Photos",
+      "metadata": {
+        "neighborhood": "South City Park",
+        "style": "Bungalows"
+      }
+    },
+    {
+      "name": "Sunnyside-Bungalows",
+      "csv_file": "data/Bungalows/Sunnyside - CLEAN.txt",
+      "images_dir": "data/Bungalows/Bungalows - Photos",
+      "metadata": {
+        "neighborhood": "Sunnyside",
+        "style": "Bungalows"
+      }
+    },
+    {
+      "name": "VillaPark-Bungalows",
+      "csv_file": "data/Bungalows/Villa Park - CLEAN.txt",
+      "images_dir": "data/Bungalows/Bungalows - Photos",
+      "metadata": {
+        "neighborhood": "Villa Park",
+        "style": "Bungalows"
+      }
+    },
+    {
+      "name": "Westwood-Bungalows",
+      "csv_file": "data/Bungalows/Westwood - CLEAN.txt",
+      "images_dir": "data/Bungalows/Bungalows - Photos",
+      "metadata": {
+        "neighborhood": "Westwood",
+        "style": "Bungalows"
+      }
+    },
+    {
+      "name": "Whittier-Bungalows",
+      "csv_file": "data/Bungalows/Whittier - CLEAN.txt",
+      "images_dir": "data/Bungalows/Bungalows - Photos",
+      "metadata": {
+        "neighborhood": "Whittier",
+        "style": "Bungalows"
+      }
+    },
+    {
+      "name": "Barnum-MinimalTraditional",
+      "csv_file": "data/Minimal Traditional/Barnum - CLEAN.txt",
+      "images_dir": "data/Minimal Traditional/Minimal Traditional - Photos",
+      "metadata": {
+        "neighborhood": "Barnum",
+        "style": "Minimal Traditional"
+      }
+    },
+    {
+      "name": "Clayton-MinimalTraditional",
+      "csv_file": "data/Minimal Traditional/Clayton - CLEAN.txt",
+      "images_dir": "data/Minimal Traditional/Minimal Traditional - Photos",
+      "metadata": {
+        "neighborhood": "Clayton",
+        "style": "Minimal Traditional"
+      }
+    },
+    {
+      "name": "Cole-MinimalTraditional",
+      "csv_file": "data/Minimal Traditional/Cole - CLEAN.txt",
+      "images_dir": "data/Minimal Traditional/Minimal Traditional - Photos",
+      "metadata": {
+        "neighborhood": "Cole",
+        "style": "Minimal Traditional"
+      }
+    },
+    {
+      "name": "Regis-MinimalTraditional",
+      "csv_file": "data/Minimal Traditional/Regis - CLEAN.txt",
+      "images_dir": "data/Minimal Traditional/Minimal Traditional - Photos",
+      "metadata": {
+        "neighborhood": "Regis",
+        "style": "Minimal Traditional"
+      }
+    },
+    {
+      "name": "Skyland-MinimalTraditional",
+      "csv_file": "data/Minimal Traditional/Skyland - CLEAN.txt",
+      "images_dir": "data/Minimal Traditional/Minimal Traditional - Photos",
+      "metadata": {
+        "neighborhood": "Skyland",
+        "style": "Minimal Traditional"
+      }
+    },
+    {
+      "name": "SouthCityPark-MinimalTraditional",
+      "csv_file": "data/Minimal Traditional/South City Park - CLEAN.txt",
+      "images_dir": "data/Minimal Traditional/Minimal Traditional - Photos",
+      "metadata": {
+        "neighborhood": "South City Park",
+        "style": "Minimal Traditional"
+      }
+    },
+    {
+      "name": "Sunnyside-MinimalTraditional",
+      "csv_file": "data/Minimal Traditional/Sunnyside - CLEAN.txt",
+      "images_dir": "data/Minimal Traditional/Minimal Traditional - Photos",
+      "metadata": {
+        "neighborhood": "Sunnyside",
+        "style": "Minimal Traditional"
+      }
+    },
+    {
+      "name": "Valverde-MinimalTraditional",
+      "csv_file": "data/Minimal Traditional/Valverde - CLEAN.txt",
+      "images_dir": "data/Minimal Traditional/Minimal Traditional - Photos",
+      "metadata": {
+        "neighborhood": "Valverde",
+        "style": "Minimal Traditional"
+      }
+    },
+    {
+      "name": "VillaPark-MinimalTraditional",
+      "csv_file": "data/Minimal Traditional/Villa Park - CLEAN.txt",
+      "images_dir": "data/Minimal Traditional/Minimal Traditional - Photos",
+      "metadata": {
+        "neighborhood": "Villa Park",
+        "style": "Minimal Traditional"
+      }
+    },
+    {
+      "name": "Westwood-MinimalTraditional",
+      "csv_file": "data/Minimal Traditional/Westwood - CLEAN.txt",
+      "images_dir": "data/Minimal Traditional/Minimal Traditional - Photos",
+      "metadata": {
+        "neighborhood": "Westwood",
+        "style": "Minimal Traditional"
+      }
+    }
+  ],
+  "notes": [
+    "This configuration maps the style-based data/ folder structure",
+    "Images are centralized in '{Style} - Photos' folders",
+    "Each dataset represents one neighborhood within one architectural style",
+    "To load all styles for a neighborhood, load multiple datasets and merge"
+  ]
+}

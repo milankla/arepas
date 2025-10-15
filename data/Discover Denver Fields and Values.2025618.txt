@@ -1,0 +1,1860 @@
+{
+  "fields": [
+    {
+      "hint": null,
+      "name": "Original Use",
+      "type": "single",
+      "options": [
+        "Agriculture",
+        "Commercial - Business/Professional",
+        "Commercial - Financial Institution",
+        "Commercial - Gas Station",
+        "Commercial - Other",
+        "Commercial - Restaurant",
+        "Commercial - Retail Store",
+        "Commercial - Warehouse",
+        "Defense",
+        "Domestic - Hotel/Motel",
+        "Domestic - Institutional Housing",
+        "Domestic – Multiple Dwelling",
+        "Domestic - Other",
+        "Domestic – Single Dwelling",
+        "Education - Education-Related",
+        "Education - Higher Education",
+        "Education - Library",
+        "Education - School",
+        "Government - Federal",
+        "Government - Local",
+        "Government - Other",
+        "Government - State",
+        "Health Care",
+        "Industry/Processing",
+        "Mixed Use",
+        "Other Original Use",
+        "Recreation and Culture - Museum",
+        "Recreation and Culture - Other",
+        "Recreation and Culture - Theater",
+        "Religious Facility",
+        "Social - Meeting Hall",
+        "Transportation",
+        "Unknown Original Use"
+      ],
+      "section": 2,
+      "required": true,
+      "surveyLevel": [
+        0,
+        1,
+        2,
+        3
+      ]
+    },
+    {
+      "hint": null,
+      "name": "Current Use",
+      "type": "single",
+      "options": [
+        "Agriculture",
+        "Commercial - Business/Professional",
+        "Commercial - Financial Institution",
+        "Commercial - Gas Station",
+        "Commercial - Other",
+        "Commercial - Restaurant",
+        "Commercial - Retail Store",
+        "Commercial - Warehouse",
+        "Defense",
+        "Domestic - Hotel/Motel",
+        "Domestic - Institutional Housing",
+        "Domestic – Multiple Dwelling",
+        "Domestic - Other",
+        "Domestic – Single Dwelling",
+        "Education - Education-Related",
+        "Education - Higher Education",
+        "Education - Library",
+        "Education - School",
+        "Government - Federal",
+        "Government - Local",
+        "Government - Other",
+        "Government - State",
+        "Health Care",
+        "Industry/Processing",
+        "Mixed Use",
+        "Other Original Use",
+        "Recreation and Culture - Museum",
+        "Recreation and Culture - Other",
+        "Recreation and Culture - Theater",
+        "Religious Facility",
+        "Social - Meeting Hall",
+        "Transportation",
+        "Unknown Original Use",
+        "Vacant Building",
+        "Vacant Lot"
+      ],
+      "section": 2,
+      "required": true,
+      "surveyLevel": [
+        0,
+        1,
+        2,
+        3
+      ]
+    },
+    {
+      "hint": "Half story: a full-sized human can touch ceiling or parts of walls in the living space. May also apply to partially subterranean garden level living space. ",
+      "name": "Stories",
+      "type": "single",
+      "options": [
+        "1/2",
+        "1",
+        "1-1/2",
+        "2",
+        "2-1/2",
+        "3",
+        "3-1/2",
+        "4",
+        "4-1/2",
+        "5-9",
+        "10-19",
+        "20+"
+      ],
+      "section": 2,
+      "required": true,
+      "surveyLevel": [
+        0,
+        1,
+        2,
+        3
+      ]
+    },
+    {
+      "hint": null,
+      "name": "Building Category",
+      "type": "single",
+      "options": [
+        "Residential",
+        "Commercial",
+        "Agricultural",
+        "Other"
+      ],
+      "section": 2,
+      "required": true,
+      "surveyLevel": [
+        1,
+        2,
+        3
+      ]
+    },
+    {
+      "hint": "Refers to the \"bones\" of the building that are not easy to alter and are not subject to trends",
+      "name": "Building Form",
+      "type": "single",
+      "options": [
+        {
+          "if": {
+            "Building Category": [
+              "Residential",
+              "Commercial"
+            ]
+          },
+          "name": "A-Frame"
+        },
+        {
+          "if": {
+            "Building Category": [
+              "Residential"
+            ]
+          },
+          "name": "Apartment - Block"
+        },
+        {
+          "if": {
+            "Building Category": [
+              "Residential"
+            ]
+          },
+          "name": "Apartment - Complex"
+        },
+        {
+          "if": {
+            "Building Category": [
+              "Residential"
+            ]
+          },
+          "name": "Apartment - Courtyard"
+        },
+        {
+          "if": {
+            "Building Category": [
+              "Residential"
+            ]
+          },
+          "name": "Apartment - Dingbat"
+        },
+        {
+          "if": {
+            "Building Category": [
+              "Residential"
+            ]
+          },
+          "name": "Apartment - Garden Court"
+        },
+        {
+          "if": {
+            "Building Category": [
+              "Agricultural"
+            ]
+          },
+          "name": "Barn - Bank"
+        },
+        {
+          "if": {
+            "Building Category": [
+              "Agricultural"
+            ]
+          },
+          "name": "Barn - Crib"
+        },
+        {
+          "if": {
+            "Building Category": [
+              "Agricultural"
+            ]
+          },
+          "name": "Barn - Dairy"
+        },
+        {
+          "if": {
+            "Building Category": [
+              "Agricultural"
+            ]
+          },
+          "name": "Barn - Round Roof"
+        },
+        {
+          "if": {
+            "Building Category": [
+              "Residential"
+            ]
+          },
+          "name": "Basement House"
+        },
+        {
+          "if": {
+            "Building Category": [
+              "Residential"
+            ]
+          },
+          "name": "Bi-Level"
+        },
+        {
+          "if": {
+            "Building Category": [
+              "Residential"
+            ]
+          },
+          "name": "Bungalow"
+        },
+        {
+          "if": {
+            "Building Category": [
+              "Residential"
+            ]
+          },
+          "name": "Cape Cod"
+        },
+        {
+          "if": {
+            "Building Category": [
+              "Residential"
+            ]
+          },
+          "name": "Central Block with Projecting Bays"
+        },
+        {
+          "if": {
+            "Building Category": [
+              "Residential"
+            ]
+          },
+          "name": "Central Passage Double-Pile"
+        },
+        {
+          "if": {
+            "Building Category": [
+              "Residential"
+            ]
+          },
+          "name": "Classic Cottage"
+        },
+        {
+          "if": {
+            "Building Category": [
+              "Commercial"
+            ]
+          },
+          "name": "Commercial - False Front"
+        },
+        {
+          "if": {
+            "Building Category": [
+              "Commercial"
+            ]
+          },
+          "name": "Commercial - Other"
+        },
+        {
+          "if": {
+            "Building Category": [
+              "Commercial"
+            ]
+          },
+          "name": "Commercial/Industrial Block"
+        },
+        {
+          "if": {
+            "Building Category": [
+              "Residential"
+            ]
+          },
+          "name": "Duplex"
+        },
+        {
+          "if": {
+            "Building Category": [
+              "Residential"
+            ]
+          },
+          "name": "Foursquare"
+        },
+        {
+          "if": {
+            "Building Category": [
+              "Residential"
+            ]
+          },
+          "name": "Gable Front"
+        },
+        {
+          "if": {
+            "Building Category": [
+              "Residential"
+            ]
+          },
+          "name": "Gabled Ell"
+        },
+        {
+          "if": {
+            "Building Category": [
+              "Commercial"
+            ]
+          },
+          "name": "Gas Station - Cottage"
+        },
+        {
+          "if": {
+            "Building Category": [
+              "Commercial"
+            ]
+          },
+          "name": "Gas Station - House with Canopy"
+        },
+        {
+          "if": {
+            "Building Category": [
+              "Commercial"
+            ]
+          },
+          "name": "Gas Station - Oblong Box"
+        },
+        {
+          "if": {
+            "Building Category": [
+              "Commercial"
+            ]
+          },
+          "name": "Gas Station - Other"
+        },
+        {
+          "if": {
+            "Building Category": [
+              "Residential",
+              "Commercial"
+            ]
+          },
+          "name": "Geodesic Dome"
+        },
+        {
+          "if": {
+            "Building Category": [
+              "Residential"
+            ]
+          },
+          "name": "Hall and Parlor"
+        },
+        {
+          "if": {
+            "Building Category": [
+              "Residential",
+              "Commercial"
+            ]
+          },
+          "name": "High-Rise"
+        },
+        {
+          "if": {
+            "Building Category": [
+              "Residential"
+            ]
+          },
+          "name": "Hipped-Roof Box"
+        },
+        {
+          "if": {
+            "Building Category": [
+              "Residential"
+            ]
+          },
+          "name": "House with Commercial Addition"
+        },
+        {
+          "if": {
+            "Building Category": [
+              "Residential"
+            ]
+          },
+          "name": "I-House"
+        },
+        {
+          "if": {
+            "Building Category": [
+              "Residential"
+            ]
+          },
+          "name": "Minimal Traditional"
+        },
+        {
+          "if": {
+            "Building Category": [
+              "Residential"
+            ]
+          },
+          "name": "Neo-Mansard"
+        },
+        {
+          "if": {
+            "Building Category": [
+              "Commercial"
+            ]
+          },
+          "name": "One-Part Commercial Block"
+        },
+        "Other",
+        {
+          "if": {
+            "Building Category": [
+              "Residential",
+              "Commercial"
+            ]
+          },
+          "name": "Quonset"
+        },
+        {
+          "if": {
+            "Building Category": [
+              "Residential"
+            ]
+          },
+          "name": "Ranch"
+        },
+        {
+          "if": {
+            "Building Category": [
+              "Residential"
+            ]
+          },
+          "name": "Rowhouse"
+        },
+        {
+          "if": {
+            "Building Category": [
+              "Other"
+            ]
+          },
+          "name": "Schoolhouse"
+        },
+        {
+          "if": {
+            "Building Category": [
+              "Commercial"
+            ]
+          },
+          "name": "Service Bay Business"
+        },
+        {
+          "if": {
+            "Building Category": [
+              "Residential"
+            ]
+          },
+          "name": "Shotgun"
+        },
+        {
+          "if": {
+            "Building Category": [
+              "Residential"
+            ]
+          },
+          "name": "Split Level"
+        },
+        {
+          "if": {
+            "Building Category": [
+              "Commercial"
+            ]
+          },
+          "name": "Strip Mall or Shopping Center"
+        },
+        {
+          "if": {
+            "Building Category": [
+              "Residential"
+            ]
+          },
+          "name": "Terrace Type"
+        },
+        {
+          "if": {
+            "Building Category": [
+              "Commercial"
+            ]
+          },
+          "name": "Three-Part Vertical Block"
+        },
+        {
+          "if": {
+            "Building Category": [
+              "Residential"
+            ]
+          },
+          "name": "Transitional Ranch"
+        },
+        {
+          "if": {
+            "Building Category": [
+              "Commercial"
+            ]
+          },
+          "name": "Two-Part Commercial Block"
+        },
+        {
+          "if": {
+            "Building Category": [
+              "Commercial"
+            ]
+          },
+          "name": "Two-Part Vertical Block"
+        },
+        {
+          "if": {
+            "Building Category": [
+              "Residential"
+            ]
+          },
+          "name": "Upright and Wing"
+        }
+      ],
+      "section": 2,
+      "required": true,
+      "surveyLevel": [
+        1,
+        2,
+        3
+      ]
+    },
+    {
+      "hint": null,
+      "name": "Building Plan",
+      "type": "single",
+      "options": [
+        "H-Shaped Plan",
+        "Irregular Plan",
+        "L-Shaped Plan",
+        "Other Plan",
+        "Rectangular Plan",
+        "Square Plan",
+        "T-Shaped Plan",
+        "U-Shaped Plan"
+      ],
+      "section": 2,
+      "required": true,
+      "surveyLevel": [
+        3
+      ]
+    },
+    {
+      "hint": "Denotes the applied details that can be modified based on trends. No style may apply",
+      "name": "Architectural Style",
+      "type": "single",
+      "options": [
+        "Art Deco",
+        "Beaux Arts",
+        "Carpenter Gothic",
+        "Chateauesque",
+        "Chicago",
+        "Classical Revival",
+        "Collegiate Gothic",
+        "Colonial Revival",
+        "Contemporary",
+        "Craftsman",
+        "Dutch Colonial Revival",
+        "Edwardian",
+        "English Norman Cottage",
+        "Exotic Revival",
+        "French Renaissance",
+        "Googie",
+        "Gothic Revival",
+        "Greek Revival",
+        "International Style",
+        "Italian Renaissance",
+        "Italian Villa",
+        "Italianate",
+        "Jacobean Elizabethan",
+        "Mediterranean Revival",
+        "Mission",
+        "Mixed Style",
+        "Modern Movement",
+        "Moderne",
+        "Neo-Victorian",
+        "Novelty",
+        "No Clear Architectural Style",
+        "Other Style",
+        "Prairie",
+        "Pueblo Revival",
+        "Queen Anne",
+        "Ranch",
+        "Renaissance Revival",
+        "Romanesque Revival",
+        "Rustic",
+        "Second Empire",
+        "Shingle Style",
+        "Skyscraper",
+        "Spanish Colonial Revival",
+        "Stick - Eastlake",
+        "Sullivanesque",
+        "Swiss Chalet",
+        "Tudor Revival",
+        "Usonian",
+        "Victorian Cottage"
+      ],
+      "section": 2,
+      "required": true,
+      "surveyLevel": [
+        1,
+        2,
+        3
+      ]
+    },
+    {
+      "hint": "Set back at alley only if property at rear of lot with large space between building and sidewalk",
+      "name": "Setting",
+      "type": "multi",
+      "options": [
+        "Attached on 1 Side",
+        "Attached on 2 Sides",
+        "Corner",
+        "Flush at Sidewalk",
+        "Set at Back of Lot",
+        "Set Back from Sidewalk"
+      ],
+      "section": 2,
+      "required": true,
+      "surveyLevel": [
+        1,
+        2,
+        3
+      ]
+    },
+    {
+      "hint": "Fences only on sides if run parallel or perpendicular to front of house. If select \"other\" please leave note describing feature",
+      "name": "Landscape Features",
+      "type": "multi",
+      "options": [
+        "Built-In Planters",
+        "Denver Roll",
+        "Driveway - Ribbon",
+        "Driveway - Solid",
+        "Driveway - Unpaved",
+        "Fence - Front",
+        "Fence - Historic",
+        "Fence - Left Side",
+        "Fence - Ornamental",
+        "Fence - Other",
+        "Fence - Rear",
+        "Fence - Right Side",
+        "None",
+        "Other Landscape Feature",
+        "Parking Lot",
+        "Stone Public Sidewalk",
+        "Swimming Pool",
+        "Walkway - Brick",
+        "Walkway - Concrete",
+        "Walkway - Other Material",
+        "Walkway - Stone",
+        "Wall - Perimeter",
+        "Wall - Retaining"
+      ],
+      "section": 2,
+      "required": true,
+      "surveyLevel": [
+        1,
+        2,
+        3
+      ]
+    },
+    {
+      "hint": "For architectural notes not otherwise covered by survey",
+      "name": "General Architectural Notes",
+      "type": "longtext",
+      "section": 2,
+      "required": false,
+      "surveyLevel": [
+        0,
+        1,
+        2,
+        3
+      ]
+    },
+    {
+      "hint": "For historical notes regarding history of property",
+      "name": "Historical Notes",
+      "type": "longtext",
+      "section": 2,
+      "required": false,
+      "surveyLevel": [
+        0,
+        1,
+        2,
+        3
+      ]
+    },
+    {
+      "hint": "Select \"Compound\" roof for multiple types combined",
+      "name": "Roof Type",
+      "type": "multi",
+      "options": [
+        "Barrel Roof",
+        "Compound Roof",
+        "Conical",
+        "Cross Gable",
+        "Cross Hip-on-Gable",
+        "Dome",
+        "Dutch Hipped",
+        "Flat",
+        "Front Gable",
+        "Gambrel",
+        "Hip-on-Gable",
+        "Hipped",
+        "Mansard",
+        "Monitor",
+        "Other",
+        "Pyramidal",
+        "Shed",
+        "Side Gable",
+        "Unknown Roof Type"
+      ],
+      "section": 3,
+      "required": true,
+      "surveyLevel": [
+        2,
+        3
+      ]
+    },
+    {
+      "hint": null,
+      "name": "Roof Materials",
+      "type": "multi",
+      "options": [
+        "Gravel",
+        "Membrane",
+        "Metal",
+        "Other Roof Material",
+        "Shingles - Asphalt",
+        "Shingles - Concrete",
+        "Shingles - Slate",
+        "Shingles - Wood",
+        "Terra Cotta Tile",
+        "Unknown Roof Material"
+      ],
+      "section": 3,
+      "required": true,
+      "surveyLevel": [
+        2,
+        3
+      ]
+    },
+    {
+      "hint": null,
+      "name": "Roof Features",
+      "type": "multi",
+      "options": [
+        "Bargeboard - Decorative",
+        "Brackets - Decorative",
+        "Brackets - Knee Braces",
+        "Brackets - Plain",
+        "Catslide Roof",
+        "Cornice - Decorative",
+        "Crenellation",
+        "Cresting",
+        "Cupola",
+        "Dentils",
+        "Dormer - Eyebrow",
+        "Dormer - Gable",
+        "Dormer - Hip-on-Gable",
+        "Dormer - Hipped",
+        "Dormer - Shed",
+        "Dormer - Wall",
+        "Dormer - Windowless",
+        "Eaves - Boxed",
+        "Eaves - Flared",
+        "Eaves - None",
+        "Eaves - Open",
+        "Eaves - Rolled",
+        "Finial",
+        "None",
+        "Open Trussing",
+        "Other Roof Features",
+        "Parapet - Flat",
+        "Parapet - Shaped",
+        "Parapet - Stepped",
+        "Pent Roof",
+        "Purlins",
+        "Rafter Tails",
+        "Ridge Beam",
+        "Skylight",
+        "Solar Panels",
+        "Turret",
+        "Weathervane"
+      ],
+      "section": 3,
+      "required": true,
+      "surveyLevel": [
+        3
+      ]
+    },
+    {
+      "hint": "Must add each chimney separately",
+      "name": "Chimney",
+      "type": "multipart",
+      "fields": [
+        {
+          "name": "Chimney Placement",
+          "type": "single",
+          "options": [
+            "Exterior - Front Facade",
+            "Exterior - Left Side",
+            "Exterior - Rear",
+            "Exterior - Right Side",
+            "Interior - Central",
+            "Interior - Right Side",
+            "Interior - Left Side"
+          ]
+        },
+        {
+          "name": "Chimney Material",
+          "type": "multi",
+          "options": [
+            "Brick",
+            "Concrete",
+            "Metal",
+            "Other Chimney Material",
+            "Stone",
+            "Stucco",
+            "Unknown Chimney Material"
+          ]
+        },
+        {
+          "name": "Chimney Features",
+          "type": "multi",
+          "options": [
+            "Chimney Pots",
+            "Decorative",
+            "Multiple Flues",
+            "Other Chimney Features"
+          ]
+        }
+      ],
+      "section": 3,
+      "question": "Does the building have chimneys?",
+      "required": false,
+      "statement": "Must select \"yes\" to add at least one chimney",
+      "surveyLevel": [
+        3
+      ]
+    },
+    {
+      "hint": "Choose only the most prominent cladding",
+      "name": "Primary Cladding",
+      "type": "single",
+      "options": [
+        "Brick",
+        "Concrete - Block",
+        "Concrete - Modular/Precast",
+        "Glass",
+        "Other Cladding",
+        "Screen Block",
+        "Sheet Metal",
+        "Shingles - Asbestos",
+        "Shingles - Asphalt",
+        "Shingles - Decorative",
+        "Shingles - Plain",
+        "Shingles - Unknown",
+        "Siding - Aluminum",
+        "Siding - Board and Batten",
+        "Siding - Rolled Asphalt",
+        "Siding - Horizontal, Unknown Material",
+        "Siding - Vertical, Unknown Material",
+        "Siding - Vinyl",
+        "Siding - Horizontal, Wood",
+        "Siding - Vertical, Wood",
+        "Stone - Cobble",
+        "Stone - Faux",
+        "Stone - Other",
+        "Stone - Rusticated",
+        "Stone - Smooth",
+        "Stucco - Historic",
+        "Stucco - Modern",
+        "Terra Cotta",
+        "Unknown Cladding"
+      ],
+      "section": 4,
+      "required": true,
+      "surveyLevel": [
+        1,
+        2,
+        3
+      ]
+    },
+    {
+      "hint": null,
+      "name": "Additional Cladding",
+      "type": "multi",
+      "options": [
+        "Brick",
+        "Concrete - Block",
+        "Concrete - Modular/Precast",
+        "Glass",
+        "Other Cladding",
+        "Screen Block",
+        "Sheet Metal",
+        "Shingles - Asbestos",
+        "Shingles - Asphalt",
+        "Shingles - Decorative",
+        "Shingles - Plain",
+        "Shingles - Unknown",
+        "Siding - Aluminum",
+        "Siding - Board and Batten",
+        "Siding - Rolled Asphalt",
+        "Siding - Horizontal, Unknown Material",
+        "Siding - Vertical, Unknown Material",
+        "Siding - Vinyl",
+        "Siding - Horizontal, Wood",
+        "Siding - Vertical, Wood",
+        "Stone - Cobble",
+        "Stone - Faux",
+        "Stone - Other",
+        "Stone - Rusticated",
+        "Stone - Smooth",
+        "Stucco - Historic",
+        "Stucco - Modern",
+        "Terra Cotta",
+        "Unknown Cladding"
+      ],
+      "section": 4,
+      "required": false,
+      "surveyLevel": [
+        3
+      ]
+    },
+    {
+      "hint": null,
+      "name": "Wall Features",
+      "type": "multi",
+      "options": [
+        "Attached Sign",
+        "Awnings",
+        "Balconette",
+        "Balcony",
+        "Belt Course",
+        "Brick - Polychromatic",
+        "Brick - Clinker",
+        "Brick - Corbeled",
+        "Brick - Patterned",
+        "Buttresses",
+        "Engaged Columns",
+        "Engaged Piers",
+        "Foundation - Brick",
+        "Foundation - Concrete",
+        "Foundation - Not Visible",
+        "Foundation - Other",
+        "Foundation - Stone",
+        "Gable Vents",
+        "Ghost Sign",
+        "Half-Timbering",
+        "Masonry Bay",
+        "Mural",
+        "None",
+        "Other Wall Details",
+        "Pilasters",
+        "Quoins",
+        "Rowlock Course",
+        "Shingles in Gable - Decorative",
+        "Shingles in Gable - Plain",
+        "Shutters",
+        "Tile",
+        "Vigas"
+      ],
+      "section": 4,
+      "required": true,
+      "surveyLevel": [
+        2,
+        3
+      ]
+    },
+    {
+      "hint": "Add one window for each type visible",
+      "name": "Window",
+      "type": "multipart",
+      "fields": [
+        {
+          "name": "Window Type",
+          "type": "multi",
+          "options": [
+            "Casement",
+            "Clerestory",
+            "Double/Single Hung",
+            "Fixed",
+            "Hopper/Awning",
+            "Other Window Type",
+            "Pivot",
+            "Roll-Up",
+            "Sliding",
+            "Unknown Window Type"
+          ],
+          "required": true,
+          "surveyLevel": [
+            2,
+            3
+          ]
+        },
+        {
+          "name": "Window Location",
+          "type": "multi",
+          "options": [
+            "Basement",
+            "Corner",
+            "Front Facade",
+            "Left Side",
+            "Rear",
+            "Right Side"
+          ],
+          "surveyLevel": [
+            3
+          ]
+        },
+        {
+          "name": "Window Features",
+          "type": "multi",
+          "options": [
+            "Arch - Pointed",
+            "Arch - Rounded",
+            "Arch - Segmented",
+            "Cottage Window",
+            "Decorative Surround",
+            "Divided Lights - All",
+            "Divided Lights - Some",
+            "Dormer Window",
+            "Grouped Windows",
+            "Hood",
+            "None",
+            "Oriel Window",
+            "Paired Windows",
+            "Palladian Window",
+            "Picture Window",
+            "Quatrefoil Window",
+            "Ribbon Windows",
+            "Round Window",
+            "Rowlock Sill",
+            "Slot Window",
+            "Stained/Leaded Glass",
+            "Stone Lintel",
+            "Stone Sill",
+            "Transom",
+            "Tripartite Window",
+            "Vertical Stairlight"
+          ],
+          "surveyLevel": [
+            2,
+            3
+          ]
+        },
+        {
+          "name": "Window Material",
+          "type": "single",
+          "options": [
+            "Glass Block",
+            "Metal - Other than steel",
+            "Metal - Steel",
+            "Other Window Material",
+            "Unknown Window Material",
+            "Vinyl",
+            "Wood"
+          ],
+          "surveyLevel": [
+            3
+          ]
+        }
+      ],
+      "section": 5,
+      "question": "Does the building have windows?",
+      "required": false,
+      "statement": "Must select \"yes\" to start adding windows.",
+      "surveyLevel": [
+        2,
+        3
+      ]
+    },
+    {
+      "hint": "For each entrance visible, add an entrance",
+      "name": "Entrance",
+      "type": "multipart",
+      "fields": [
+        {
+          "name": "Entrance Type",
+          "type": "single",
+          "options": [
+            "Flush Door - No Porch or Stoop",
+            "Other Entrance Type",
+            "Porch - Full Width - Projecting",
+            "Porch - Full Width - Recessed",
+            "Porch - Partial Width - Projecting",
+            "Porch - Partial Width - Recessed",
+            "Porch - Wrap Around - Projecting",
+            "Porch - Wrap Around - Recessed",
+            "Portico",
+            "Stoop - High",
+            "Stoop - Low",
+            "Storefront",
+            "Unknown - Not Visible",
+            "Vehicular Entrance"
+          ],
+          "required": true,
+          "surveyLevel": [
+            1,
+            2,
+            3
+          ]
+        },
+        {
+          "name": "Entrance Location",
+          "type": "single",
+          "options": [
+            "Corner",
+            "Front Facade",
+            "Left Side",
+            "Rear",
+            "Right Side"
+          ],
+          "required": true,
+          "surveyLevel": [
+            1,
+            2,
+            3
+          ]
+        },
+        {
+          "name": "Entrance Features",
+          "type": "multi",
+          "options": [
+            {
+              "if": {
+                "Entrance Type": [
+                  "Storefront"
+                ]
+              },
+              "name": "Bulkhead"
+            },
+            "Canopy",
+            {
+              "if": {
+                "Entrance Type": [
+                  "Storefront"
+                ]
+              },
+              "name": "Capitals"
+            },
+            "Columns",
+            {
+              "if": {
+                "Entrance Type": [
+                  "Storefront"
+                ]
+              },
+              "name": "Decorative Tiling or Paving in Entrance"
+            },
+            "Dentils",
+            {
+              "if": {
+                "Entrance Type": [
+                  "Storefront"
+                ]
+              },
+              "name": "Display Window"
+            },
+            {
+              "if": {
+                "Entrance Type": [
+                  "Storefront"
+                ]
+              },
+              "name": "Frieze"
+            },
+            "Half-Timbering",
+            {
+              "if": {
+                "Entrance Type": [
+                  "Storefront"
+                ]
+              },
+              "name": "Historic Sign"
+            },
+            {
+              "if": {
+                "Entrance Type": [
+                  "Storefront"
+                ]
+              },
+              "name": "Lighting - Decorative"
+            },
+            "Marquee",
+            "Multi-Level Porch",
+            "Open Trussing",
+            {
+              "if": {
+                "Entrance Type": [
+                  "Storefront"
+                ]
+              },
+              "name": "Other Storefront Extras"
+            },
+            "Pediment",
+            "Pediment - Broken",
+            "Pilasters",
+            "Roof:  Flat",
+            "Roof:  Front Gable",
+            "Roof:  Hipped",
+            "Roof:  Hip-on-Gable",
+            "Roof:  Side Gable",
+            "Roof:  Shed",
+            "Screen Block",
+            {
+              "if": {
+                "Entrance Type": [
+                  "Storefront"
+                ]
+              },
+              "name": "Security Gate/Screen"
+            },
+            "Sidelights",
+            "Stone Capping",
+            "Stone Steps",
+            "Subterranean Entrance",
+            {
+              "if": {
+                "Entrance Type": [
+                  "Storefront"
+                ]
+              },
+              "name": "Transom - Above Display Windows"
+            },
+            "Transom - Above Doorway"
+          ],
+          "required": false,
+          "surveyLevel": [
+            3
+          ]
+        },
+        {
+          "name": "Door Type",
+          "type": "single",
+          "options": [
+            "Double",
+            "Roll-Up",
+            "Single",
+            "Sliding",
+            "Swing-Up",
+            "Other Door Type",
+            "Unknown/Not Visible"
+          ],
+          "required": false,
+          "surveyLevel": [
+            3
+          ]
+        }
+      ],
+      "section": 6,
+      "question": "Does the building have any doors?",
+      "required": false,
+      "statement": "Must select \"yes\" to start adding doors.",
+      "surveyLevel": [
+        1,
+        2,
+        3
+      ]
+    },
+    {
+      "name": "Associated Building and Objects",
+      "type": "multipart",
+      "fields": [
+        {
+          "name": "Building/Object Type",
+          "type": "single",
+          "options": [
+            "Accessory Dwelling Unit (ADU)",
+            "Carport - Attached",
+            "Carport - Detached",
+            "Carriage House",
+            "Garage – Attached",
+            "Garage - Detached",
+            "Loading Dock",
+            "Other Associated Building or Object",
+            "Porte Cochere",
+            "Shed or Storage Building",
+            "Unknown - Not Visible"
+          ],
+          "required": true,
+          "surveyLevel": [
+            2,
+            3
+          ]
+        },
+        {
+          "name": "Building/Object Location",
+          "type": "single",
+          "options": [
+            "Behind Primary Building",
+            "In Front of Primary Building",
+            "Left of Primary Building",
+            "Right of Primary Building"
+          ],
+          "surveyLevel": [
+            3
+          ]
+        },
+        {
+          "hint": "Fill out for associated building/object details survey doesn't cover",
+          "name": "Building/Object Notes",
+          "type": "longtext",
+          "surveyLevel": [
+            2,
+            3
+          ]
+        }
+      ],
+      "section": 7,
+      "question": "Does the building have associated buildings or objects?",
+      "required": false,
+      "statement": "Must select \"Yes\" to start adding associated buildings/objects. Add each building/object separately ",
+      "surveyLevel": [
+        2,
+        3
+      ]
+    },
+    {
+      "hint": "Before selecting major alterations please check with survey lead",
+      "name": "Alteration Level",
+      "type": "single",
+      "options": [
+        "5 - Not Altered",
+        "4 - Minor Alterations",
+        "3 - Moderate Alterations",
+        "2 - Major Alterations",
+        "1 - Completely Altered"
+      ],
+      "section": 8,
+      "required": true,
+      "surveyLevel": [
+        1,
+        2,
+        3
+      ]
+    },
+    {
+      "hint": null,
+      "name": "Alterations-Additions",
+      "type": "multi",
+      "options": [
+        "Access Ramp Added",
+        "Addition - Front Facade",
+        "Addition - Left Side",
+        "Addition - Rear",
+        "Addition - Right Side",
+        "Addition - Upper Story",
+        "Addition - Other",
+        "Addition Appears Historic",
+        "Exterior Staircase Added",
+        "None Visible"
+      ],
+      "section": 8,
+      "required": true,
+      "surveyLevel": [
+        1,
+        2,
+        3
+      ]
+    },
+    {
+      "hint": null,
+      "name": "Alterations-Entrances",
+      "type": "multi",
+      "options": [
+        "Doorway - Filled In",
+        "Doorway - Moved or Added",
+        "Entrance Alterations Appear Historic",
+        "Entrance - Added",
+        "Entrance - Altered",
+        "Entrance - Enclosed",
+        "Entrance - Removed",
+        "None Visible",
+        "Storefront - Altered",
+        "Transom Filled In"
+      ],
+      "section": 8,
+      "required": true,
+      "surveyLevel": [
+        1,
+        2,
+        3
+      ]
+    },
+    {
+      "hint": null,
+      "name": "Alterations-Roof",
+      "type": "multi",
+      "options": [
+        "Chimney - Added",
+        "Chimney - Altered",
+        "Chimney - Removed",
+        "Dormer - Added",
+        "Dormer - Altered",
+        "None Visible"
+      ],
+      "section": 8,
+      "required": true,
+      "surveyLevel": [
+        1,
+        2,
+        3
+      ]
+    },
+    {
+      "hint": null,
+      "name": "Alterations-Cladding",
+      "type": "multi",
+      "options": [
+        "Brick/Stone Painted",
+        "Cladding - All Replaced",
+        "Cladding - Some Replaced",
+        "Cladding Alterations Appear Historic",
+        "None Visible"
+      ],
+      "section": 8,
+      "required": true,
+      "surveyLevel": [
+        1,
+        2,
+        3
+      ]
+    },
+    {
+      "hint": null,
+      "name": "Alterations-Windows",
+      "type": "multi",
+      "options": [
+        "None Visible",
+        "Replacement Windows Appear Historic",
+        "Windows Boarded Up",
+        "Window Openings - Altered",
+        "Window Openings - Filled In",
+        "Windows Replaced - All",
+        "Windows Replaced - Some"
+      ],
+      "section": 8,
+      "required": true,
+      "surveyLevel": [
+        1,
+        2,
+        3
+      ]
+    },
+    {
+      "hint": "Please specify other alterations in notes",
+      "name": "Alteration-Other",
+      "type": "longtext",
+      "section": 8,
+      "required": false,
+      "surveyLevel": [
+        1,
+        2,
+        3
+      ]
+    },
+    {
+      "name": "Integrity Rating",
+      "type": "single",
+      "options": [
+        "1 - Completely Altered",
+        "2 - Major Alterations",
+        "3 - Moderate Alterations",
+        "4 - Minor Alterations",
+        "5 - Not Altered"
+      ],
+      "section": 11,
+      "required": false
+    },
+    {
+      "name": "Historic Name",
+      "type": "text",
+      "section": 9,
+      "required": false
+    },
+    {
+      "name": "Year Built",
+      "type": "text",
+      "section": 9,
+      "required": false
+    },
+    {
+      "name": "Year Built Source",
+      "type": "text",
+      "section": 9,
+      "required": false
+    },
+    {
+      "name": "Architect",
+      "type": "text",
+      "section": 9,
+      "required": false
+    },
+    {
+      "name": "Architect Source",
+      "type": "text",
+      "section": 9,
+      "required": false
+    },
+    {
+      "name": "Builder",
+      "type": "text",
+      "section": 9,
+      "required": false
+    },
+    {
+      "name": "Builder Source",
+      "type": "text",
+      "section": 9,
+      "required": false
+    },
+    {
+      "name": "Original Owner",
+      "type": "text",
+      "section": 9,
+      "required": false
+    },
+    {
+      "name": "Original Owner Source",
+      "type": "text",
+      "section": 9,
+      "required": false
+    },
+    {
+      "name": "Original Location",
+      "type": "single",
+      "options": [
+        "Yes",
+        "No",
+        "Unknown"
+      ],
+      "section": 9,
+      "required": false
+    },
+    {
+      "name": "Historical Background",
+      "type": "longtext",
+      "section": 9,
+      "required": false
+    },
+    {
+      "name": "Sources of Information",
+      "type": "longtext",
+      "section": 9,
+      "required": false
+    },
+    {
+      "name": "Period of Significance",
+      "type": "text",
+      "section": 10,
+      "required": false
+    },
+    {
+      "name": "Statement of Significance",
+      "type": "longtext",
+      "section": 10,
+      "required": false
+    },
+    {
+      "name": "Assessment of Integrity",
+      "type": "longtext",
+      "section": 10,
+      "required": false
+    },
+    {
+      "name": "Local Evaluation - Individual",
+      "type": "single",
+      "options": [
+        "Eligible",
+        "Not eligible",
+        "Needs data"
+      ],
+      "section": 10,
+      "required": true
+    },
+    {
+      "name": "Local Criteria",
+      "type": "multi",
+      "options": [
+        "1.  Have a direct association with a significant historic event or with the historical development of the city, state, or nation;",
+        "2.  Have direct and substantial association with a recognized person or group of persons who had influence on society;",
+        "3.  Embody the distinctive visible characteristics of an architectural style or type;",
+        "4.  Be a significant example of the work of a recognized architect or master builder;",
+        "5.  Contain elements of design, engineering, materials, craftsmanship, or artistic merit which represent a significant innovation or technical achievement;",
+        "6.  Represent an established and familiar feature of the neighborhood, community or contemporary city, due to its prominent location or physical characteristics;",
+        "7.  Promote understanding and appreciation of the urban environment by means of distinctive physical characteristics or rarity;",
+        "8.  Represent an era of culture or heritage that allows an understanding of how the site was used by past generations;",
+        "9.  Be a physical attribute of a neighborhood, community, or the city that is a source of pride or cultural understanding;",
+        "10.  Be associated with social movements, institutions, or patterns of growth or change that contributed significantly to the culture of the neighborhood, community, city, state, or nation.",
+        "Does not meet any of the above criteria."
+      ],
+      "section": 10,
+      "required": false
+    },
+    {
+      "name": "Local Evaluation - District",
+      "type": "single",
+      "options": [
+        "Contributing",
+        "Non-Contributing",
+        "Not in an Area of Significance"
+      ],
+      "section": 10,
+      "required": true
+    },
+    {
+      "name": "SR Evaluation - Individual",
+      "type": "single",
+      "options": [],
+      "section": 10,
+      "required": false
+    },
+    {
+      "name": "SR Evaluation - District",
+      "type": "single",
+      "options": [],
+      "section": 10,
+      "required": false
+    },
+    {
+      "name": "NR Evaluation - Individual",
+      "type": "single",
+      "options": [
+        "Eligible",
+        "Not Eligible",
+        "Needs Data"
+      ],
+      "section": 10,
+      "required": true
+    },
+    {
+      "name": "NR Evaluation - District",
+      "type": "single",
+      "options": [
+        "Contributing",
+        "Non-Contributing",
+        "Not in a potential National Register Historic District"
+      ],
+      "section": 10,
+      "required": true
+    },
+    {
+      "name": "NR District Potential",
+      "type": "longtext",
+      "section": 10,
+      "required": false
+    },
+    {
+      "name": "NR Areas of Significance",
+      "type": "multi",
+      "options": [
+        "Agriculture",
+        "Architecture",
+        "Archaeology",
+        "Art",
+        "Commerce",
+        "Communications",
+        "Community Planning and Development",
+        "Conservation",
+        "Economics",
+        "Education",
+        "Engineering",
+        "Entertainment/Recreation",
+        "Ethnic Heritage",
+        "Health/Medicine",
+        "Industry",
+        "Invention",
+        "Landscape Architecture",
+        "Law",
+        "Literature",
+        "Military",
+        "Performing Arts",
+        "Philosophy",
+        "Politics/Government",
+        "Religion",
+        "Science",
+        "Social History",
+        "Transportation",
+        "None",
+        "N/A"
+      ],
+      "section": 10,
+      "required": false
+    },
+    {
+      "name": "NR Criteria",
+      "type": "multi",
+      "options": [
+        "A. Associated with events that have made a significant contribution to the broad pattern of history;",
+        "B. Associated with the lives of persons significant in our past;",
+        "C. Embodies the distinctive characteristics of a type, period, or method of construction, or represents the work of a master, or that possesses high artistic values, or represents a significant and distinguishable entity whose components may lack individual distinction, or",
+        "D. Has yielded, or may be likely to yield, information important to history or prehistory.",
+        "Does not meet any of the above National Register Criteria.",
+        "More data is needed to determine eligibility"
+      ],
+      "section": 10,
+      "required": false
+    },
+    {
+      "name": "CPD Map Eligibility",
+      "type": "single",
+      "options": [
+        "Potentially Eligible",
+        "More Data is Needed",
+        "Not Eligible"
+      ],
+      "section": 10,
+      "required": false
+    }
+  ],
+  "sections": [
+    {
+      "id": 1,
+      "hint": null,
+      "name": "Survey Information",
+      "admin_only": false
+    },
+    {
+      "id": 2,
+      "hint": null,
+      "name": "General",
+      "admin_only": false
+    },
+    {
+      "id": 3,
+      "hint": null,
+      "name": "Roof Information",
+      "admin_only": false
+    },
+    {
+      "id": 4,
+      "hint": null,
+      "name": "Wall Information",
+      "admin_only": false
+    },
+    {
+      "id": 5,
+      "hint": null,
+      "name": "Window Information",
+      "admin_only": false
+    },
+    {
+      "id": 6,
+      "hint": null,
+      "name": "Entrance Information",
+      "admin_only": false
+    },
+    {
+      "id": 7,
+      "hint": null,
+      "name": "Associated Buildings and Objects",
+      "admin_only": false
+    },
+    {
+      "id": 8,
+      "hint": null,
+      "name": "Alterations",
+      "admin_only": false
+    },
+    {
+      "id": 11,
+      "hint": null,
+      "name": "Quality Control",
+      "admin_only": true
+    },
+    {
+      "id": 9,
+      "hint": null,
+      "name": "Historical Information",
+      "admin_only": true
+    },
+    {
+      "id": 10,
+      "hint": null,
+      "name": "Evaluation Information",
+      "admin_only": true
+    }
+  ],
+  "surveyLevels": [
+    {
+      "id": 0,
+      "name": "Less than 30 years",
+      "description": null
+    },
+    {
+      "id": 1,
+      "name": "Major Alterations",
+      "description": "Check with survey leader prior to choosing. Select if building is largely unrecognizable from its original form"
+    },
+    {
+      "id": 2,
+      "name": "Basic Survey",
+      "description": "Select for buildings receiving the basic survey (the majority of buildings will fall under this category)"
+    },
+    {
+      "id": 3,
+      "name": "Full Survey",
+      "description": "Select for buildings pre-identified for full survey and research "
+    },
+    {
+      "id": 4,
+      "name": "Vacant Lot",
+      "description": "Select for vacant lots or parking lots",
+      "skip_survey": true
+    }
+  ]
+}

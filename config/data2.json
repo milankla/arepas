@@ -1,0 +1,89 @@
+{
+  "version": "1.0",
+  "description": "Configuration for data2/ folder - Neighborhood-based organization",
+  "structure_type": "neighborhood-based",
+  "base_path": ".",
+  "datasets": [
+    {
+      "name": "Cole",
+      "csv_file": "data2/Cole/Cole - CLEAN.txt",
+      "images_dir": "data2/Cole",
+      "metadata": {
+        "neighborhood": "Cole",
+        "style": "Mixed"
+      }
+    },
+    {
+      "name": "Regis",
+      "csv_file": "data2/Regis/Regis - CLEAN.txt",
+      "images_dir": "data2/Regis",
+      "metadata": {
+        "neighborhood": "Regis",
+        "style": "Mixed"
+      }
+    },
+    {
+      "name": "Skyland",
+      "csv_file": "data2/Skyland/Skyland - CLEAN.txt",
+      "images_dir": "data2/Skyland",
+      "metadata": {
+        "neighborhood": "Skyland",
+        "style": "Mixed"
+      }
+    },
+    {
+      "name": "SouthCityPark",
+      "csv_file": "data2/South City Park/South City Park - CLEAN.txt",
+      "images_dir": "data2/South City Park",
+      "metadata": {
+        "neighborhood": "SouthCityPark",
+        "style": "Mixed"
+      }
+    },
+    {
+      "name": "StreetcarCommercial-Pearl",
+      "csv_file": "data2/Streetcar Commercial/Pearl - CLEAN.txt",
+      "images_dir": "data2/Streetcar Commercial",
+      "metadata": {
+        "neighborhood": "StreetcarCommercial",
+        "style": "Mixed",
+        "sub_area": "Pearl"
+      }
+    },
+    {
+      "name": "StreetcarCommercial-Tennyson",
+      "csv_file": "data2/Streetcar Commercial/Tennyson - CLEAN.txt",
+      "images_dir": "data2/Streetcar Commercial",
+      "metadata": {
+        "neighborhood": "StreetcarCommercial",
+        "style": "Mixed",
+        "sub_area": "Tennyson"
+      }
+    },
+    {
+      "name": "StreetcarCommercial-Gaylord",
+      "csv_file": "data2/Streetcar Commercial/Gaylord - CLEAN.txt",
+      "images_dir": "data2/Streetcar Commercial",
+      "metadata": {
+        "neighborhood": "StreetcarCommercial",
+        "style": "Mixed",
+        "sub_area": "Gaylord"
+      }
+    },
+    {
+      "name": "Sunnyside",
+      "csv_file": "data2/Sunnyside/Sunnyside - CLEAN.txt",
+      "images_dir": "data2/Sunnyside",
+      "metadata": {
+        "neighborhood": "Sunnyside",
+        "style": "Mixed"
+      }
+    }
+  ],
+  "notes": [
+    "This configuration maps the neighborhood-based data2/ folder structure",
+    "Images are co-located with CSV files in each neighborhood folder",
+    "Each dataset represents one neighborhood with mixed architectural styles",
+    "This is the simpler, flat structure that the current loader already supports"
+  ]
+}

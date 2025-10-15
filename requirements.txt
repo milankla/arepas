@@ -1,0 +1,7 @@
+# requirements.txt for Arepas
+# Add required packages for OpenAI Vision, image processing, and data handling
+openai
+pandas
+numpy
+Pillow
+loguru
