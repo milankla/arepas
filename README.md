@@ -1,7 +1,10 @@
+# Arepas
+
+[![CI](https://github.com/your-username/arepas/workflows/CI/badge.svg)](https://github.com/your-username/arepas/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
 
-Arepas is a Python project for fine-tuning an AI model (OpenAI Vision) to categorize historical architectural buildings based on multiple attributes. The project features a flexible data loading system that processes buildings with their associated images and architectural features.
+Arepas is a project for fine-tuning an AI model (OpenAI Vision) to categorize historical architectural buildings based on multiple attributes. The project features a high-performance data loading system that processes thousands of buildings with their associated images and architectural attributes.
 
 ## Features
 - 📊 **Flexible JSON-based configuration** for different data structures
@@ -28,6 +31,23 @@ Arepas is a Python project for fine-tuning an AI model (OpenAI Vision) to catego
    ```
 
 ## Project Structure
+```
+📦 arepas/
+├── 🎯 src/
+│   ├── loader/                    # Data loading system
+│   │   ├── __init__.py           # Package exports
+│   │   ├── configurable_loader.py # JSON-driven data loader
+│   │   ├── csv_parser.py         # Robust CSV parsing
+│   │   ├── image_index.py        # Image indexing
+│   │   └── load_config.py        # Configuration infrastructure
+│   ├── fine_tune.py              # Main pipeline entry point
+│   ├── log_config.py             # Logging configuration
+│   └── preprocess.py             # Image preprocessing utilities
+├── 🔧 scripts/                   # Utility scripts
+├── 📁 data/                      # Attribute files and images
+├── 📄 docs/                      # Technical documentation
+└── 🎯 requirements.txt           # Python dependencies
+```
 ```
 📦 arepas/
 ├── 🎯 src/
@@ -124,9 +144,3 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - Built for processing historical architectural building data
 - Optimized for Denver's architectural survey datasets
 - Designed for OpenAI Vision fine-tuning workflows
-
-## Notes
-- **Flexible**: JSON-based configuration for different data structures
-- **Robust**: Comprehensive error handling and validation
-- **Maintainable**: Clear separation of concerns and extensive documentation
-- **Type Safe**: Full type annotations for better IDE support
