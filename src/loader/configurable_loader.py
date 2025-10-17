@@ -39,7 +39,7 @@ class ConfigurableDataLoader:
     from a configuration file. No structure detection needed.
     """
     
-    def __init__(self, config_path: str = "config/data2.json"):
+    def __init__(self, config_path: str = "config/data.json"):
         """
         Initialize loader with configuration file.
         
@@ -339,7 +339,7 @@ class ConfigurableDataLoader:
 
 
 # Convenience function for quick loading
-def load_from_config(config_path: str = "config/data2.json") -> ConfigurableDataLoader:
+def load_from_config(config_path: str = "config/data.json") -> ConfigurableDataLoader:
     """
     Create a ConfigurableDataLoader from a config file.
     
@@ -365,7 +365,7 @@ if __name__ == "__main__":
     )
     
     # Determine which config to use
-    config_path = "config/data2.json"
+    config_path = "config/data.json"
     if len(sys.argv) > 1:
         config_path = sys.argv[1]
     

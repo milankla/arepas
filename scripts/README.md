@@ -25,14 +25,13 @@ python scripts/demo_configurable_loader.py
 ============================================================
 
 📋 1. Loading Configuration
-✅ Configuration loaded: config/data2.json
-   Description: Neighborhood-based organization
-   Datasets: 8
-   Neighborhoods: Cole, Regis, Skyland, SouthCityPark, StreetcarCommercial, Sunnyside
+✅ Configuration loaded: config/data.json
+   Description: Data organized by architectural style
+   Datasets: 19
 
 🔄 2. Loading Individual Dataset
-✅ Loaded Cole dataset
-   Buildings: 1335, With images: 1286 (96.3%), Images: 4466
+✅ Loaded dataset
+   Buildings: [count], With images: [count] ([percentage]%), Images: [count]
 ...
 ```
 

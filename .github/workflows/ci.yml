@@ -45,14 +45,14 @@ jobs:
         from src.loader import ConfigurableDataLoader
         import os
         
-        if os.path.exists('config/data2.json'):
+        if os.path.exists('config/data.json'):
             try:
-                loader = ConfigurableDataLoader('config/data2.json')
+                loader = ConfigurableDataLoader('config/data.json')
                 print('✅ ConfigurableDataLoader instantiation successful')
             except Exception as e:
                 print(f'⚠️  ConfigurableDataLoader test skipped: {e}')
         else:
-            print('⚠️  config/data2.json not found, skipping test')
+            print('⚠️  config/data.json not found, skipping test')
         "
 
   code-quality:

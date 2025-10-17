@@ -4,11 +4,11 @@
 
 ### 1. As a Python Module (Recommended)
 ```bash
-# Use default config (config/data2.json)
+# Use default config (config/data.json)
 python -m src.loader.configurable_loader
 
 # Use custom config
-python -m src.loader.configurable_loader config/data.json
+python -m src.loader.configurable_loader config/custom.json
 ```
 
 ### 2. Direct Python Execution
@@ -25,7 +25,7 @@ python src/loader/configurable_loader.py config/data.json
 from src.loader.configurable_loader import ConfigurableDataLoader
 
 # Load and print summary
-loader = ConfigurableDataLoader("config/data2.json")
+loader = ConfigurableDataLoader("config/data.json")
 data = loader.load_all_datasets()
 loader.print_summary(data)
 ```
@@ -42,15 +42,14 @@ When run from command line, the loader will:
 ## Example Output
 
 ```
-07:42:40 | INFO     | Starting ConfigurableDataLoader with config: config/data2.json
-07:42:40 | INFO     | Loading configuration from: config/data2.json
-07:42:40 | INFO     | Configuration valid: 8 datasets
+07:42:40 | INFO     | Starting ConfigurableDataLoader with config: config/data.json
+07:42:40 | INFO     | Loading configuration from: config/data.json
+07:42:40 | INFO     | Configuration valid: 19 datasets
 
 📋 Configuration Info:
-  Description: Configuration for data2/ folder - Neighborhood-based organization
-  Structure type: neighborhood-based
-  Total datasets: 8
-  Neighborhoods: Cole, Regis, Skyland, SouthCityPark, StreetcarCommercial, Sunnyside
+  Description: Configuration for data/ folder - Architectural style-based organization
+  Structure type: style-based
+  Total datasets: 19
 
 🔄 Loading all datasets...
 [Loading progress...]
@@ -59,19 +58,19 @@ When run from command line, the loader will:
 DATA LOADING SUMMARY
 ============================================================
 
-📊 Cole:
-  Buildings: 1335
-  Buildings with images: 1286 (96.3%)
-  Total images: 4466
+📊 Clayton-Bungalows:
+  Buildings: 8
+  Buildings with images: 8 (100%)
+  Total images: 25
 
 ... (more datasets)
 
 ============================================================
-✅ TOTAL: 8 datasets
-   Buildings: 8208
-   With images: 8074 (98.4%)
-   Total images: 28543
-   Avg images/building: 3.5
+✅ TOTAL: 19 datasets
+   Buildings: 198
+   With images: [count] ([percentage]%)
+   Total images: [count]
+   Avg images/building: [avg]
 ============================================================
 
 ✅ Data loading completed successfully!
@@ -81,22 +80,22 @@ DATA LOADING SUMMARY
 
 | Argument | Description | Default |
 |----------|-------------|---------|
-| None | Use default config | `config/data2.json` |
+| None | Use default config | `config/data.json` |
 | `<path>` | Path to custom config file | - |
 
 ## Examples
 
-### Load data2 structure (default)
+### Load default structure
 ```bash
 python -m src.loader.configurable_loader
 ```
 
-### Load data structure (when config exists)
+### Load custom configuration
 ```bash
-python -m src.loader.configurable_loader config/data.json
+python -m src.loader.configurable_loader config/custom.json
 ```
 
-### Load custom configuration
+### Load alternative configuration
 ```bash
 python -m src.loader.configurable_loader /path/to/my/config.json
 ```
@@ -122,16 +121,16 @@ Before using a config in your code:
 python -m src.loader.configurable_loader config/new_config.json
 ```
 
-### 4. Comparison Between Structures
+### 4. Comparison Between Configurations
 ```bash
-# Load data2
-python -m src.loader.configurable_loader config/data2.json > report_data2.txt
+# Load default config
+python -m src.loader.configurable_loader config/data.json > report_default.txt
 
-# Load data (when ready)
-python -m src.loader.configurable_loader config/data.json > report_data.txt
+# Load alternative config
+python -m src.loader.configurable_loader config/custom.json > report_custom.txt
 
 # Compare
-diff report_data2.txt report_data.txt
+diff report_default.txt report_custom.txt
 ```
 
 ## Integration with Scripts
@@ -183,4 +182,4 @@ $ python -m src.loader.configurable_loader config/missing.json
 
 - `scripts/demo_configurable_loader.py` - Comprehensive demo script
 - `docs/SUMMARY_REPORTING.md` - Documentation on summary features
-- `config/data2.json` - Example configuration file
+- `config/data.json` - Default configuration file

@@ -32,7 +32,7 @@ Paste the full error message and stack trace here
 **Data Context**
 - Number of neighborhoods: [e.g. 1, 6, all]
 - Dataset size: [e.g. ~1000 buildings, ~5000 images]
-- Data structure: [e.g. standard data2/ format, custom structure]
+- Data structure: [e.g. standard data/ format, custom structure]
 
 **Additional context**
 Add any other context about the problem here, including:

@@ -43,7 +43,7 @@ This directory contains technical documentation for the Arepas project.
 
 ## Data Structure Analysis
 
-- **[DUAL_STRUCTURE_ANALYSIS.md](DUAL_STRUCTURE_ANALYSIS.md)** - Analysis of data/ vs data2/
+- **[DUAL_STRUCTURE_ANALYSIS.md](DUAL_STRUCTURE_ANALYSIS.md)** - Analysis of different data structures
   - Structural differences
   - Detection strategies
   - Implementation plan

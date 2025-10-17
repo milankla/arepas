@@ -52,24 +52,24 @@ Added comprehensive summary reporting capabilities to `ConfigurableDataLoader`, 
 DATA LOADING SUMMARY
 ============================================================
 
-📊 Cole:
-  Buildings: 1335
-  Buildings with images: 1286 (96.3%)
-  Total images: 4466
+📊 Clayton-Bungalows:
+  Buildings: 8
+  Buildings with images: 8 (100%)
+  Total images: 25
 
-📊 Regis:
-  Buildings: 1535
-  Buildings with images: 1524 (99.3%)
-  Total images: 6125
+📊 Cole-Bungalows:
+  Buildings: 8
+  Buildings with images: 7 (87.5%)
+  Total images: 24
 
-... (6 more datasets)
+... (more datasets)
 
 ============================================================
-✅ TOTAL: 8 datasets
-   Buildings: 8208
-   With images: 8074 (98.4%)
-   Total images: 28543
-   Avg images/building: 3.5
+✅ TOTAL: 19 datasets
+   Buildings: 198
+   With images: [count] ([percentage]%)
+   Total images: [count]
+   Avg images/building: [avg]
 ============================================================
 ```
 
@@ -77,7 +77,7 @@ DATA LOADING SUMMARY
 
 ### Basic Usage:
 ```python
-loader = ConfigurableDataLoader("config/data2.json")
+loader = ConfigurableDataLoader("config/data.json")
 data = loader.load_all_datasets()
 loader.print_summary(data)  # Pretty formatted output
 ```
@@ -95,23 +95,23 @@ print(f"Total images: {summary['total_images']}")
 all_data = loader.load_all_datasets()
 loader.print_summary(all_data)
 
-# Load single neighborhood
-cole = loader.load_neighborhood("Cole")
-loader.print_summary({"Cole": cole})
+# Load single dataset
+dataset = loader.load_dataset("Clayton-Bungalows")
+loader.print_summary({"Clayton-Bungalows": dataset})
 
-# Load multiple neighborhoods
+# Load multiple datasets
 data = {
-    "Cole": loader.load_neighborhood("Cole"),
-    "Regis": loader.load_neighborhood("Regis"),
+    "Clayton-Bungalows": loader.load_dataset("Clayton-Bungalows"),
+    "Cole-Bungalows": loader.load_dataset("Cole-Bungalows"),
 }
 loader.print_summary(data)
 ```
 
 ## Demo Script
 
-Created `scripts/demo_configurable_loader.py` (120 lines) that demonstrates:
+Created `scripts/demo_configurable_loader.py` that demonstrates:
 - Loading all datasets with summary
-- Loading single neighborhood with merging
+- Loading individual datasets
 - Accessing summary statistics programmatically
 - Configuration info display
 
@@ -122,12 +122,10 @@ python scripts/demo_configurable_loader.py
 
 ## Test Results
 
-✅ Successfully tested on data2/ dataset:
-- Loaded 8 datasets (6 neighborhoods)
-- 8,208 buildings total
-- 98.4% image coverage
-- 28,543 total images
-- 3.5 average images per building
+✅ Successfully tested on data/ dataset:
+- Loaded 19 datasets (2 architectural styles across multiple neighborhoods)
+- 198 buildings total
+- Associated images loaded
 
 ## Benefits
 
