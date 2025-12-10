@@ -1,27 +1,34 @@
 """
-Arepas Data Loader Package
+Arepas data loader package.
 
-This package contains all the data loading functionality for the Arepas project,
-including CSV parsing, image indexing, and JSON-driven configuration.
+This package provides flexible data loading capabilities for historical
+architectural building datasets with CSV attributes and associated images.
 """
 
-# Core loading classes
 from .configurable_loader import ConfigurableDataLoader, NeighborhoodData
-
-# Specialized components
 from .csv_parser import RobustCSVParser, CSVParseError
 from .image_index import ImageIndex
+from .schema_loader import SchemaLoader, DiscoverDenverSchema, load_schema
+from .dataset_validator import (
+    DatasetValidator,
+    DatasetValidationReport,
+    RecordValidationResult,
+    FieldValidationError,
+    validate_dataset_file
+)
 
-# Convenience exports for common usage patterns
 __all__ = [
-    # Main classes
     'ConfigurableDataLoader',
     'NeighborhoodData',
-    
-    # Components
     'RobustCSVParser',
-    'ImageIndex',
-    
-    # Exceptions
     'CSVParseError',
+    'ImageIndex',
+    'SchemaLoader',
+    'DiscoverDenverSchema',
+    'load_schema',
+    'DatasetValidator',
+    'DatasetValidationReport',
+    'RecordValidationResult',
+    'FieldValidationError',
+    'validate_dataset_file',
 ]

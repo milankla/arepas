@@ -1,58 +1,39 @@
-# Running ConfigurableDataLoader from Command Line
+# Running from Command Line
 
-## Three Ways to Run
+## Overview
 
-### 1. As a Python Module (Recommended)
+The Arepas data system can be run from the command line for quick data validation, testing, and exploration. All loaders automatically integrate the Discover Denver Schema for validation.
+
+## ConfigurableDataLoader
+
+### Running the Loader
+
 ```bash
 # Use default config (config/data.json)
 python -m src.loader.configurable_loader
 
 # Use custom config
-python -m src.loader.configurable_loader config/custom.json
-```
+python -m src.loader.configurable_loader config/data2.json
 
-### 2. Direct Python Execution
-```bash
-# Use default config
-python src/loader/configurable_loader.py
-
-# Use custom config
+# Alternative: Direct execution
 python src/loader/configurable_loader.py config/data.json
 ```
 
-### 3. From Python REPL or Script
-```python
-from src.loader.configurable_loader import ConfigurableDataLoader
+### What It Does
 
-# Load and print summary
-loader = ConfigurableDataLoader("config/data.json")
-data = loader.load_all_datasets()
-loader.print_summary(data)
-```
+1. **Load Configuration** - Reads JSON config file
+2. **Load Schema** - Automatically loads Discover Denver Schema
+3. **Validate Columns** - Checks CSV columns against schema
+4. **Load All Datasets** - Loads data with image matching
+5. **Print Summary** - Displays statistics and coverage
 
-## What It Does
-
-When run from command line, the loader will:
-
-1. **Load Configuration** - Reads the JSON config file
-2. **Display Config Info** - Shows structure type, datasets, neighborhoods
-3. **Load All Datasets** - Loads all data from configured paths
-4. **Print Summary** - Beautiful formatted summary with statistics
-
-## Example Output
+### Example Output
 
 ```
 07:42:40 | INFO     | Starting ConfigurableDataLoader with config: config/data.json
-07:42:40 | INFO     | Loading configuration from: config/data.json
+07:42:40 | INFO     | Loading schema from: schema/Discover Denver Schema.txt
+07:42:40 | INFO     | Schema loaded: 55 fields defined
 07:42:40 | INFO     | Configuration valid: 19 datasets
-
-📋 Configuration Info:
-  Description: Configuration for data/ folder - Architectural style-based organization
-  Structure type: style-based
-  Total datasets: 19
-
-🔄 Loading all datasets...
-[Loading progress...]
 
 ============================================================
 DATA LOADING SUMMARY
@@ -63,123 +44,221 @@ DATA LOADING SUMMARY
   Buildings with images: 8 (100%)
   Total images: 25
 
-... (more datasets)
-
 ============================================================
 ✅ TOTAL: 19 datasets
    Buildings: 198
-   With images: [count] ([percentage]%)
-   Total images: [count]
-   Avg images/building: [avg]
+   Images: [count]
 ============================================================
-
-✅ Data loading completed successfully!
 ```
 
-## Command Line Arguments
+## Demo Scripts
 
-| Argument | Description | Default |
-|----------|-------------|---------|
-| None | Use default config | `config/data.json` |
-| `<path>` | Path to custom config file | - |
+### 1. Demo ConfigurableDataLoader
 
-## Examples
-
-### Load default structure
 ```bash
-python -m src.loader.configurable_loader
+python scripts/demo_configurable_loader.py
 ```
 
-### Load custom configuration
+**Features**:
+- Configuration loading
+- Individual dataset loading
+- Neighborhood-based loading
+- Summary statistics
+- Schema integration demonstration
+
+### 2. Demo Schema Loader
+
 ```bash
-python -m src.loader.configurable_loader config/custom.json
+python scripts/demo_schema_loader.py
 ```
 
-### Load alternative configuration
+**Features**:
+- Schema parsing and display
+- Field type exploration
+- Valid options listing
+- Required field identification
+- Multipart field structures
+
+### 3. Demo Dataset Validation
+
 ```bash
-python -m src.loader.configurable_loader /path/to/my/config.json
+python -m scripts.demo_dataset_validation
+```
+
+**Features**:
+- Schema-based validation
+- Threshold validation (≤10 missing = warnings)
+- Top missing field identification
+- Per-dataset validation reports
+
+**Example Output**:
+```
+🔍 Validating datasets against schema...
+
+✅ Validation complete: 27/27 valid records
+✅ Validation complete: 8/8 valid records
+✅ Validation complete: 7/8 valid records (missing: Building Plan, Roof Features, ...)
+
+📊 OVERALL VALIDATION SUMMARY:
+   Total records: 198
+   Valid: 194 (98.0%)
+   Invalid: 4 (2.0%)
+```
+
+### 4. Field Coverage Report
+
+```bash
+python scripts/field_coverage_report.py
+```
+
+**Features**:
+- Field presence analysis
+- Required vs optional coverage
+- Missing field matrix
+- CSV export capability
+
+## Configuration Files
+
+### For data/ folder (style-based)
+```bash
+python -m src.loader.configurable_loader config/data.json
+```
+
+Config structure:
+```json
+{
+  "version": "1.0",
+  "description": "Style-based organization",
+  "base_path": ".",
+  "datasets": [
+    {
+      "name": "Clayton-Bungalows",
+      "csv_file": "data/Bungalows/Clayton Data - CLEAN.txt",
+      "images_dir": "data/Bungalows/Bungalows - Photos"
+    }
+  ]
+}
+```
+
+### For data2/ folder (neighborhood-based)
+```bash
+python -m src.loader.configurable_loader config/data2.json
+```
+
+Config structure:
+```json
+{
+  "version": "1.0",
+  "description": "Neighborhood-based organization",
+  "base_path": ".",
+  "datasets": [
+    {
+      "name": "Cole",
+      "csv_file": "data2/Cole/Cole - CLEAN.txt",
+      "images_dir": "data2/Cole"
+    }
+  ]
+}
 ```
 
 ## Use Cases
 
 ### 1. Quick Data Validation
-Run the loader to verify:
-- All CSV files exist
-- All image directories exist
-- Data loads without errors
-- Coverage statistics
-
-### 2. Data Summary Report
-Get a quick overview of:
-- Total buildings
-- Image coverage
-- Per-neighborhood statistics
-
-### 3. Testing New Configurations
-Before using a config in your code:
 ```bash
-python -m src.loader.configurable_loader config/new_config.json
+# Validate all data loads correctly
+python -m src.loader.configurable_loader config/data.json
+
+# Check for errors or warnings in output
 ```
 
-### 4. Comparison Between Configurations
+### 2. Schema Validation
 ```bash
-# Load default config
-python -m src.loader.configurable_loader config/data.json > report_default.txt
+# Run full schema validation
+python -m scripts.demo_dataset_validation
 
-# Load alternative config
-python -m src.loader.configurable_loader config/custom.json > report_custom.txt
+# Check validation rates and missing fields
+```
+
+### 3. Test New Configuration
+```bash
+# Create new config file
+nano config/custom.json
+
+# Test it
+python -m src.loader.configurable_loader config/custom.json
+```
+
+### 4. Performance Benchmarking
+```bash
+# Test image matching performance
+python scripts/test_performance.py
+
+# Should show ~1.0ms per building
+```
+
+### 5. Compare Configurations
+```bash
+# Generate reports for different configs
+python -m src.loader.configurable_loader config/data.json > report_data.txt
+python -m src.loader.configurable_loader config/data2.json > report_data2.txt
 
 # Compare
-diff report_default.txt report_custom.txt
+diff report_data.txt report_data2.txt
 ```
 
-## Integration with Scripts
+## Python REPL Usage
 
-The `__main__` block makes it easy to test the loader standalone:
+```python
+from src.loader import ConfigurableDataLoader, DatasetValidator
 
-```bash
-# Quick test during development
-python -m src.loader.configurable_loader
+# Load data with schema
+loader = ConfigurableDataLoader("config/data.json")
+data = loader.load_all_datasets()
 
-# Part of a data pipeline
-python -m src.loader.configurable_loader && python my_analysis.py
+# Print summary
+loader.print_summary(data)
 
-# Conditional execution
-python -m src.loader.configurable_loader || echo "Data loading failed!"
+# Validate
+validator = DatasetValidator(loader.schema)
+# ... validation code
 ```
+
+## Command Line Arguments
+
+| Command | Config | Description |
+|---------|--------|-------------|
+| `python -m src.loader.configurable_loader` | Default (`config/data.json`) | Load with default config |
+| `python -m src.loader.configurable_loader <path>` | Custom path | Load with custom config |
+| `python scripts/demo_configurable_loader.py` | Hardcoded | Run demo script |
+| `python -m scripts.demo_dataset_validation` | Both configs | Validate all datasets |
 
 ## Error Handling
 
-The loader will:
-- ✅ Print clear error messages
-- ✅ Exit with code 1 on failure
-- ✅ Show full traceback for debugging
-- ✅ Validate all paths before loading
+The system provides clear error messages:
 
-Example error:
 ```bash
+# Missing config
 $ python -m src.loader.configurable_loader config/missing.json
-07:42:40 | ERROR    | ❌ Failed to load data: Configuration file not found: config/missing.json
-[Traceback...]
+ERROR - Configuration file not found: config/missing.json
+
+# Missing CSV
+$ python -m src.loader.configurable_loader config/bad.json
+ERROR - CSV file not found: data/Missing/file.txt
+
+# Schema validation warnings
+WARNING - Dataset Cole: Missing 3 required fields: Building Plan, Roof Features, ...
 ```
-
-## Comparison with Other Loaders
-
-| Loader | Command | Config | Output |
-|--------|---------|--------|--------|
-| `data_loader.py` | `python -m src.loader.data_loader` | Hardcoded | Basic summary |
-| `configurable_loader.py` | `python -m src.loader.configurable_loader [config]` | JSON file | Enhanced summary |
-| `neighborhood_loader.py` | N/A (library only) | - | - |
 
 ## Tips
 
-1. **Always test with default first**: `python -m src.loader.configurable_loader`
-2. **Check exit code**: `echo $?` (should be 0 on success)
-3. **Redirect output**: `python -m src.loader.configurable_loader > report.txt 2>&1`
-4. **Time execution**: `time python -m src.loader.configurable_loader`
+1. **Test configuration first**: Always run loader to verify paths
+2. **Check exit codes**: `echo $?` should be 0 on success
+3. **Redirect output**: `... > report.txt 2>&1` for log files
+4. **Time execution**: `time python -m ...` for performance
+5. **Use module syntax**: `python -m` handles imports correctly
 
 ## See Also
 
-- `scripts/demo_configurable_loader.py` - Comprehensive demo script
-- `docs/SUMMARY_REPORTING.md` - Documentation on summary features
-- `config/data.json` - Default configuration file
+- [SCHEMA_INTEGRATION.md](SCHEMA_INTEGRATION.md) - Schema system details
+- [PROJECT_STRUCTURE.md](PROJECT_STRUCTURE.md) - Architecture overview
+- [../scripts/README.md](../scripts/README.md) - Script documentation

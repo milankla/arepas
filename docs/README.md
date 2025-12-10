@@ -1,61 +1,48 @@
 # Technical Documentation
 
-This directory contains technical documentation for the Arepas project.
+Technical documentation for the Arepas historical architectural building data system.
 
-## Architecture & Design
+## Core Documentation
 
-- **[PROJECT_STRUCTURE.md](PROJECT_STRUCTURE.md)** - Complete project architecture overview
-  - Enterprise data loading system
+### Architecture & Design
+
+- **[PROJECT_STRUCTURE.md](PROJECT_STRUCTURE.md)** - Project architecture overview
+  - Data loading system design
+  - Schema integration
   - Performance optimizations
-  - API design patterns
   - Directory structure
 
-## Configuration & Usage
+- **[SCHEMA_INTEGRATION.md](SCHEMA_INTEGRATION.md)** - Schema-aware data loading
+  - Discover Denver Schema integration
+  - Validation system with intelligent thresholds
+  - Rich data structures with field metadata
+  - Usage examples
+
+### Usage Guides
 
 - **[RUNNING_FROM_COMMAND_LINE.md](RUNNING_FROM_COMMAND_LINE.md)** - CLI usage guide
-  - How to run ConfigurableDataLoader from terminal
-  - Command-line arguments
-  - Usage examples
+  - Running loaders and validators from command line
+  - Configuration file usage
+  - Demo scripts overview
 
-## Development History
+## Quick Start
 
-- **[REFACTORING_SUMMARY.md](REFACTORING_SUMMARY.md)** - Code evolution summary
-  - Refactoring rationale
-  - Performance improvements
-  - Architecture decisions
+```python
+from src.loader import ConfigurableDataLoader
 
-- **[FINAL_REFACTORING_SUMMARY.md](FINAL_REFACTORING_SUMMARY.md)** - Final config extraction
-  - Separation of config infrastructure
-  - Module responsibilities
-  - Benefits of refactoring
+# Load data with automatic schema integration
+loader = ConfigurableDataLoader('config/data.json')
+data = loader.load_all_datasets()
 
-## Feature Documentation
+# Validate against schema
+from src.loader import DatasetValidator
+validator = DatasetValidator(loader.schema)
+results = validator.validate_dataset(data)
+```
 
-- **[SUMMARY_REPORTING.md](SUMMARY_REPORTING.md)** - Summary reporting features
-  - `get_summary()` method documentation
-  - `print_summary()` usage
-  - Statistics and metrics
+## Additional Resources
 
-- **[SUMMARY_FEATURE_SUMMARY.md](SUMMARY_FEATURE_SUMMARY.md)** - Summary feature implementation
-  - Implementation details
-  - Code additions
-  - Usage examples
-
-## Data Structure Analysis
-
-- **[DUAL_STRUCTURE_ANALYSIS.md](DUAL_STRUCTURE_ANALYSIS.md)** - Analysis of different data structures
-  - Structural differences
-  - Detection strategies
-  - Implementation plan
-
-- **[HYBRID_SOLUTION_ANALYSIS.md](HYBRID_SOLUTION_ANALYSIS.md)** - JSON configuration approach
-  - Solution comparison
-  - Configuration schema
-  - Migration plan
-
-## Quick Links
-
-- Main documentation: [../README.md](../README.md)
-- Contributing guidelines: [../CONTRIBUTING.md](../CONTRIBUTING.md)
-- Changelog: [../CHANGELOG.md](../CHANGELOG.md)
-- Scripts documentation: [../scripts/README.md](../scripts/README.md)
+- Main project documentation: [../README.md](../README.md)
+- Script documentation: [../scripts/README.md](../scripts/README.md)
+- Configuration examples: [../config/](../config/)
+- Schema definition: [../schema/Discover Denver Schema.txt](../schema/)

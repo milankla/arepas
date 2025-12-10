@@ -15,10 +15,12 @@ try:
     from .csv_parser import RobustCSVParser
     from .image_index import ImageIndex
     from .load_config import DataStructureConfig
+    from .schema_loader import SchemaLoader, DiscoverDenverSchema
 except ImportError:
     from csv_parser import RobustCSVParser
     from image_index import ImageIndex
     from load_config import DataStructureConfig
+    from schema_loader import SchemaLoader, DiscoverDenverSchema
 
 
 @dataclass
@@ -29,6 +31,7 @@ class NeighborhoodData:
     total_buildings: int
     buildings_with_images: int
     total_images: int
+    schema: Optional['DiscoverDenverSchema'] = None
 
 
 class ConfigurableDataLoader:
@@ -39,12 +42,14 @@ class ConfigurableDataLoader:
     from a configuration file. No structure detection needed.
     """
     
-    def __init__(self, config_path: str = "config/data.json"):
+    def __init__(self, config_path: str = "config/data.json", 
+                 schema_path: Optional[str] = None):
         """
-        Initialize loader with configuration file.
+        Initialize loader with configuration file and optional schema.
         
         Args:
             config_path: Path to JSON configuration file
+            schema_path: Path to schema JSON file (default: schema/Discover Denver Schema.txt)
         """
         self.config_path = Path(config_path)
         
@@ -56,6 +61,15 @@ class ConfigurableDataLoader:
         self.base_path = Path(self.config.base_path)
         
         self.csv_parser = RobustCSVParser()
+        
+        # Load schema
+        if schema_path is None:
+            schema_path = "schema/Discover Denver Schema.txt"
+        
+        logger.info(f"Loading schema from: {schema_path}")
+        schema_loader = SchemaLoader(schema_path)
+        self.schema = schema_loader.load_schema()
+        logger.info(f"Schema loaded: {len(self.schema.fields)} fields defined")
         
         # Validate all datasets
         self._validate_config()
@@ -71,6 +85,40 @@ class ConfigurableDataLoader:
             logger.warning(f"Invalid datasets in config: {invalid}")
         else:
             logger.info(f"Configuration valid: {len(self.config.datasets)} datasets")
+    
+    def _validate_columns_against_schema(self, df: pd.DataFrame, dataset_name: str) -> None:
+        """
+        Validate DataFrame columns against schema field names.
+        
+        Args:
+            df: DataFrame to validate
+            dataset_name: Name of dataset for logging
+        """
+        schema_fields = self.schema.get_field_names()
+        df_columns = set(df.columns)
+        
+        # Check for missing required fields
+        required_fields = {f.name for f in self.schema.get_required_fields()}
+        missing_required = required_fields - df_columns
+        
+        if missing_required:
+            logger.warning(f"Dataset {dataset_name}: Missing {len(missing_required)} required fields")
+            logger.debug(f"Missing required fields: {sorted(missing_required)[:5]}...")
+        
+        # Check for unknown columns (not in schema)
+        unknown_columns = df_columns - schema_fields
+        
+        # Filter out common ID columns that may not be in schema
+        common_id_cols = {'id', 'smithsonianNumber', 'building_id', 'record_id'}
+        unknown_columns = unknown_columns - common_id_cols
+        
+        if unknown_columns:
+            logger.debug(f"Dataset {dataset_name}: {len(unknown_columns)} columns not in schema")
+            logger.debug(f"Unknown columns: {sorted(unknown_columns)[:5]}...")
+        
+        # Report validation summary
+        matching_fields = len(df_columns & schema_fields)
+        logger.info(f"Dataset {dataset_name}: {matching_fields}/{len(schema_fields)} schema fields present")
     
     def load_dataset(self, dataset_name: str) -> NeighborhoodData:
         """
@@ -98,6 +146,9 @@ class ConfigurableDataLoader:
         df = self.csv_parser.parse_file(str(csv_path))
         logger.info(f"Loaded {len(df)} records from CSV")
         
+        # Validate columns against schema
+        self._validate_columns_against_schema(df, dataset_name)
+        
         # Create image index
         logger.debug(f"Building image index: {images_dir}")
         image_index = ImageIndex(str(images_dir))
@@ -117,7 +168,8 @@ class ConfigurableDataLoader:
             buildings=buildings,
             total_buildings=len(buildings),
             buildings_with_images=buildings_with_images,
-            total_images=total_images
+            total_images=total_images,
+            schema=self.schema
         )
     
     def load_all_datasets(self) -> Dict[str, NeighborhoodData]:
@@ -206,12 +258,13 @@ class ConfigurableDataLoader:
             buildings=merged_buildings,
             total_buildings=len(merged_buildings),
             buildings_with_images=buildings_with_images,
-            total_images=total_images
+            total_images=total_images,
+            schema=self.schema
         )
     
     def _build_building_data(self, df: pd.DataFrame, image_index: ImageIndex,
                             dataset_name: str) -> Dict[str, Dict[str, Any]]:
-        """Build building data dictionary from DataFrame."""
+        """Build building data dictionary from DataFrame with schema validation."""
         buildings = {}
         
         # Find ID column
@@ -230,8 +283,33 @@ class ConfigurableDataLoader:
                 # Find images for this building
                 images = image_index.find_images(building_id, smithsonian)
                 
+                # Build attributes dict with schema field types
+                attributes = {}
+                for col in df.columns:
+                    value = row[col]
+                    
+                    # Get schema field if it exists
+                    schema_field = self.schema.get_field(col)
+                    
+                    # Store value with type information
+                    if schema_field:
+                        attributes[col] = {
+                            'value': value,
+                            'type': schema_field.field_type,
+                            'required': schema_field.required,
+                            'options': [opt.name for opt in schema_field.options] if schema_field.options else None
+                        }
+                    else:
+                        # Column not in schema, store as-is
+                        attributes[col] = {
+                            'value': value,
+                            'type': 'unknown',
+                            'required': False,
+                            'options': None
+                        }
+                
                 buildings[building_id] = {
-                    'attributes': row,
+                    'attributes': attributes,
                     'images': images,
                     'dataset': dataset_name
                 }

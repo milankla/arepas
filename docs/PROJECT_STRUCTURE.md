@@ -1,123 +1,179 @@
 # Arepas Project Architecture
 
-## 🏗️ **Data Loading System**
+## 🏗️ Overview
 
-This document outlines the architecture of the Arepas project, a flexible data loading system for processing historical architectural building data.
+Arepas is a flexible, schema-aware data loading system for processing historical architectural building data with associated images. The system integrates the **Discover Denver Schema** for automatic validation and rich metadata.
 
-## 📊 **Project Overview**
-
-This project provides a flexible data loading system for processing historical architectural building data with associated images.
-
-## 📦 **Complete Project Structure**
+## 📦 Project Structure
 
 ```
 📦 arepas/
-├── 🎯 src/                           # Core application source code
-│   ├── loader/                       # Data loading system
-│   │   ├── __init__.py              # Package exports and public API
-│   │   ├── configurable_loader.py   # JSON-driven loader (any structure)
-│   │   ├── csv_parser.py            # Robust CSV parsing with validation
+├── 🎯 src/                           # Core application source
+│   ├── loader/                       # Data loading and validation system
+│   │   ├── __init__.py              # Public API exports
+│   │   ├── configurable_loader.py   # JSON-driven loader with schema integration
+│   │   ├── csv_parser.py            # Robust CSV parsing
 │   │   ├── image_index.py           # Image indexing and matching
-│   │   └── load_config.py           # Configuration infrastructure
-│   ├── fine_tune.py                 # Main pipeline entry point
-│   ├── log_config.py                # Logging configuration
-│   └── preprocess.py                # Image preprocessing utilities
-├── 🔧 scripts/                      # Development and utility scripts
-├── 📁 data/                         # Attribute data and images
+│   │   ├── load_config.py           # Configuration infrastructure
+│   │   ├── schema_loader.py         # Discover Denver Schema loader
+│   │   └── dataset_validator.py     # Schema-based validation with thresholds
+│   ├── fine_tune.py                 # Pipeline entry point
+│   └── preprocess.py                # Image preprocessing
+├── 🔧 scripts/                      # Demo and utility scripts
+│   ├── demo_configurable_loader.py  # Loader demonstration
+│   ├── demo_schema_loader.py        # Schema exploration
+│   ├── demo_dataset_validation.py   # Validation demonstration
+│   ├── field_coverage_report.py     # Coverage analysis
+│   ├── test_performance.py          # Performance benchmarking
+│   └── verify_github_ready.py       # Project validation
+├── 📁 data/                         # Style-based organization
 │   ├── Bungalows/                   # Bungalow architectural style
 │   │   ├── Clayton Data - CLEAN.txt
 │   │   ├── Cole Data - CLEAN.txt
-│   │   ├── Regis - CLEAN.txt
-│   │   ├── [... more neighborhood files]
 │   │   └── Bungalows - Photos/
-│   └── Minimal Traditional/          # Minimal Traditional architectural style
-│       ├── Barnum - CLEAN.txt
-│       ├── Clayton - CLEAN.txt
-│       ├── [... more neighborhood files]
+│   └── Minimal Traditional/         # Minimal Traditional style
 │       └── Minimal Traditional - Photos/
+├── 📁 data2/                        # Neighborhood-based organization
+│   ├── Cole/                        # Neighborhood folder
+│   │   ├── Cole - CLEAN.txt
+│   │   └── [images]
+│   ├── Regis/
+│   └── [other neighborhoods]
+├── � schema/                       # Schema definitions
+│   └── Discover Denver Schema.txt   # 55-field schema definition
+├── 📁 config/                       # Configuration files
+│   ├── data.json                    # Config for data/ folder
+│   └── data2.json                   # Config for data2/ folder
 ├── 📁 docs/                         # Technical documentation
-│   ├── PROJECT_STRUCTURE.md         # This file - architecture documentation
-│   └── [Additional documentation]
-├── 📋 README.md                     # Main project documentation
-├── 🎯 requirements.txt              # Python dependencies
-└── 📁 config/                       # Configuration files
-    └── data.json                    # Data structure configuration
+└── requirements.txt                 # Python dependencies
 ```
 
-## 🏛️ **Core Architecture Components**
+## 🏛️ Core Components
 
-### 1. 🎯 **src/loader/** - Data Loading System
-
-#### **Core Philosophy: Single Responsibility + Flexibility**
+### 1. Data Loading System (`src/loader/`)
 
 | Module | Purpose | Key Features |
 |--------|---------|--------------|
-| `configurable_loader.py` | JSON-Driven Loading | Flexible structure mapping, any directory layout, CLI support |
-| `csv_parser.py` | Robust CSV Processing | Error tolerance, field validation, fallback parsing |
-| `image_index.py` | Image Indexing | Hash-based lookups, pattern matching, multi-extension support |
-| `load_config.py` | Configuration Infrastructure | JSON loading, validation, error handling |
+| `configurable_loader.py` | Schema-aware data loading | Automatic schema integration, JSON configuration, flexible structure mapping |
+| `schema_loader.py` | Schema parsing | Loads 55-field Discover Denver Schema with types, requirements, valid options |
+| `dataset_validator.py` | Schema validation | Intelligent threshold-based validation (≤10 missing = valid with warnings) |
+| `csv_parser.py` | CSV processing | Error tolerance, field validation, fallback parsing |
+| `image_index.py` | Image matching | Hash-based lookups, pattern matching, multi-extension support |
+| `load_config.py` | Configuration | JSON loading, validation, dataset queries |
 
-### 2. 🔧 **scripts/** - Development Utilities
+### 2. Schema System
 
-Utility scripts for development and testing purposes.
+**Discover Denver Schema** (55 fields):
+- **24 required fields**: Original Use, Building Form, Roof Type, etc.
+- **31 optional fields**: Year Built, Architect, Style, etc.
+- **Field types**: single, multi, text, longtext, multipart
+- **Multipart fields**: Window (Type, Location, Features), Entrance (Type, Location)
+- **Valid options**: Pre-defined choices per field (e.g., 33 Original Use options)
 
-### 3. 📁 **Data Organization**
+**Validation Thresholds**:
+- Records with **≤10 missing required fields**: Valid with warnings
+- Records with **>10 missing required fields**: Invalid with errors
+- Invalid options always marked as errors
 
-#### **data/** - Attribute Files and Images by Architectural Style
-- **Organized by style**: Bungalows, Minimal Traditional
-- **Clean format**: Standardized CSV files with building attributes
-- **Images**: Associated photos organized by architectural style
-- **Naming convention**: `{ID}_{ADDRESS}.{HASH}.jpg`
+### 3. Data Structure
 
-## 🚀 **Technical Features**
+**Rich Metadata Per Field**:
+```python
+{
+    'field_name': {
+        'value': 'Domestic – Single Dwelling',
+        'type': 'single',
+        'required': True,
+        'options': ['Domestic – Single Dwelling', 'Commercial', ...]
+    }
+}
+```
 
-### **Image Matching System**
-1. **Hash-Based Index**: Pre-built index for efficient image lookups
-2. **Pattern Matching**: Multiple matching strategies (ID, street number, Smithsonian numbers)
-3. **Multi-Extension Support**: Handles .jpg, .jpeg, .png formats
-4. **Memory Efficiency**: Optimized data structures
+**Additional Metadata** (29 fields):
+- `address`, `smithsonianNumber`, `yearBuilt`, `surveyLevel`
+- Coordinates: `latitude`, `longitude`
+- Timestamps: `surveyedAt`, `createdAt`, `updatedAt`
+- Administrative: `city`, `township`, `range`, `section`
 
-## 🎯 **API Usage**
+## 🚀 Key Features
 
-### **ConfigurableDataLoader Usage**
+### Schema Integration
+- **Automatic loading**: Schema loaded on ConfigurableDataLoader initialization
+- **Column validation**: Warns about missing/unknown columns during loading
+- **Field metadata**: Each attribute includes type, requirement status, valid options
+- **Type safety**: Dataclass-based schema with comprehensive type hints
+
+### Intelligent Validation
+- **Threshold system**: Configurable error threshold (default: 10)
+- **Warning vs Error**: Missing fields below threshold = warnings, above = errors
+- **Detailed reporting**: Shows top 3 most common missing fields
+- **Multipart support**: Special handling for complex fields (Window, Entrance)
+
+### Performance
+- **Hash-based indexing**: O(1) image lookups
+- **Optimized matching**: ~1.0ms per building
+- **Memory efficient**: Pre-built indexes, lazy loading where possible
+
+### Flexibility
+- **Any structure**: JSON config supports both `data/` and `data2/` layouts
+- **Multiple formats**: Tab-delimited, comma-delimited CSV support
+- **Neighborhood merging**: Combine multiple CSVs per neighborhood
+
+## 🎯 Usage Examples
+
+### Basic Loading with Schema
 ```python
 from src.loader import ConfigurableDataLoader
 
-# Load all datasets from configuration
+# Schema automatically loaded from schema/Discover Denver Schema.txt
 loader = ConfigurableDataLoader('config/data.json')
-results = loader.load_all_datasets()
+data = loader.load_all_datasets()
 
-print(f"Loaded {len(results)} datasets")
-
-# Get summary statistics
-loader.print_summary()
+# Access schema information
+print(f"Schema fields: {len(loader.schema.fields)}")
+print(f"Required fields: {len(loader.schema.get_required_fields())}")
 ```
 
-## 🔄 **Architecture Evolution**
+### Validation
+```python
+from src.loader import DatasetValidator
 
-The project has evolved through several phases:
+validator = DatasetValidator(loader.schema, error_threshold=10)
+results = validator.validate_all_datasets(data)
 
-1. **Initial Implementation**: Basic CSV loading with hardcoded paths
-2. **Optimization**: Image indexing system for efficient lookups
-3. **Flexibility**: JSON-based configuration for different data structures
-4. **Consolidation**: Cleaned up to minimal, maintainable codebase
-5. **Production Ready**: Comprehensive error handling and documentation
+# Results show ~90% validation rate
+print(f"Valid: {results.valid_records}/{results.total_records}")
+```
 
-## 🎯 **Design Principles**
+### Rich Data Access
+```python
+building = data['Clayton-Bungalows'].buildings['DIS.14425']
 
-1. **Single Responsibility**: Each module has one clear purpose
-2. **Type Safety**: Comprehensive type hints throughout
-3. **Error Handling**: Robust error handling with detailed reporting
-4. **Flexibility**: JSON-based configuration for any data structure
-5. **Maintainability**: Clear interfaces and documentation
-6. **Simplicity**: Minimal dependencies, clean codebase
+# Access field with metadata
+original_use = building['attributes']['Original Use']
+print(original_use['value'])      # "Domestic – Single Dwelling"
+print(original_use['required'])   # True
+print(original_use['options'])    # List of 33 valid options
+```
 
-## 🚀 **Extensibility**
+## 🔄 Design Principles
 
-The architecture is designed for easy extension:
-- **New data structures**: Add via JSON configuration
-- **Different data sources**: Implement custom parsers
-- **Additional validation**: Extend validation system
-- **Custom workflows**: Build on top of the flexible loader
+1. **Schema-First**: Schema drives validation and structure
+2. **Threshold Intelligence**: Realistic validation acknowledging data gaps
+3. **Type Safety**: Comprehensive type hints throughout
+4. **Single Responsibility**: Each module has one clear purpose
+5. **Flexibility**: JSON config adapts to any directory structure
+6. **Maintainability**: Clean interfaces, comprehensive documentation
 
-This flexible architecture processes historical building data for AI model training and analysis.
+## 📊 Validation Results
+
+Across 198 records in 19 datasets:
+- **~90% validation rate** (vs 0% before threshold system)
+- **Most datasets 87-100% valid**
+- **Only 4 records** with >10 missing fields
+
+Common missing fields:
+- Building Plan, Roof Features, Architectural Style
+- Local/NR Evaluation fields (archival metadata)
+
+This architecture provides a production-ready system for loading, validating, and enriching historical building data for AI training and analysis.

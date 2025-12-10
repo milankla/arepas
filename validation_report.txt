@@ -1,0 +1,214 @@
+2025-10-27 19:34:47.612 | INFO     | __main__:main:16 - ================================================================================
+2025-10-27 19:34:47.612 | INFO     | __main__:main:17 - 🔍 DATASET VALIDATION DEMO
+2025-10-27 19:34:47.612 | INFO     | __main__:main:18 - ================================================================================
+2025-10-27 19:34:47.612 | INFO     | __main__:main:19 - 
+2025-10-27 19:34:47.612 | INFO     | __main__:main:22 - 📋 Step 1: Loading Discover Denver Schema
+2025-10-27 19:34:47.612 | INFO     | __main__:main:23 - --------------------------------------------------------------------------------
+2025-10-27 19:34:47.612 | INFO     | src.loader.schema_loader:load_schema:276 - Loading schema from: schema/Discover Denver Schema.txt
+2025-10-27 19:34:47.613 | SUCCESS  | src.loader.schema_loader:load_schema:284 - ✅ Schema loaded successfully: 55 fields
+2025-10-27 19:34:47.613 | SUCCESS  | __main__:main:25 - ✅ Schema loaded: 55 fields
+2025-10-27 19:34:47.613 | INFO     | __main__:main:26 - 
+2025-10-27 19:34:47.613 | INFO     | __main__:main:29 - 📂 Step 2: Loading Datasets
+2025-10-27 19:34:47.613 | INFO     | __main__:main:30 - --------------------------------------------------------------------------------
+2025-10-27 19:34:47.613 | INFO     | src.loader.configurable_loader:__init__:54 - Loading configuration from: config/data.json
+2025-10-27 19:34:47.614 | INFO     | src.loader.configurable_loader:_validate_config:73 - Configuration valid: 19 datasets
+2025-10-27 19:34:47.614 | INFO     | src.loader.configurable_loader:load_dataset:90 - Loading dataset: Clayton-Bungalows
+2025-10-27 19:34:47.614 | DEBUG    | src.loader.configurable_loader:load_dataset:97 - Loading CSV: data/Bungalows/Clayton Data - CLEAN.txt
+2025-10-27 19:34:47.614 | INFO     | src.loader.csv_parser:parse_file:46 - Parsing CSV file: data/Bungalows/Clayton Data - CLEAN.txt
+2025-10-27 19:34:47.619 | INFO     | src.loader.configurable_loader:load_dataset:99 - Loaded 8 records from CSV
+2025-10-27 19:34:47.619 | DEBUG    | src.loader.configurable_loader:load_dataset:102 - Building image index: data/Bungalows/Bungalows - Photos
+2025-10-27 19:34:47.619 | DEBUG    | src.loader.configurable_loader:_build_building_data:223 - Using ID column: id
+2025-10-27 19:34:47.620 | DEBUG    | src.loader.image_index:_build_index:44 - Building image index for: data/Bungalows/Bungalows - Photos
+2025-10-27 19:34:47.620 | INFO     | src.loader.image_index:_build_index:50 - Found 305 images in Bungalows - Photos
+2025-10-27 19:34:47.621 | INFO     | src.loader.image_index:_build_index:56 - Built index with 471 entries
+2025-10-27 19:34:47.621 | INFO     | src.loader.configurable_loader:load_dataset:112 - Dataset Clayton-Bungalows: 8 buildings, 8 with images, 25 total images
+2025-10-27 19:34:47.621 | INFO     | src.loader.configurable_loader:load_dataset:90 - Loading dataset: Cole-Bungalows
+2025-10-27 19:34:47.621 | DEBUG    | src.loader.configurable_loader:load_dataset:97 - Loading CSV: data/Bungalows/Cole Data - CLEAN.txt
+2025-10-27 19:34:47.621 | INFO     | src.loader.csv_parser:parse_file:46 - Parsing CSV file: data/Bungalows/Cole Data - CLEAN.txt
+2025-10-27 19:34:47.623 | INFO     | src.loader.configurable_loader:load_dataset:99 - Loaded 8 records from CSV
+2025-10-27 19:34:47.623 | DEBUG    | src.loader.configurable_loader:load_dataset:102 - Building image index: data/Bungalows/Bungalows - Photos
+2025-10-27 19:34:47.623 | DEBUG    | src.loader.configurable_loader:_build_building_data:223 - Using ID column: id
+2025-10-27 19:34:47.623 | DEBUG    | src.loader.image_index:_build_index:44 - Building image index for: data/Bungalows/Bungalows - Photos
+2025-10-27 19:34:47.624 | INFO     | src.loader.image_index:_build_index:50 - Found 305 images in Bungalows - Photos
+2025-10-27 19:34:47.624 | INFO     | src.loader.image_index:_build_index:56 - Built index with 471 entries
+2025-10-27 19:34:47.625 | INFO     | src.loader.configurable_loader:load_dataset:112 - Dataset Cole-Bungalows: 8 buildings, 7 with images, 24 total images
+2025-10-27 19:34:47.625 | INFO     | src.loader.configurable_loader:load_dataset:90 - Loading dataset: Regis-Bungalows
+2025-10-27 19:34:47.625 | DEBUG    | src.loader.configurable_loader:load_dataset:97 - Loading CSV: data/Bungalows/Regis - CLEAN.txt
+2025-10-27 19:34:47.625 | INFO     | src.loader.csv_parser:parse_file:46 - Parsing CSV file: data/Bungalows/Regis - CLEAN.txt
+2025-10-27 19:34:47.628 | INFO     | src.loader.configurable_loader:load_dataset:99 - Loaded 9 records from CSV
+2025-10-27 19:34:47.628 | DEBUG    | src.loader.configurable_loader:load_dataset:102 - Building image index: data/Bungalows/Bungalows - Photos
+2025-10-27 19:34:47.628 | DEBUG    | src.loader.configurable_loader:_build_building_data:223 - Using ID column: id
+2025-10-27 19:34:47.628 | DEBUG    | src.loader.image_index:_build_index:44 - Building image index for: data/Bungalows/Bungalows - Photos
+2025-10-27 19:34:47.629 | INFO     | src.loader.image_index:_build_index:50 - Found 305 images in Bungalows - Photos
+2025-10-27 19:34:47.629 | INFO     | src.loader.image_index:_build_index:56 - Built index with 471 entries
+2025-10-27 19:34:47.630 | INFO     | src.loader.configurable_loader:load_dataset:112 - Dataset Regis-Bungalows: 9 buildings, 9 with images, 35 total images
+2025-10-27 19:34:47.630 | INFO     | src.loader.configurable_loader:load_dataset:90 - Loading dataset: Skyland-Bungalows
+2025-10-27 19:34:47.630 | DEBUG    | src.loader.configurable_loader:load_dataset:97 - Loading CSV: data/Bungalows/Skyland - CLEAN.txt
+2025-10-27 19:34:47.630 | INFO     | src.loader.csv_parser:parse_file:46 - Parsing CSV file: data/Bungalows/Skyland - CLEAN.txt
+2025-10-27 19:34:47.632 | INFO     | src.loader.configurable_loader:load_dataset:99 - Loaded 12 records from CSV
+2025-10-27 19:34:47.632 | DEBUG    | src.loader.configurable_loader:load_dataset:102 - Building image index: data/Bungalows/Bungalows - Photos
+2025-10-27 19:34:47.632 | DEBUG    | src.loader.configurable_loader:_build_building_data:223 - Using ID column: id
+2025-10-27 19:34:47.632 | DEBUG    | src.loader.image_index:_build_index:44 - Building image index for: data/Bungalows/Bungalows - Photos
+2025-10-27 19:34:47.632 | INFO     | src.loader.image_index:_build_index:50 - Found 305 images in Bungalows - Photos
+2025-10-27 19:34:47.634 | INFO     | src.loader.image_index:_build_index:56 - Built index with 471 entries
+2025-10-27 19:34:47.635 | INFO     | src.loader.configurable_loader:load_dataset:112 - Dataset Skyland-Bungalows: 12 buildings, 12 with images, 41 total images
+2025-10-27 19:34:47.635 | INFO     | src.loader.configurable_loader:load_dataset:90 - Loading dataset: SouthCityPark-Bungalows
+2025-10-27 19:34:47.635 | DEBUG    | src.loader.configurable_loader:load_dataset:97 - Loading CSV: data/Bungalows/South City Park - CLEAN.txt
+2025-10-27 19:34:47.635 | INFO     | src.loader.csv_parser:parse_file:46 - Parsing CSV file: data/Bungalows/South City Park - CLEAN.txt
+2025-10-27 19:34:47.637 | INFO     | src.loader.configurable_loader:load_dataset:99 - Loaded 12 records from CSV
+2025-10-27 19:34:47.637 | DEBUG    | src.loader.configurable_loader:load_dataset:102 - Building image index: data/Bungalows/Bungalows - Photos
+2025-10-27 19:34:47.637 | DEBUG    | src.loader.configurable_loader:_build_building_data:223 - Using ID column: id
+2025-10-27 19:34:47.637 | DEBUG    | src.loader.image_index:_build_index:44 - Building image index for: data/Bungalows/Bungalows - Photos
+2025-10-27 19:34:47.637 | INFO     | src.loader.image_index:_build_index:50 - Found 305 images in Bungalows - Photos
+2025-10-27 19:34:47.638 | INFO     | src.loader.image_index:_build_index:56 - Built index with 471 entries
+2025-10-27 19:34:47.639 | INFO     | src.loader.configurable_loader:load_dataset:112 - Dataset SouthCityPark-Bungalows: 12 buildings, 12 with images, 42 total images
+2025-10-27 19:34:47.639 | INFO     | src.loader.configurable_loader:load_dataset:90 - Loading dataset: Sunnyside-Bungalows
+2025-10-27 19:34:47.639 | DEBUG    | src.loader.configurable_loader:load_dataset:97 - Loading CSV: data/Bungalows/Sunnyside - CLEAN.txt
+2025-10-27 19:34:47.639 | INFO     | src.loader.csv_parser:parse_file:46 - Parsing CSV file: data/Bungalows/Sunnyside - CLEAN.txt
+2025-10-27 19:34:47.641 | INFO     | src.loader.configurable_loader:load_dataset:99 - Loaded 27 records from CSV
+2025-10-27 19:34:47.641 | DEBUG    | src.loader.configurable_loader:load_dataset:102 - Building image index: data/Bungalows/Bungalows - Photos
+2025-10-27 19:34:47.641 | DEBUG    | src.loader.configurable_loader:_build_building_data:223 - Using ID column: id
+2025-10-27 19:34:47.641 | DEBUG    | src.loader.image_index:_build_index:44 - Building image index for: data/Bungalows/Bungalows - Photos
+2025-10-27 19:34:47.642 | INFO     | src.loader.image_index:_build_index:50 - Found 305 images in Bungalows - Photos
+2025-10-27 19:34:47.643 | INFO     | src.loader.image_index:_build_index:56 - Built index with 471 entries
+2025-10-27 19:34:47.644 | INFO     | src.loader.configurable_loader:load_dataset:112 - Dataset Sunnyside-Bungalows: 27 buildings, 27 with images, 103 total images
+2025-10-27 19:34:47.644 | INFO     | src.loader.configurable_loader:load_dataset:90 - Loading dataset: VillaPark-Bungalows
+2025-10-27 19:34:47.644 | DEBUG    | src.loader.configurable_loader:load_dataset:97 - Loading CSV: data/Bungalows/Villa Park - CLEAN.txt
+2025-10-27 19:34:47.644 | INFO     | src.loader.csv_parser:parse_file:46 - Parsing CSV file: data/Bungalows/Villa Park - CLEAN.txt
+2025-10-27 19:34:47.646 | INFO     | src.loader.configurable_loader:load_dataset:99 - Loaded 1 records from CSV
+2025-10-27 19:34:47.646 | DEBUG    | src.loader.configurable_loader:load_dataset:102 - Building image index: data/Bungalows/Bungalows - Photos
+2025-10-27 19:34:47.646 | DEBUG    | src.loader.configurable_loader:_build_building_data:223 - Using ID column: id
+2025-10-27 19:34:47.646 | DEBUG    | src.loader.image_index:_build_index:44 - Building image index for: data/Bungalows/Bungalows - Photos
+2025-10-27 19:34:47.646 | INFO     | src.loader.image_index:_build_index:50 - Found 305 images in Bungalows - Photos
+2025-10-27 19:34:47.647 | INFO     | src.loader.image_index:_build_index:56 - Built index with 471 entries
+2025-10-27 19:34:47.647 | INFO     | src.loader.configurable_loader:load_dataset:112 - Dataset VillaPark-Bungalows: 1 buildings, 0 with images, 0 total images
+2025-10-27 19:34:47.647 | INFO     | src.loader.configurable_loader:load_dataset:90 - Loading dataset: Westwood-Bungalows
+2025-10-27 19:34:47.647 | DEBUG    | src.loader.configurable_loader:load_dataset:97 - Loading CSV: data/Bungalows/Westwood - CLEAN.txt
+2025-10-27 19:34:47.647 | INFO     | src.loader.csv_parser:parse_file:46 - Parsing CSV file: data/Bungalows/Westwood - CLEAN.txt
+2025-10-27 19:34:47.649 | INFO     | src.loader.configurable_loader:load_dataset:99 - Loaded 1 records from CSV
+2025-10-27 19:34:47.649 | DEBUG    | src.loader.configurable_loader:load_dataset:102 - Building image index: data/Bungalows/Bungalows - Photos
+2025-10-27 19:34:47.649 | DEBUG    | src.loader.configurable_loader:_build_building_data:223 - Using ID column: id
+2025-10-27 19:34:47.649 | DEBUG    | src.loader.image_index:_build_index:44 - Building image index for: data/Bungalows/Bungalows - Photos
+2025-10-27 19:34:47.649 | INFO     | src.loader.image_index:_build_index:50 - Found 305 images in Bungalows - Photos
+2025-10-27 19:34:47.650 | INFO     | src.loader.image_index:_build_index:56 - Built index with 471 entries
+2025-10-27 19:34:47.650 | INFO     | src.loader.configurable_loader:load_dataset:112 - Dataset Westwood-Bungalows: 1 buildings, 1 with images, 14 total images
+2025-10-27 19:34:47.650 | INFO     | src.loader.configurable_loader:load_dataset:90 - Loading dataset: Whittier-Bungalows
+2025-10-27 19:34:47.650 | DEBUG    | src.loader.configurable_loader:load_dataset:97 - Loading CSV: data/Bungalows/Whittier - CLEAN.txt
+2025-10-27 19:34:47.650 | INFO     | src.loader.csv_parser:parse_file:46 - Parsing CSV file: data/Bungalows/Whittier - CLEAN.txt
+2025-10-27 19:34:47.652 | INFO     | src.loader.configurable_loader:load_dataset:99 - Loaded 0 records from CSV
+2025-10-27 19:34:47.652 | DEBUG    | src.loader.configurable_loader:load_dataset:102 - Building image index: data/Bungalows/Bungalows - Photos
+2025-10-27 19:34:47.652 | DEBUG    | src.loader.configurable_loader:_build_building_data:223 - Using ID column: id
+2025-10-27 19:34:47.653 | INFO     | src.loader.configurable_loader:load_dataset:112 - Dataset Whittier-Bungalows: 0 buildings, 0 with images, 0 total images
+2025-10-27 19:34:47.653 | INFO     | src.loader.configurable_loader:load_dataset:90 - Loading dataset: Barnum-MinimalTraditional
+2025-10-27 19:34:47.653 | DEBUG    | src.loader.configurable_loader:load_dataset:97 - Loading CSV: data/Minimal Traditional/Barnum - CLEAN.txt
+2025-10-27 19:34:47.653 | INFO     | src.loader.csv_parser:parse_file:46 - Parsing CSV file: data/Minimal Traditional/Barnum - CLEAN.txt
+2025-10-27 19:34:47.654 | INFO     | src.loader.configurable_loader:load_dataset:99 - Loaded 4 records from CSV
+2025-10-27 19:34:47.654 | DEBUG    | src.loader.configurable_loader:load_dataset:102 - Building image index: data/Minimal Traditional/Minimal Traditional - Photos
+2025-10-27 19:34:47.654 | DEBUG    | src.loader.configurable_loader:_build_building_data:223 - Using ID column: id
+2025-10-27 19:34:47.655 | DEBUG    | src.loader.image_index:_build_index:44 - Building image index for: data/Minimal Traditional/Minimal Traditional - Photos
+2025-10-27 19:34:47.655 | INFO     | src.loader.image_index:_build_index:50 - Found 412 images in Minimal Traditional - Photos
+2025-10-27 19:34:47.656 | INFO     | src.loader.image_index:_build_index:56 - Built index with 655 entries
+2025-10-27 19:34:47.656 | INFO     | src.loader.configurable_loader:load_dataset:112 - Dataset Barnum-MinimalTraditional: 4 buildings, 0 with images, 0 total images
+2025-10-27 19:34:47.656 | INFO     | src.loader.configurable_loader:load_dataset:90 - Loading dataset: Clayton-MinimalTraditional
+2025-10-27 19:34:47.656 | DEBUG    | src.loader.configurable_loader:load_dataset:97 - Loading CSV: data/Minimal Traditional/Clayton - CLEAN.txt
+2025-10-27 19:34:47.656 | INFO     | src.loader.csv_parser:parse_file:46 - Parsing CSV file: data/Minimal Traditional/Clayton - CLEAN.txt
+2025-10-27 19:34:47.658 | INFO     | src.loader.configurable_loader:load_dataset:99 - Loaded 10 records from CSV
+2025-10-27 19:34:47.658 | DEBUG    | src.loader.configurable_loader:load_dataset:102 - Building image index: data/Minimal Traditional/Minimal Traditional - Photos
+2025-10-27 19:34:47.658 | DEBUG    | src.loader.configurable_loader:_build_building_data:223 - Using ID column: id
+2025-10-27 19:34:47.658 | DEBUG    | src.loader.image_index:_build_index:44 - Building image index for: data/Minimal Traditional/Minimal Traditional - Photos
+2025-10-27 19:34:47.659 | INFO     | src.loader.image_index:_build_index:50 - Found 412 images in Minimal Traditional - Photos
+2025-10-27 19:34:47.660 | INFO     | src.loader.image_index:_build_index:56 - Built index with 655 entries
+2025-10-27 19:34:47.661 | INFO     | src.loader.configurable_loader:load_dataset:112 - Dataset Clayton-MinimalTraditional: 10 buildings, 10 with images, 26 total images
+2025-10-27 19:34:47.661 | INFO     | src.loader.configurable_loader:load_dataset:90 - Loading dataset: Cole-MinimalTraditional
+2025-10-27 19:34:47.661 | DEBUG    | src.loader.configurable_loader:load_dataset:97 - Loading CSV: data/Minimal Traditional/Cole - CLEAN.txt
+2025-10-27 19:34:47.661 | INFO     | src.loader.csv_parser:parse_file:46 - Parsing CSV file: data/Minimal Traditional/Cole - CLEAN.txt
+2025-10-27 19:34:47.662 | INFO     | src.loader.configurable_loader:load_dataset:99 - Loaded 1 records from CSV
+2025-10-27 19:34:47.662 | DEBUG    | src.loader.configurable_loader:load_dataset:102 - Building image index: data/Minimal Traditional/Minimal Traditional - Photos
+2025-10-27 19:34:47.662 | DEBUG    | src.loader.configurable_loader:_build_building_data:223 - Using ID column: id
+2025-10-27 19:34:47.662 | DEBUG    | src.loader.image_index:_build_index:44 - Building image index for: data/Minimal Traditional/Minimal Traditional - Photos
+2025-10-27 19:34:47.663 | INFO     | src.loader.image_index:_build_index:50 - Found 412 images in Minimal Traditional - Photos
+2025-10-27 19:34:47.664 | INFO     | src.loader.image_index:_build_index:56 - Built index with 655 entries
+2025-10-27 19:34:47.664 | INFO     | src.loader.configurable_loader:load_dataset:112 - Dataset Cole-MinimalTraditional: 1 buildings, 1 with images, 3 total images
+2025-10-27 19:34:47.664 | INFO     | src.loader.configurable_loader:load_dataset:90 - Loading dataset: Regis-MinimalTraditional
+2025-10-27 19:34:47.664 | DEBUG    | src.loader.configurable_loader:load_dataset:97 - Loading CSV: data/Minimal Traditional/Regis - CLEAN.txt
+2025-10-27 19:34:47.664 | INFO     | src.loader.csv_parser:parse_file:46 - Parsing CSV file: data/Minimal Traditional/Regis - CLEAN.txt
+2025-10-27 19:34:47.666 | INFO     | src.loader.configurable_loader:load_dataset:99 - Loaded 7 records from CSV
+2025-10-27 19:34:47.666 | DEBUG    | src.loader.configurable_loader:load_dataset:102 - Building image index: data/Minimal Traditional/Minimal Traditional - Photos
+2025-10-27 19:34:47.666 | DEBUG    | src.loader.configurable_loader:_build_building_data:223 - Using ID column: id
+2025-10-27 19:34:47.666 | DEBUG    | src.loader.image_index:_build_index:44 - Building image index for: data/Minimal Traditional/Minimal Traditional - Photos
+2025-10-27 19:34:47.666 | INFO     | src.loader.image_index:_build_index:50 - Found 412 images in Minimal Traditional - Photos
+2025-10-27 19:34:47.668 | INFO     | src.loader.image_index:_build_index:56 - Built index with 655 entries
+2025-10-27 19:34:47.668 | INFO     | src.loader.configurable_loader:load_dataset:112 - Dataset Regis-MinimalTraditional: 7 buildings, 7 with images, 39 total images
+2025-10-27 19:34:47.668 | INFO     | src.loader.configurable_loader:load_dataset:90 - Loading dataset: Skyland-MinimalTraditional
+2025-10-27 19:34:47.668 | DEBUG    | src.loader.configurable_loader:load_dataset:97 - Loading CSV: data/Minimal Traditional/Skyland - CLEAN.txt
+2025-10-27 19:34:47.668 | INFO     | src.loader.csv_parser:parse_file:46 - Parsing CSV file: data/Minimal Traditional/Skyland - CLEAN.txt
+2025-10-27 19:34:47.671 | INFO     | src.loader.configurable_loader:load_dataset:99 - Loaded 28 records from CSV
+2025-10-27 19:34:47.671 | DEBUG    | src.loader.configurable_loader:load_dataset:102 - Building image index: data/Minimal Traditional/Minimal Traditional - Photos
+2025-10-27 19:34:47.671 | DEBUG    | src.loader.configurable_loader:_build_building_data:223 - Using ID column: id
+2025-10-27 19:34:47.671 | DEBUG    | src.loader.image_index:_build_index:44 - Building image index for: data/Minimal Traditional/Minimal Traditional - Photos
+2025-10-27 19:34:47.671 | INFO     | src.loader.image_index:_build_index:50 - Found 412 images in Minimal Traditional - Photos
+2025-10-27 19:34:47.672 | INFO     | src.loader.image_index:_build_index:56 - Built index with 655 entries
+2025-10-27 19:34:47.675 | INFO     | src.loader.configurable_loader:load_dataset:112 - Dataset Skyland-MinimalTraditional: 28 buildings, 28 with images, 93 total images
+2025-10-27 19:34:47.675 | INFO     | src.loader.configurable_loader:load_dataset:90 - Loading dataset: SouthCityPark-MinimalTraditional
+2025-10-27 19:34:47.675 | DEBUG    | src.loader.configurable_loader:load_dataset:97 - Loading CSV: data/Minimal Traditional/South City Park - CLEAN.txt
+2025-10-27 19:34:47.675 | INFO     | src.loader.csv_parser:parse_file:46 - Parsing CSV file: data/Minimal Traditional/South City Park - CLEAN.txt
+2025-10-27 19:34:47.676 | INFO     | src.loader.configurable_loader:load_dataset:99 - Loaded 3 records from CSV
+2025-10-27 19:34:47.676 | DEBUG    | src.loader.configurable_loader:load_dataset:102 - Building image index: data/Minimal Traditional/Minimal Traditional - Photos
+2025-10-27 19:34:47.676 | DEBUG    | src.loader.configurable_loader:_build_building_data:223 - Using ID column: id
+2025-10-27 19:34:47.676 | DEBUG    | src.loader.image_index:_build_index:44 - Building image index for: data/Minimal Traditional/Minimal Traditional - Photos
+2025-10-27 19:34:47.677 | INFO     | src.loader.image_index:_build_index:50 - Found 412 images in Minimal Traditional - Photos
+2025-10-27 19:34:47.678 | INFO     | src.loader.image_index:_build_index:56 - Built index with 655 entries
+2025-10-27 19:34:47.678 | INFO     | src.loader.configurable_loader:load_dataset:112 - Dataset SouthCityPark-MinimalTraditional: 3 buildings, 3 with images, 9 total images
+2025-10-27 19:34:47.678 | INFO     | src.loader.configurable_loader:load_dataset:90 - Loading dataset: Sunnyside-MinimalTraditional
+2025-10-27 19:34:47.678 | DEBUG    | src.loader.configurable_loader:load_dataset:97 - Loading CSV: data/Minimal Traditional/Sunnyside - CLEAN.txt
+2025-10-27 19:34:47.678 | INFO     | src.loader.csv_parser:parse_file:46 - Parsing CSV file: data/Minimal Traditional/Sunnyside - CLEAN.txt
+2025-10-27 19:34:47.681 | INFO     | src.loader.configurable_loader:load_dataset:99 - Loaded 42 records from CSV
+2025-10-27 19:34:47.681 | DEBUG    | src.loader.configurable_loader:load_dataset:102 - Building image index: data/Minimal Traditional/Minimal Traditional - Photos
+2025-10-27 19:34:47.681 | DEBUG    | src.loader.configurable_loader:_build_building_data:223 - Using ID column: id
+2025-10-27 19:34:47.681 | DEBUG    | src.loader.image_index:_build_index:44 - Building image index for: data/Minimal Traditional/Minimal Traditional - Photos
+2025-10-27 19:34:47.682 | INFO     | src.loader.image_index:_build_index:50 - Found 412 images in Minimal Traditional - Photos
+2025-10-27 19:34:47.683 | INFO     | src.loader.image_index:_build_index:56 - Built index with 655 entries
+2025-10-27 19:34:47.686 | INFO     | src.loader.configurable_loader:load_dataset:112 - Dataset Sunnyside-MinimalTraditional: 42 buildings, 42 with images, 153 total images
+2025-10-27 19:34:47.686 | INFO     | src.loader.configurable_loader:load_dataset:90 - Loading dataset: Valverde-MinimalTraditional
+2025-10-27 19:34:47.686 | DEBUG    | src.loader.configurable_loader:load_dataset:97 - Loading CSV: data/Minimal Traditional/Valverde - CLEAN.txt
+2025-10-27 19:34:47.686 | INFO     | src.loader.csv_parser:parse_file:46 - Parsing CSV file: data/Minimal Traditional/Valverde - CLEAN.txt
+2025-10-27 19:34:47.688 | INFO     | src.loader.configurable_loader:load_dataset:99 - Loaded 3 records from CSV
+2025-10-27 19:34:47.688 | DEBUG    | src.loader.configurable_loader:load_dataset:102 - Building image index: data/Minimal Traditional/Minimal Traditional - Photos
+2025-10-27 19:34:47.688 | DEBUG    | src.loader.configurable_loader:_build_building_data:223 - Using ID column: id
+2025-10-27 19:34:47.688 | DEBUG    | src.loader.image_index:_build_index:44 - Building image index for: data/Minimal Traditional/Minimal Traditional - Photos
+2025-10-27 19:34:47.688 | INFO     | src.loader.image_index:_build_index:50 - Found 412 images in Minimal Traditional - Photos
+2025-10-27 19:34:47.689 | INFO     | src.loader.image_index:_build_index:56 - Built index with 655 entries
+2025-10-27 19:34:47.690 | INFO     | src.loader.configurable_loader:load_dataset:112 - Dataset Valverde-MinimalTraditional: 3 buildings, 0 with images, 0 total images
+2025-10-27 19:34:47.690 | INFO     | src.loader.configurable_loader:load_dataset:90 - Loading dataset: VillaPark-MinimalTraditional
+2025-10-27 19:34:47.690 | DEBUG    | src.loader.configurable_loader:load_dataset:97 - Loading CSV: data/Minimal Traditional/Villa Park - CLEAN.txt
+2025-10-27 19:34:47.690 | INFO     | src.loader.csv_parser:parse_file:46 - Parsing CSV file: data/Minimal Traditional/Villa Park - CLEAN.txt
+2025-10-27 19:34:47.691 | INFO     | src.loader.configurable_loader:load_dataset:99 - Loaded 12 records from CSV
+2025-10-27 19:34:47.691 | DEBUG    | src.loader.configurable_loader:load_dataset:102 - Building image index: data/Minimal Traditional/Minimal Traditional - Photos
+2025-10-27 19:34:47.691 | DEBUG    | src.loader.configurable_loader:_build_building_data:223 - Using ID column: id
+2025-10-27 19:34:47.691 | DEBUG    | src.loader.image_index:_build_index:44 - Building image index for: data/Minimal Traditional/Minimal Traditional - Photos
+2025-10-27 19:34:47.692 | INFO     | src.loader.image_index:_build_index:50 - Found 412 images in Minimal Traditional - Photos
+2025-10-27 19:34:47.693 | INFO     | src.loader.image_index:_build_index:56 - Built index with 655 entries
+2025-10-27 19:34:47.693 | INFO     | src.loader.configurable_loader:load_dataset:112 - Dataset VillaPark-MinimalTraditional: 12 buildings, 0 with images, 0 total images
+2025-10-27 19:34:47.693 | INFO     | src.loader.configurable_loader:load_dataset:90 - Loading dataset: Westwood-MinimalTraditional
+2025-10-27 19:34:47.693 | DEBUG    | src.loader.configurable_loader:load_dataset:97 - Loading CSV: data/Minimal Traditional/Westwood - CLEAN.txt
+2025-10-27 19:34:47.693 | INFO     | src.loader.csv_parser:parse_file:46 - Parsing CSV file: data/Minimal Traditional/Westwood - CLEAN.txt
+2025-10-27 19:34:47.695 | INFO     | src.loader.configurable_loader:load_dataset:99 - Loaded 10 records from CSV
+2025-10-27 19:34:47.695 | DEBUG    | src.loader.configurable_loader:load_dataset:102 - Building image index: data/Minimal Traditional/Minimal Traditional - Photos
+2025-10-27 19:34:47.695 | DEBUG    | src.loader.configurable_loader:_build_building_data:223 - Using ID column: id
+2025-10-27 19:34:47.695 | DEBUG    | src.loader.image_index:_build_index:44 - Building image index for: data/Minimal Traditional/Minimal Traditional - Photos
+2025-10-27 19:34:47.695 | INFO     | src.loader.image_index:_build_index:50 - Found 412 images in Minimal Traditional - Photos
+2025-10-27 19:34:47.697 | INFO     | src.loader.image_index:_build_index:56 - Built index with 655 entries
+2025-10-27 19:34:47.697 | INFO     | src.loader.configurable_loader:load_dataset:112 - Dataset Westwood-MinimalTraditional: 10 buildings, 10 with images, 31 total images
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/Users/milanklanjsek/workspace/arepas/scripts/demo_dataset_validation.py", line 132, in <module>
+    reports = main()
+              ^^^^^^
+  File "/Users/milanklanjsek/workspace/arepas/scripts/demo_dataset_validation.py", line 33, in main
+    logger.success(f"✅ Loaded {len(datasets)} datasets with {sum(len(df) for df in datasets.values())} total buildings")
+                                                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/milanklanjsek/workspace/arepas/scripts/demo_dataset_validation.py", line 33, in <genexpr>
+    logger.success(f"✅ Loaded {len(datasets)} datasets with {sum(len(df) for df in datasets.values())} total buildings")
+                                                                  ^^^^^^^
+TypeError: object of type 'NeighborhoodData' has no len()

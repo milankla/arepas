@@ -1,0 +1,376 @@
+2025-10-29 19:56:48.730 | INFO     | __main__:main:18 - ================================================================================
+2025-10-29 19:56:48.730 | INFO     | __main__:main:19 - 📊 FIELD COVERAGE ANALYSIS
+2025-10-29 19:56:48.730 | INFO     | __main__:main:20 - ================================================================================
+2025-10-29 19:56:48.730 | INFO     | __main__:main:21 - 
+2025-10-29 19:56:48.730 | INFO     | __main__:main:24 - 📋 Loading Schema...
+2025-10-29 19:56:48.730 | INFO     | src.loader.schema_loader:load_schema:276 - Loading schema from: schema/Discover Denver Schema.txt
+2025-10-29 19:56:48.731 | SUCCESS  | src.loader.schema_loader:load_schema:284 - ✅ Schema loaded successfully: 55 fields
+2025-10-29 19:56:48.731 | INFO     | __main__:main:26 - ✅ Loaded 55 fields
+2025-10-29 19:56:48.731 | INFO     | __main__:main:27 - 
+2025-10-29 19:56:48.731 | INFO     | __main__:main:30 - 📂 Loading Datasets...
+2025-10-29 19:56:48.731 | INFO     | src.loader.configurable_loader:__init__:54 - Loading configuration from: config/data.json
+2025-10-29 19:56:48.732 | INFO     | src.loader.configurable_loader:_validate_config:73 - Configuration valid: 19 datasets
+2025-10-29 19:56:48.732 | INFO     | src.loader.configurable_loader:load_dataset:90 - Loading dataset: Clayton-Bungalows
+2025-10-29 19:56:48.732 | DEBUG    | src.loader.configurable_loader:load_dataset:97 - Loading CSV: data/Bungalows/Clayton Data - CLEAN.txt
+2025-10-29 19:56:48.732 | INFO     | src.loader.csv_parser:parse_file:46 - Parsing CSV file: data/Bungalows/Clayton Data - CLEAN.txt
+2025-10-29 19:56:48.737 | INFO     | src.loader.configurable_loader:load_dataset:99 - Loaded 8 records from CSV
+2025-10-29 19:56:48.737 | DEBUG    | src.loader.configurable_loader:load_dataset:102 - Building image index: data/Bungalows/Bungalows - Photos
+2025-10-29 19:56:48.738 | DEBUG    | src.loader.configurable_loader:_build_building_data:223 - Using ID column: id
+2025-10-29 19:56:48.738 | DEBUG    | src.loader.image_index:_build_index:44 - Building image index for: data/Bungalows/Bungalows - Photos
+2025-10-29 19:56:48.738 | INFO     | src.loader.image_index:_build_index:50 - Found 305 images in Bungalows - Photos
+2025-10-29 19:56:48.739 | INFO     | src.loader.image_index:_build_index:56 - Built index with 471 entries
+2025-10-29 19:56:48.739 | INFO     | src.loader.configurable_loader:load_dataset:112 - Dataset Clayton-Bungalows: 8 buildings, 8 with images, 25 total images
+2025-10-29 19:56:48.739 | INFO     | src.loader.configurable_loader:load_dataset:90 - Loading dataset: Cole-Bungalows
+2025-10-29 19:56:48.739 | DEBUG    | src.loader.configurable_loader:load_dataset:97 - Loading CSV: data/Bungalows/Cole Data - CLEAN.txt
+2025-10-29 19:56:48.739 | INFO     | src.loader.csv_parser:parse_file:46 - Parsing CSV file: data/Bungalows/Cole Data - CLEAN.txt
+2025-10-29 19:56:48.741 | INFO     | src.loader.configurable_loader:load_dataset:99 - Loaded 8 records from CSV
+2025-10-29 19:56:48.741 | DEBUG    | src.loader.configurable_loader:load_dataset:102 - Building image index: data/Bungalows/Bungalows - Photos
+2025-10-29 19:56:48.741 | DEBUG    | src.loader.configurable_loader:_build_building_data:223 - Using ID column: id
+2025-10-29 19:56:48.741 | DEBUG    | src.loader.image_index:_build_index:44 - Building image index for: data/Bungalows/Bungalows - Photos
+2025-10-29 19:56:48.742 | INFO     | src.loader.image_index:_build_index:50 - Found 305 images in Bungalows - Photos
+2025-10-29 19:56:48.743 | INFO     | src.loader.image_index:_build_index:56 - Built index with 471 entries
+2025-10-29 19:56:48.743 | INFO     | src.loader.configurable_loader:load_dataset:112 - Dataset Cole-Bungalows: 8 buildings, 7 with images, 24 total images
+2025-10-29 19:56:48.743 | INFO     | src.loader.configurable_loader:load_dataset:90 - Loading dataset: Regis-Bungalows
+2025-10-29 19:56:48.743 | DEBUG    | src.loader.configurable_loader:load_dataset:97 - Loading CSV: data/Bungalows/Regis - CLEAN.txt
+2025-10-29 19:56:48.743 | INFO     | src.loader.csv_parser:parse_file:46 - Parsing CSV file: data/Bungalows/Regis - CLEAN.txt
+2025-10-29 19:56:48.745 | INFO     | src.loader.configurable_loader:load_dataset:99 - Loaded 9 records from CSV
+2025-10-29 19:56:48.745 | DEBUG    | src.loader.configurable_loader:load_dataset:102 - Building image index: data/Bungalows/Bungalows - Photos
+2025-10-29 19:56:48.745 | DEBUG    | src.loader.configurable_loader:_build_building_data:223 - Using ID column: id
+2025-10-29 19:56:48.745 | DEBUG    | src.loader.image_index:_build_index:44 - Building image index for: data/Bungalows/Bungalows - Photos
+2025-10-29 19:56:48.745 | INFO     | src.loader.image_index:_build_index:50 - Found 305 images in Bungalows - Photos
+2025-10-29 19:56:48.746 | INFO     | src.loader.image_index:_build_index:56 - Built index with 471 entries
+2025-10-29 19:56:48.747 | INFO     | src.loader.configurable_loader:load_dataset:112 - Dataset Regis-Bungalows: 9 buildings, 9 with images, 35 total images
+2025-10-29 19:56:48.747 | INFO     | src.loader.configurable_loader:load_dataset:90 - Loading dataset: Skyland-Bungalows
+2025-10-29 19:56:48.747 | DEBUG    | src.loader.configurable_loader:load_dataset:97 - Loading CSV: data/Bungalows/Skyland - CLEAN.txt
+2025-10-29 19:56:48.747 | INFO     | src.loader.csv_parser:parse_file:46 - Parsing CSV file: data/Bungalows/Skyland - CLEAN.txt
+2025-10-29 19:56:48.749 | INFO     | src.loader.configurable_loader:load_dataset:99 - Loaded 12 records from CSV
+2025-10-29 19:56:48.749 | DEBUG    | src.loader.configurable_loader:load_dataset:102 - Building image index: data/Bungalows/Bungalows - Photos
+2025-10-29 19:56:48.749 | DEBUG    | src.loader.configurable_loader:_build_building_data:223 - Using ID column: id
+2025-10-29 19:56:48.749 | DEBUG    | src.loader.image_index:_build_index:44 - Building image index for: data/Bungalows/Bungalows - Photos
+2025-10-29 19:56:48.749 | INFO     | src.loader.image_index:_build_index:50 - Found 305 images in Bungalows - Photos
+2025-10-29 19:56:48.750 | INFO     | src.loader.image_index:_build_index:56 - Built index with 471 entries
+2025-10-29 19:56:48.751 | INFO     | src.loader.configurable_loader:load_dataset:112 - Dataset Skyland-Bungalows: 12 buildings, 12 with images, 41 total images
+2025-10-29 19:56:48.751 | INFO     | src.loader.configurable_loader:load_dataset:90 - Loading dataset: SouthCityPark-Bungalows
+2025-10-29 19:56:48.751 | DEBUG    | src.loader.configurable_loader:load_dataset:97 - Loading CSV: data/Bungalows/South City Park - CLEAN.txt
+2025-10-29 19:56:48.751 | INFO     | src.loader.csv_parser:parse_file:46 - Parsing CSV file: data/Bungalows/South City Park - CLEAN.txt
+2025-10-29 19:56:48.753 | INFO     | src.loader.configurable_loader:load_dataset:99 - Loaded 12 records from CSV
+2025-10-29 19:56:48.753 | DEBUG    | src.loader.configurable_loader:load_dataset:102 - Building image index: data/Bungalows/Bungalows - Photos
+2025-10-29 19:56:48.753 | DEBUG    | src.loader.configurable_loader:_build_building_data:223 - Using ID column: id
+2025-10-29 19:56:48.753 | DEBUG    | src.loader.image_index:_build_index:44 - Building image index for: data/Bungalows/Bungalows - Photos
+2025-10-29 19:56:48.754 | INFO     | src.loader.image_index:_build_index:50 - Found 305 images in Bungalows - Photos
+2025-10-29 19:56:48.754 | INFO     | src.loader.image_index:_build_index:56 - Built index with 471 entries
+2025-10-29 19:56:48.755 | INFO     | src.loader.configurable_loader:load_dataset:112 - Dataset SouthCityPark-Bungalows: 12 buildings, 12 with images, 42 total images
+2025-10-29 19:56:48.755 | INFO     | src.loader.configurable_loader:load_dataset:90 - Loading dataset: Sunnyside-Bungalows
+2025-10-29 19:56:48.755 | DEBUG    | src.loader.configurable_loader:load_dataset:97 - Loading CSV: data/Bungalows/Sunnyside - CLEAN.txt
+2025-10-29 19:56:48.755 | INFO     | src.loader.csv_parser:parse_file:46 - Parsing CSV file: data/Bungalows/Sunnyside - CLEAN.txt
+2025-10-29 19:56:48.758 | INFO     | src.loader.configurable_loader:load_dataset:99 - Loaded 27 records from CSV
+2025-10-29 19:56:48.758 | DEBUG    | src.loader.configurable_loader:load_dataset:102 - Building image index: data/Bungalows/Bungalows - Photos
+2025-10-29 19:56:48.758 | DEBUG    | src.loader.configurable_loader:_build_building_data:223 - Using ID column: id
+2025-10-29 19:56:48.758 | DEBUG    | src.loader.image_index:_build_index:44 - Building image index for: data/Bungalows/Bungalows - Photos
+2025-10-29 19:56:48.758 | INFO     | src.loader.image_index:_build_index:50 - Found 305 images in Bungalows - Photos
+2025-10-29 19:56:48.759 | INFO     | src.loader.image_index:_build_index:56 - Built index with 471 entries
+2025-10-29 19:56:48.761 | INFO     | src.loader.configurable_loader:load_dataset:112 - Dataset Sunnyside-Bungalows: 27 buildings, 27 with images, 103 total images
+2025-10-29 19:56:48.761 | INFO     | src.loader.configurable_loader:load_dataset:90 - Loading dataset: VillaPark-Bungalows
+2025-10-29 19:56:48.761 | DEBUG    | src.loader.configurable_loader:load_dataset:97 - Loading CSV: data/Bungalows/Villa Park - CLEAN.txt
+2025-10-29 19:56:48.761 | INFO     | src.loader.csv_parser:parse_file:46 - Parsing CSV file: data/Bungalows/Villa Park - CLEAN.txt
+2025-10-29 19:56:48.762 | INFO     | src.loader.configurable_loader:load_dataset:99 - Loaded 1 records from CSV
+2025-10-29 19:56:48.762 | DEBUG    | src.loader.configurable_loader:load_dataset:102 - Building image index: data/Bungalows/Bungalows - Photos
+2025-10-29 19:56:48.762 | DEBUG    | src.loader.configurable_loader:_build_building_data:223 - Using ID column: id
+2025-10-29 19:56:48.762 | DEBUG    | src.loader.image_index:_build_index:44 - Building image index for: data/Bungalows/Bungalows - Photos
+2025-10-29 19:56:48.763 | INFO     | src.loader.image_index:_build_index:50 - Found 305 images in Bungalows - Photos
+2025-10-29 19:56:48.764 | INFO     | src.loader.image_index:_build_index:56 - Built index with 471 entries
+2025-10-29 19:56:48.764 | INFO     | src.loader.configurable_loader:load_dataset:112 - Dataset VillaPark-Bungalows: 1 buildings, 0 with images, 0 total images
+2025-10-29 19:56:48.764 | INFO     | src.loader.configurable_loader:load_dataset:90 - Loading dataset: Westwood-Bungalows
+2025-10-29 19:56:48.764 | DEBUG    | src.loader.configurable_loader:load_dataset:97 - Loading CSV: data/Bungalows/Westwood - CLEAN.txt
+2025-10-29 19:56:48.764 | INFO     | src.loader.csv_parser:parse_file:46 - Parsing CSV file: data/Bungalows/Westwood - CLEAN.txt
+2025-10-29 19:56:48.765 | INFO     | src.loader.configurable_loader:load_dataset:99 - Loaded 1 records from CSV
+2025-10-29 19:56:48.765 | DEBUG    | src.loader.configurable_loader:load_dataset:102 - Building image index: data/Bungalows/Bungalows - Photos
+2025-10-29 19:56:48.765 | DEBUG    | src.loader.configurable_loader:_build_building_data:223 - Using ID column: id
+2025-10-29 19:56:48.765 | DEBUG    | src.loader.image_index:_build_index:44 - Building image index for: data/Bungalows/Bungalows - Photos
+2025-10-29 19:56:48.766 | INFO     | src.loader.image_index:_build_index:50 - Found 305 images in Bungalows - Photos
+2025-10-29 19:56:48.767 | INFO     | src.loader.image_index:_build_index:56 - Built index with 471 entries
+2025-10-29 19:56:48.767 | INFO     | src.loader.configurable_loader:load_dataset:112 - Dataset Westwood-Bungalows: 1 buildings, 1 with images, 14 total images
+2025-10-29 19:56:48.767 | INFO     | src.loader.configurable_loader:load_dataset:90 - Loading dataset: Whittier-Bungalows
+2025-10-29 19:56:48.767 | DEBUG    | src.loader.configurable_loader:load_dataset:97 - Loading CSV: data/Bungalows/Whittier - CLEAN.txt
+2025-10-29 19:56:48.767 | INFO     | src.loader.csv_parser:parse_file:46 - Parsing CSV file: data/Bungalows/Whittier - CLEAN.txt
+2025-10-29 19:56:48.769 | INFO     | src.loader.configurable_loader:load_dataset:99 - Loaded 0 records from CSV
+2025-10-29 19:56:48.769 | DEBUG    | src.loader.configurable_loader:load_dataset:102 - Building image index: data/Bungalows/Bungalows - Photos
+2025-10-29 19:56:48.769 | DEBUG    | src.loader.configurable_loader:_build_building_data:223 - Using ID column: id
+2025-10-29 19:56:48.769 | INFO     | src.loader.configurable_loader:load_dataset:112 - Dataset Whittier-Bungalows: 0 buildings, 0 with images, 0 total images
+2025-10-29 19:56:48.769 | INFO     | src.loader.configurable_loader:load_dataset:90 - Loading dataset: Barnum-MinimalTraditional
+2025-10-29 19:56:48.769 | DEBUG    | src.loader.configurable_loader:load_dataset:97 - Loading CSV: data/Minimal Traditional/Barnum - CLEAN.txt
+2025-10-29 19:56:48.769 | INFO     | src.loader.csv_parser:parse_file:46 - Parsing CSV file: data/Minimal Traditional/Barnum - CLEAN.txt
+2025-10-29 19:56:48.771 | INFO     | src.loader.configurable_loader:load_dataset:99 - Loaded 4 records from CSV
+2025-10-29 19:56:48.771 | DEBUG    | src.loader.configurable_loader:load_dataset:102 - Building image index: data/Minimal Traditional/Minimal Traditional - Photos
+2025-10-29 19:56:48.771 | DEBUG    | src.loader.configurable_loader:_build_building_data:223 - Using ID column: id
+2025-10-29 19:56:48.771 | DEBUG    | src.loader.image_index:_build_index:44 - Building image index for: data/Minimal Traditional/Minimal Traditional - Photos
+2025-10-29 19:56:48.771 | INFO     | src.loader.image_index:_build_index:50 - Found 412 images in Minimal Traditional - Photos
+2025-10-29 19:56:48.772 | INFO     | src.loader.image_index:_build_index:56 - Built index with 655 entries
+2025-10-29 19:56:48.773 | INFO     | src.loader.configurable_loader:load_dataset:112 - Dataset Barnum-MinimalTraditional: 4 buildings, 0 with images, 0 total images
+2025-10-29 19:56:48.773 | INFO     | src.loader.configurable_loader:load_dataset:90 - Loading dataset: Clayton-MinimalTraditional
+2025-10-29 19:56:48.773 | DEBUG    | src.loader.configurable_loader:load_dataset:97 - Loading CSV: data/Minimal Traditional/Clayton - CLEAN.txt
+2025-10-29 19:56:48.773 | INFO     | src.loader.csv_parser:parse_file:46 - Parsing CSV file: data/Minimal Traditional/Clayton - CLEAN.txt
+2025-10-29 19:56:48.774 | INFO     | src.loader.configurable_loader:load_dataset:99 - Loaded 10 records from CSV
+2025-10-29 19:56:48.774 | DEBUG    | src.loader.configurable_loader:load_dataset:102 - Building image index: data/Minimal Traditional/Minimal Traditional - Photos
+2025-10-29 19:56:48.774 | DEBUG    | src.loader.configurable_loader:_build_building_data:223 - Using ID column: id
+2025-10-29 19:56:48.774 | DEBUG    | src.loader.image_index:_build_index:44 - Building image index for: data/Minimal Traditional/Minimal Traditional - Photos
+2025-10-29 19:56:48.775 | INFO     | src.loader.image_index:_build_index:50 - Found 412 images in Minimal Traditional - Photos
+2025-10-29 19:56:48.776 | INFO     | src.loader.image_index:_build_index:56 - Built index with 655 entries
+2025-10-29 19:56:48.777 | INFO     | src.loader.configurable_loader:load_dataset:112 - Dataset Clayton-MinimalTraditional: 10 buildings, 10 with images, 26 total images
+2025-10-29 19:56:48.777 | INFO     | src.loader.configurable_loader:load_dataset:90 - Loading dataset: Cole-MinimalTraditional
+2025-10-29 19:56:48.777 | DEBUG    | src.loader.configurable_loader:load_dataset:97 - Loading CSV: data/Minimal Traditional/Cole - CLEAN.txt
+2025-10-29 19:56:48.777 | INFO     | src.loader.csv_parser:parse_file:46 - Parsing CSV file: data/Minimal Traditional/Cole - CLEAN.txt
+2025-10-29 19:56:48.778 | INFO     | src.loader.configurable_loader:load_dataset:99 - Loaded 1 records from CSV
+2025-10-29 19:56:48.778 | DEBUG    | src.loader.configurable_loader:load_dataset:102 - Building image index: data/Minimal Traditional/Minimal Traditional - Photos
+2025-10-29 19:56:48.778 | DEBUG    | src.loader.configurable_loader:_build_building_data:223 - Using ID column: id
+2025-10-29 19:56:48.778 | DEBUG    | src.loader.image_index:_build_index:44 - Building image index for: data/Minimal Traditional/Minimal Traditional - Photos
+2025-10-29 19:56:48.779 | INFO     | src.loader.image_index:_build_index:50 - Found 412 images in Minimal Traditional - Photos
+2025-10-29 19:56:48.780 | INFO     | src.loader.image_index:_build_index:56 - Built index with 655 entries
+2025-10-29 19:56:48.780 | INFO     | src.loader.configurable_loader:load_dataset:112 - Dataset Cole-MinimalTraditional: 1 buildings, 1 with images, 3 total images
+2025-10-29 19:56:48.780 | INFO     | src.loader.configurable_loader:load_dataset:90 - Loading dataset: Regis-MinimalTraditional
+2025-10-29 19:56:48.780 | DEBUG    | src.loader.configurable_loader:load_dataset:97 - Loading CSV: data/Minimal Traditional/Regis - CLEAN.txt
+2025-10-29 19:56:48.780 | INFO     | src.loader.csv_parser:parse_file:46 - Parsing CSV file: data/Minimal Traditional/Regis - CLEAN.txt
+2025-10-29 19:56:48.782 | INFO     | src.loader.configurable_loader:load_dataset:99 - Loaded 7 records from CSV
+2025-10-29 19:56:48.782 | DEBUG    | src.loader.configurable_loader:load_dataset:102 - Building image index: data/Minimal Traditional/Minimal Traditional - Photos
+2025-10-29 19:56:48.782 | DEBUG    | src.loader.configurable_loader:_build_building_data:223 - Using ID column: id
+2025-10-29 19:56:48.782 | DEBUG    | src.loader.image_index:_build_index:44 - Building image index for: data/Minimal Traditional/Minimal Traditional - Photos
+2025-10-29 19:56:48.782 | INFO     | src.loader.image_index:_build_index:50 - Found 412 images in Minimal Traditional - Photos
+2025-10-29 19:56:48.783 | INFO     | src.loader.image_index:_build_index:56 - Built index with 655 entries
+2025-10-29 19:56:48.784 | INFO     | src.loader.configurable_loader:load_dataset:112 - Dataset Regis-MinimalTraditional: 7 buildings, 7 with images, 39 total images
+2025-10-29 19:56:48.784 | INFO     | src.loader.configurable_loader:load_dataset:90 - Loading dataset: Skyland-MinimalTraditional
+2025-10-29 19:56:48.784 | DEBUG    | src.loader.configurable_loader:load_dataset:97 - Loading CSV: data/Minimal Traditional/Skyland - CLEAN.txt
+2025-10-29 19:56:48.784 | INFO     | src.loader.csv_parser:parse_file:46 - Parsing CSV file: data/Minimal Traditional/Skyland - CLEAN.txt
+2025-10-29 19:56:48.787 | INFO     | src.loader.configurable_loader:load_dataset:99 - Loaded 28 records from CSV
+2025-10-29 19:56:48.787 | DEBUG    | src.loader.configurable_loader:load_dataset:102 - Building image index: data/Minimal Traditional/Minimal Traditional - Photos
+2025-10-29 19:56:48.787 | DEBUG    | src.loader.configurable_loader:_build_building_data:223 - Using ID column: id
+2025-10-29 19:56:48.787 | DEBUG    | src.loader.image_index:_build_index:44 - Building image index for: data/Minimal Traditional/Minimal Traditional - Photos
+2025-10-29 19:56:48.787 | INFO     | src.loader.image_index:_build_index:50 - Found 412 images in Minimal Traditional - Photos
+2025-10-29 19:56:48.788 | INFO     | src.loader.image_index:_build_index:56 - Built index with 655 entries
+2025-10-29 19:56:48.791 | INFO     | src.loader.configurable_loader:load_dataset:112 - Dataset Skyland-MinimalTraditional: 28 buildings, 28 with images, 93 total images
+2025-10-29 19:56:48.791 | INFO     | src.loader.configurable_loader:load_dataset:90 - Loading dataset: SouthCityPark-MinimalTraditional
+2025-10-29 19:56:48.791 | DEBUG    | src.loader.configurable_loader:load_dataset:97 - Loading CSV: data/Minimal Traditional/South City Park - CLEAN.txt
+2025-10-29 19:56:48.791 | INFO     | src.loader.csv_parser:parse_file:46 - Parsing CSV file: data/Minimal Traditional/South City Park - CLEAN.txt
+2025-10-29 19:56:48.792 | INFO     | src.loader.configurable_loader:load_dataset:99 - Loaded 3 records from CSV
+2025-10-29 19:56:48.792 | DEBUG    | src.loader.configurable_loader:load_dataset:102 - Building image index: data/Minimal Traditional/Minimal Traditional - Photos
+2025-10-29 19:56:48.792 | DEBUG    | src.loader.configurable_loader:_build_building_data:223 - Using ID column: id
+2025-10-29 19:56:48.792 | DEBUG    | src.loader.image_index:_build_index:44 - Building image index for: data/Minimal Traditional/Minimal Traditional - Photos
+2025-10-29 19:56:48.793 | INFO     | src.loader.image_index:_build_index:50 - Found 412 images in Minimal Traditional - Photos
+2025-10-29 19:56:48.794 | INFO     | src.loader.image_index:_build_index:56 - Built index with 655 entries
+2025-10-29 19:56:48.794 | INFO     | src.loader.configurable_loader:load_dataset:112 - Dataset SouthCityPark-MinimalTraditional: 3 buildings, 3 with images, 9 total images
+2025-10-29 19:56:48.794 | INFO     | src.loader.configurable_loader:load_dataset:90 - Loading dataset: Sunnyside-MinimalTraditional
+2025-10-29 19:56:48.794 | DEBUG    | src.loader.configurable_loader:load_dataset:97 - Loading CSV: data/Minimal Traditional/Sunnyside - CLEAN.txt
+2025-10-29 19:56:48.794 | INFO     | src.loader.csv_parser:parse_file:46 - Parsing CSV file: data/Minimal Traditional/Sunnyside - CLEAN.txt
+2025-10-29 19:56:48.797 | INFO     | src.loader.configurable_loader:load_dataset:99 - Loaded 42 records from CSV
+2025-10-29 19:56:48.797 | DEBUG    | src.loader.configurable_loader:load_dataset:102 - Building image index: data/Minimal Traditional/Minimal Traditional - Photos
+2025-10-29 19:56:48.797 | DEBUG    | src.loader.configurable_loader:_build_building_data:223 - Using ID column: id
+2025-10-29 19:56:48.797 | DEBUG    | src.loader.image_index:_build_index:44 - Building image index for: data/Minimal Traditional/Minimal Traditional - Photos
+2025-10-29 19:56:48.797 | INFO     | src.loader.image_index:_build_index:50 - Found 412 images in Minimal Traditional - Photos
+2025-10-29 19:56:48.798 | INFO     | src.loader.image_index:_build_index:56 - Built index with 655 entries
+2025-10-29 19:56:48.802 | INFO     | src.loader.configurable_loader:load_dataset:112 - Dataset Sunnyside-MinimalTraditional: 42 buildings, 42 with images, 153 total images
+2025-10-29 19:56:48.802 | INFO     | src.loader.configurable_loader:load_dataset:90 - Loading dataset: Valverde-MinimalTraditional
+2025-10-29 19:56:48.802 | DEBUG    | src.loader.configurable_loader:load_dataset:97 - Loading CSV: data/Minimal Traditional/Valverde - CLEAN.txt
+2025-10-29 19:56:48.802 | INFO     | src.loader.csv_parser:parse_file:46 - Parsing CSV file: data/Minimal Traditional/Valverde - CLEAN.txt
+2025-10-29 19:56:48.804 | INFO     | src.loader.configurable_loader:load_dataset:99 - Loaded 3 records from CSV
+2025-10-29 19:56:48.804 | DEBUG    | src.loader.configurable_loader:load_dataset:102 - Building image index: data/Minimal Traditional/Minimal Traditional - Photos
+2025-10-29 19:56:48.804 | DEBUG    | src.loader.configurable_loader:_build_building_data:223 - Using ID column: id
+2025-10-29 19:56:48.804 | DEBUG    | src.loader.image_index:_build_index:44 - Building image index for: data/Minimal Traditional/Minimal Traditional - Photos
+2025-10-29 19:56:48.804 | INFO     | src.loader.image_index:_build_index:50 - Found 412 images in Minimal Traditional - Photos
+2025-10-29 19:56:48.806 | INFO     | src.loader.image_index:_build_index:56 - Built index with 655 entries
+2025-10-29 19:56:48.806 | INFO     | src.loader.configurable_loader:load_dataset:112 - Dataset Valverde-MinimalTraditional: 3 buildings, 0 with images, 0 total images
+2025-10-29 19:56:48.806 | INFO     | src.loader.configurable_loader:load_dataset:90 - Loading dataset: VillaPark-MinimalTraditional
+2025-10-29 19:56:48.806 | DEBUG    | src.loader.configurable_loader:load_dataset:97 - Loading CSV: data/Minimal Traditional/Villa Park - CLEAN.txt
+2025-10-29 19:56:48.806 | INFO     | src.loader.csv_parser:parse_file:46 - Parsing CSV file: data/Minimal Traditional/Villa Park - CLEAN.txt
+2025-10-29 19:56:48.807 | INFO     | src.loader.configurable_loader:load_dataset:99 - Loaded 12 records from CSV
+2025-10-29 19:56:48.808 | DEBUG    | src.loader.configurable_loader:load_dataset:102 - Building image index: data/Minimal Traditional/Minimal Traditional - Photos
+2025-10-29 19:56:48.808 | DEBUG    | src.loader.configurable_loader:_build_building_data:223 - Using ID column: id
+2025-10-29 19:56:48.808 | DEBUG    | src.loader.image_index:_build_index:44 - Building image index for: data/Minimal Traditional/Minimal Traditional - Photos
+2025-10-29 19:56:48.808 | INFO     | src.loader.image_index:_build_index:50 - Found 412 images in Minimal Traditional - Photos
+2025-10-29 19:56:48.809 | INFO     | src.loader.image_index:_build_index:56 - Built index with 655 entries
+2025-10-29 19:56:48.810 | INFO     | src.loader.configurable_loader:load_dataset:112 - Dataset VillaPark-MinimalTraditional: 12 buildings, 0 with images, 0 total images
+2025-10-29 19:56:48.810 | INFO     | src.loader.configurable_loader:load_dataset:90 - Loading dataset: Westwood-MinimalTraditional
+2025-10-29 19:56:48.810 | DEBUG    | src.loader.configurable_loader:load_dataset:97 - Loading CSV: data/Minimal Traditional/Westwood - CLEAN.txt
+2025-10-29 19:56:48.810 | INFO     | src.loader.csv_parser:parse_file:46 - Parsing CSV file: data/Minimal Traditional/Westwood - CLEAN.txt
+2025-10-29 19:56:48.812 | INFO     | src.loader.configurable_loader:load_dataset:99 - Loaded 10 records from CSV
+2025-10-29 19:56:48.812 | DEBUG    | src.loader.configurable_loader:load_dataset:102 - Building image index: data/Minimal Traditional/Minimal Traditional - Photos
+2025-10-29 19:56:48.812 | DEBUG    | src.loader.configurable_loader:_build_building_data:223 - Using ID column: id
+2025-10-29 19:56:48.812 | DEBUG    | src.loader.image_index:_build_index:44 - Building image index for: data/Minimal Traditional/Minimal Traditional - Photos
+2025-10-29 19:56:48.812 | INFO     | src.loader.image_index:_build_index:50 - Found 412 images in Minimal Traditional - Photos
+2025-10-29 19:56:48.814 | INFO     | src.loader.image_index:_build_index:56 - Built index with 655 entries
+2025-10-29 19:56:48.815 | INFO     | src.loader.configurable_loader:load_dataset:112 - Dataset Westwood-MinimalTraditional: 10 buildings, 10 with images, 31 total images
+2025-10-29 19:56:48.816 | INFO     | __main__:main:41 - ✅ Loaded 18 datasets with 198 buildings
+2025-10-29 19:56:48.816 | INFO     | __main__:main:42 - 
+2025-10-29 19:56:48.816 | INFO     | __main__:main:45 - 🔗 Combining all records...
+2025-10-29 19:56:48.816 | INFO     | __main__:main:47 - ✅ Combined dataset: 198 records, 3 columns
+2025-10-29 19:56:48.816 | INFO     | __main__:main:48 - 
+2025-10-29 19:56:48.816 | INFO     | __main__:main:51 - ================================================================================
+2025-10-29 19:56:48.816 | INFO     | __main__:main:52 - 📊 FIELD COVERAGE REPORT
+2025-10-29 19:56:48.816 | INFO     | __main__:main:53 - ================================================================================
+2025-10-29 19:56:48.816 | INFO     | __main__:main:54 - 
+2025-10-29 19:56:48.817 | INFO     | __main__:main:95 - 🔴 REQUIRED FIELDS (Survey Level 2)
+2025-10-29 19:56:48.817 | INFO     | __main__:main:96 - --------------------------------------------------------------------------------
+2025-10-29 19:56:48.818 | INFO     | __main__:main:99 - Total required fields: 24
+2025-10-29 19:56:48.818 | INFO     | __main__:main:100 - 
+2025-10-29 19:56:48.818 | INFO     | __main__:main:105 - ❌ 🚫 Alteration Level                    | Present:   0/198 (  0.0%) | Missing: 198 | Type: single
+2025-10-29 19:56:48.819 | INFO     | __main__:main:105 - ❌ 🚫 Setting                             | Present:   0/198 (  0.0%) | Missing: 198 | Type: multi
+2025-10-29 19:56:48.819 | INFO     | __main__:main:105 - ❌ 🚫 Roof Type                           | Present:   0/198 (  0.0%) | Missing: 198 | Type: multi
+2025-10-29 19:56:48.819 | INFO     | __main__:main:105 - ❌ 🚫 Roof Materials                      | Present:   0/198 (  0.0%) | Missing: 198 | Type: multi
+2025-10-29 19:56:48.819 | INFO     | __main__:main:105 - ❌ 🚫 Roof Features                       | Present:   0/198 (  0.0%) | Missing: 198 | Type: multi
+2025-10-29 19:56:48.819 | INFO     | __main__:main:105 - ❌ 🚫 Primary Cladding                    | Present:   0/198 (  0.0%) | Missing: 198 | Type: single
+2025-10-29 19:56:48.819 | INFO     | __main__:main:105 - ❌ 🚫 Original Use                        | Present:   0/198 (  0.0%) | Missing: 198 | Type: single
+2025-10-29 19:56:48.819 | INFO     | __main__:main:105 - ❌ 🚫 NR Evaluation - Individual          | Present:   0/198 (  0.0%) | Missing: 198 | Type: single
+2025-10-29 19:56:48.819 | INFO     | __main__:main:105 - ❌ 🚫 NR Evaluation - District            | Present:   0/198 (  0.0%) | Missing: 198 | Type: single
+2025-10-29 19:56:48.819 | INFO     | __main__:main:105 - ❌ 🚫 Local Evaluation - Individual       | Present:   0/198 (  0.0%) | Missing: 198 | Type: single
+2025-10-29 19:56:48.819 | INFO     | __main__:main:105 - ❌ 🚫 Local Evaluation - District         | Present:   0/198 (  0.0%) | Missing: 198 | Type: single
+2025-10-29 19:56:48.819 | INFO     | __main__:main:105 - ❌ 🚫 Landscape Features                  | Present:   0/198 (  0.0%) | Missing: 198 | Type: multi
+2025-10-29 19:56:48.819 | INFO     | __main__:main:105 - ❌ 🚫 Current Use                         | Present:   0/198 (  0.0%) | Missing: 198 | Type: single
+2025-10-29 19:56:48.819 | INFO     | __main__:main:105 - ❌ 🚫 Building Plan                       | Present:   0/198 (  0.0%) | Missing: 198 | Type: single
+2025-10-29 19:56:48.819 | INFO     | __main__:main:105 - ❌ 🚫 Building Form                       | Present:   0/198 (  0.0%) | Missing: 198 | Type: single
+2025-10-29 19:56:48.819 | INFO     | __main__:main:105 - ❌ 🚫 Building Category                   | Present:   0/198 (  0.0%) | Missing: 198 | Type: single
+2025-10-29 19:56:48.819 | INFO     | __main__:main:105 - ❌ 🚫 Architectural Style                 | Present:   0/198 (  0.0%) | Missing: 198 | Type: single
+2025-10-29 19:56:48.819 | INFO     | __main__:main:105 - ❌ 🚫 Alterations-Windows                 | Present:   0/198 (  0.0%) | Missing: 198 | Type: multi
+2025-10-29 19:56:48.819 | INFO     | __main__:main:105 - ❌ 🚫 Alterations-Roof                    | Present:   0/198 (  0.0%) | Missing: 198 | Type: multi
+2025-10-29 19:56:48.819 | INFO     | __main__:main:105 - ❌ 🚫 Alterations-Entrances               | Present:   0/198 (  0.0%) | Missing: 198 | Type: multi
+2025-10-29 19:56:48.819 | INFO     | __main__:main:105 - ❌ 🚫 Alterations-Cladding                | Present:   0/198 (  0.0%) | Missing: 198 | Type: multi
+2025-10-29 19:56:48.819 | INFO     | __main__:main:105 - ❌ 🚫 Alterations-Additions               | Present:   0/198 (  0.0%) | Missing: 198 | Type: multi
+2025-10-29 19:56:48.819 | INFO     | __main__:main:105 - ❌ 🚫 Stories                             | Present:   0/198 (  0.0%) | Missing: 198 | Type: single
+2025-10-29 19:56:48.819 | INFO     | __main__:main:105 - ❌ 🚫 Wall Features                       | Present:   0/198 (  0.0%) | Missing: 198 | Type: multi
+2025-10-29 19:56:48.819 | INFO     | __main__:main:110 - 
+2025-10-29 19:56:48.819 | INFO     | __main__:main:111 - Legend: ✅=100% coverage, ❌=incomplete, 📋=in data, 🚫=not in data
+2025-10-29 19:56:48.819 | INFO     | __main__:main:112 - 
+2025-10-29 19:56:48.819 | INFO     | __main__:main:115 - ================================================================================
+2025-10-29 19:56:48.819 | INFO     | __main__:main:116 - 📘 OPTIONAL FIELDS
+2025-10-29 19:56:48.819 | INFO     | __main__:main:117 - --------------------------------------------------------------------------------
+2025-10-29 19:56:48.819 | INFO     | __main__:main:120 - Total optional fields: 31
+2025-10-29 19:56:48.819 | INFO     | __main__:main:121 - 
+2025-10-29 19:56:48.819 | INFO     | __main__:main:126 - ⚪ 🚫 Additional Cladding                 | Present:   0/198 (  0.0%) | Missing: 198 | Type: multi
+2025-10-29 19:56:48.820 | INFO     | __main__:main:126 - ⚪ 🚫 Local Criteria                      | Present:   0/198 (  0.0%) | Missing: 198 | Type: multi
+2025-10-29 19:56:48.820 | INFO     | __main__:main:126 - ⚪ 🚫 Year Built                          | Present:   0/198 (  0.0%) | Missing: 198 | Type: text
+2025-10-29 19:56:48.820 | INFO     | __main__:main:126 - ⚪ 🚫 Window                              | Present:   0/198 (  0.0%) | Missing: 198 | Type: multipart
+2025-10-29 19:56:48.820 | INFO     | __main__:main:126 - ⚪ 🚫 Statement of Significance           | Present:   0/198 (  0.0%) | Missing: 198 | Type: longtext
+2025-10-29 19:56:48.820 | INFO     | __main__:main:126 - ⚪ 🚫 Sources of Information              | Present:   0/198 (  0.0%) | Missing: 198 | Type: longtext
+2025-10-29 19:56:48.820 | INFO     | __main__:main:126 - ⚪ 🚫 SR Evaluation - Individual          | Present:   0/198 (  0.0%) | Missing: 198 | Type: single
+2025-10-29 19:56:48.820 | INFO     | __main__:main:126 - ⚪ 🚫 SR Evaluation - District            | Present:   0/198 (  0.0%) | Missing: 198 | Type: single
+2025-10-29 19:56:48.820 | INFO     | __main__:main:126 - ⚪ 🚫 Period of Significance              | Present:   0/198 (  0.0%) | Missing: 198 | Type: text
+2025-10-29 19:56:48.820 | INFO     | __main__:main:126 - ⚪ 🚫 Original Owner Source               | Present:   0/198 (  0.0%) | Missing: 198 | Type: text
+2025-10-29 19:56:48.820 | INFO     | __main__:main:126 - ⚪ 🚫 Original Owner                      | Present:   0/198 (  0.0%) | Missing: 198 | Type: text
+2025-10-29 19:56:48.820 | INFO     | __main__:main:126 - ⚪ 🚫 Original Location                   | Present:   0/198 (  0.0%) | Missing: 198 | Type: single
+2025-10-29 19:56:48.820 | INFO     | __main__:main:126 - ⚪ 🚫 NR District Potential               | Present:   0/198 (  0.0%) | Missing: 198 | Type: longtext
+2025-10-29 19:56:48.820 | INFO     | __main__:main:126 - ⚪ 🚫 NR Criteria                         | Present:   0/198 (  0.0%) | Missing: 198 | Type: multi
+2025-10-29 19:56:48.820 | INFO     | __main__:main:126 - ⚪ 🚫 NR Areas of Significance            | Present:   0/198 (  0.0%) | Missing: 198 | Type: multi
+2025-10-29 19:56:48.820 | INFO     | __main__:main:126 - ⚪ 🚫 Integrity Rating                    | Present:   0/198 (  0.0%) | Missing: 198 | Type: single
+2025-10-29 19:56:48.820 | INFO     | __main__:main:126 - ⚪ 🚫 Alteration-Other                    | Present:   0/198 (  0.0%) | Missing: 198 | Type: longtext
+2025-10-29 19:56:48.820 | INFO     | __main__:main:126 - ⚪ 🚫 Historical Notes                    | Present:   0/198 (  0.0%) | Missing: 198 | Type: longtext
+2025-10-29 19:56:48.820 | INFO     | __main__:main:126 - ⚪ 🚫 Historical Background               | Present:   0/198 (  0.0%) | Missing: 198 | Type: longtext
+2025-10-29 19:56:48.820 | INFO     | __main__:main:126 - ⚪ 🚫 Historic Name                       | Present:   0/198 (  0.0%) | Missing: 198 | Type: text
+2025-10-29 19:56:48.820 | INFO     | __main__:main:126 - ⚪ 🚫 General Architectural Notes         | Present:   0/198 (  0.0%) | Missing: 198 | Type: longtext
+2025-10-29 19:56:48.820 | INFO     | __main__:main:126 - ⚪ 🚫 Entrance                            | Present:   0/198 (  0.0%) | Missing: 198 | Type: multipart
+2025-10-29 19:56:48.820 | INFO     | __main__:main:126 - ⚪ 🚫 Chimney                             | Present:   0/198 (  0.0%) | Missing: 198 | Type: multipart
+2025-10-29 19:56:48.820 | INFO     | __main__:main:126 - ⚪ 🚫 CPD Map Eligibility                 | Present:   0/198 (  0.0%) | Missing: 198 | Type: single
+2025-10-29 19:56:48.820 | INFO     | __main__:main:126 - ⚪ 🚫 Builder Source                      | Present:   0/198 (  0.0%) | Missing: 198 | Type: text
+2025-10-29 19:56:48.820 | INFO     | __main__:main:126 - ⚪ 🚫 Builder                             | Present:   0/198 (  0.0%) | Missing: 198 | Type: text
+2025-10-29 19:56:48.820 | INFO     | __main__:main:126 - ⚪ 🚫 Associated Building and Objects     | Present:   0/198 (  0.0%) | Missing: 198 | Type: multipart
+2025-10-29 19:56:48.820 | INFO     | __main__:main:126 - ⚪ 🚫 Assessment of Integrity             | Present:   0/198 (  0.0%) | Missing: 198 | Type: longtext
+2025-10-29 19:56:48.820 | INFO     | __main__:main:126 - ⚪ 🚫 Architect Source                    | Present:   0/198 (  0.0%) | Missing: 198 | Type: text
+2025-10-29 19:56:48.820 | INFO     | __main__:main:126 - ⚪ 🚫 Architect                           | Present:   0/198 (  0.0%) | Missing: 198 | Type: text
+2025-10-29 19:56:48.820 | INFO     | __main__:main:126 - ⚪ 🚫 Year Built Source                   | Present:   0/198 (  0.0%) | Missing: 198 | Type: text
+2025-10-29 19:56:48.820 | INFO     | __main__:main:131 - 
+2025-10-29 19:56:48.820 | INFO     | __main__:main:132 - Legend: ✅=100% coverage, 📊=partial, ⚪=0%, 📋=in data, 🚫=not in data
+2025-10-29 19:56:48.820 | INFO     | __main__:main:133 - 
+2025-10-29 19:56:48.820 | INFO     | __main__:main:136 - ================================================================================
+2025-10-29 19:56:48.820 | INFO     | __main__:main:137 - 📈 SUMMARY STATISTICS
+2025-10-29 19:56:48.820 | INFO     | __main__:main:138 - ================================================================================
+2025-10-29 19:56:48.820 | INFO     | __main__:main:139 - 
+2025-10-29 19:56:48.821 | INFO     | __main__:main:146 - 📊 Coverage Distribution:
+2025-10-29 19:56:48.821 | INFO     | __main__:main:147 -    • 100% coverage: 0 fields
+2025-10-29 19:56:48.821 | INFO     | __main__:main:148 -    • Partial coverage: 0 fields
+2025-10-29 19:56:48.821 | INFO     | __main__:main:149 -    • 0% coverage: 55 fields
+2025-10-29 19:56:48.821 | INFO     | __main__:main:150 - 
+2025-10-29 19:56:48.821 | INFO     | __main__:main:158 - 🔴 Required Fields:
+2025-10-29 19:56:48.821 | INFO     | __main__:main:159 -    • Complete: 0/24 (0.0%)
+2025-10-29 19:56:48.821 | INFO     | __main__:main:160 -    • Incomplete: 24/24
+2025-10-29 19:56:48.821 | INFO     | __main__:main:161 - 
+2025-10-29 19:56:48.821 | INFO     | __main__:main:163 - 📘 Optional Fields:
+2025-10-29 19:56:48.821 | INFO     | __main__:main:164 -    • Complete: 0/31 (0.0%)
+2025-10-29 19:56:48.821 | INFO     | __main__:main:165 -    • Incomplete: 31/31
+2025-10-29 19:56:48.821 | INFO     | __main__:main:166 - 
+2025-10-29 19:56:48.821 | INFO     | __main__:main:170 - 🚫 Fields Not Present in Data: 55
+2025-10-29 19:56:48.821 | INFO     | __main__:main:172 -    Fields completely missing from CSV files:
+2025-10-29 19:56:48.821 | INFO     | __main__:main:175 -       📘 Additional Cladding (multi)
+2025-10-29 19:56:48.821 | INFO     | __main__:main:175 -       🔴 Alteration Level (single)
+2025-10-29 19:56:48.822 | INFO     | __main__:main:175 -       📘 Alteration-Other (longtext)
+2025-10-29 19:56:48.822 | INFO     | __main__:main:175 -       🔴 Alterations-Additions (multi)
+2025-10-29 19:56:48.822 | INFO     | __main__:main:175 -       🔴 Alterations-Cladding (multi)
+2025-10-29 19:56:48.822 | INFO     | __main__:main:175 -       🔴 Alterations-Entrances (multi)
+2025-10-29 19:56:48.822 | INFO     | __main__:main:175 -       🔴 Alterations-Roof (multi)
+2025-10-29 19:56:48.822 | INFO     | __main__:main:175 -       🔴 Alterations-Windows (multi)
+2025-10-29 19:56:48.822 | INFO     | __main__:main:175 -       📘 Architect (text)
+2025-10-29 19:56:48.822 | INFO     | __main__:main:175 -       📘 Architect Source (text)
+2025-10-29 19:56:48.822 | INFO     | __main__:main:175 -       🔴 Architectural Style (single)
+2025-10-29 19:56:48.822 | INFO     | __main__:main:175 -       📘 Assessment of Integrity (longtext)
+2025-10-29 19:56:48.822 | INFO     | __main__:main:175 -       📘 Associated Building and Objects (multipart)
+2025-10-29 19:56:48.822 | INFO     | __main__:main:175 -       📘 Builder (text)
+2025-10-29 19:56:48.822 | INFO     | __main__:main:175 -       📘 Builder Source (text)
+2025-10-29 19:56:48.822 | INFO     | __main__:main:175 -       🔴 Building Category (single)
+2025-10-29 19:56:48.822 | INFO     | __main__:main:175 -       🔴 Building Form (single)
+2025-10-29 19:56:48.822 | INFO     | __main__:main:175 -       🔴 Building Plan (single)
+2025-10-29 19:56:48.822 | INFO     | __main__:main:175 -       📘 CPD Map Eligibility (single)
+2025-10-29 19:56:48.822 | INFO     | __main__:main:175 -       📘 Chimney (multipart)
+2025-10-29 19:56:48.822 | INFO     | __main__:main:175 -       🔴 Current Use (single)
+2025-10-29 19:56:48.822 | INFO     | __main__:main:175 -       📘 Entrance (multipart)
+2025-10-29 19:56:48.822 | INFO     | __main__:main:175 -       📘 General Architectural Notes (longtext)
+2025-10-29 19:56:48.822 | INFO     | __main__:main:175 -       📘 Historic Name (text)
+2025-10-29 19:56:48.822 | INFO     | __main__:main:175 -       📘 Historical Background (longtext)
+2025-10-29 19:56:48.822 | INFO     | __main__:main:175 -       📘 Historical Notes (longtext)
+2025-10-29 19:56:48.822 | INFO     | __main__:main:175 -       📘 Integrity Rating (single)
+2025-10-29 19:56:48.822 | INFO     | __main__:main:175 -       🔴 Landscape Features (multi)
+2025-10-29 19:56:48.822 | INFO     | __main__:main:175 -       📘 Local Criteria (multi)
+2025-10-29 19:56:48.822 | INFO     | __main__:main:175 -       🔴 Local Evaluation - District (single)
+2025-10-29 19:56:48.822 | INFO     | __main__:main:175 -       🔴 Local Evaluation - Individual (single)
+2025-10-29 19:56:48.822 | INFO     | __main__:main:175 -       📘 NR Areas of Significance (multi)
+2025-10-29 19:56:48.822 | INFO     | __main__:main:175 -       📘 NR Criteria (multi)
+2025-10-29 19:56:48.822 | INFO     | __main__:main:175 -       📘 NR District Potential (longtext)
+2025-10-29 19:56:48.822 | INFO     | __main__:main:175 -       🔴 NR Evaluation - District (single)
+2025-10-29 19:56:48.822 | INFO     | __main__:main:175 -       🔴 NR Evaluation - Individual (single)
+2025-10-29 19:56:48.822 | INFO     | __main__:main:175 -       📘 Original Location (single)
+2025-10-29 19:56:48.822 | INFO     | __main__:main:175 -       📘 Original Owner (text)
+2025-10-29 19:56:48.822 | INFO     | __main__:main:175 -       📘 Original Owner Source (text)
+2025-10-29 19:56:48.822 | INFO     | __main__:main:175 -       🔴 Original Use (single)
+2025-10-29 19:56:48.822 | INFO     | __main__:main:175 -       📘 Period of Significance (text)
+2025-10-29 19:56:48.823 | INFO     | __main__:main:175 -       🔴 Primary Cladding (single)
+2025-10-29 19:56:48.823 | INFO     | __main__:main:175 -       🔴 Roof Features (multi)
+2025-10-29 19:56:48.823 | INFO     | __main__:main:175 -       🔴 Roof Materials (multi)
+2025-10-29 19:56:48.823 | INFO     | __main__:main:175 -       🔴 Roof Type (multi)
+2025-10-29 19:56:48.823 | INFO     | __main__:main:175 -       📘 SR Evaluation - District (single)
+2025-10-29 19:56:48.823 | INFO     | __main__:main:175 -       📘 SR Evaluation - Individual (single)
+2025-10-29 19:56:48.823 | INFO     | __main__:main:175 -       🔴 Setting (multi)
+2025-10-29 19:56:48.823 | INFO     | __main__:main:175 -       📘 Sources of Information (longtext)
+2025-10-29 19:56:48.823 | INFO     | __main__:main:175 -       📘 Statement of Significance (longtext)
+2025-10-29 19:56:48.823 | INFO     | __main__:main:175 -       🔴 Stories (single)
+2025-10-29 19:56:48.823 | INFO     | __main__:main:175 -       🔴 Wall Features (multi)
+2025-10-29 19:56:48.823 | INFO     | __main__:main:175 -       📘 Window (multipart)
+2025-10-29 19:56:48.823 | INFO     | __main__:main:175 -       📘 Year Built (text)
+2025-10-29 19:56:48.823 | INFO     | __main__:main:175 -       📘 Year Built Source (text)
+2025-10-29 19:56:48.823 | INFO     | __main__:main:176 - 
+2025-10-29 19:56:48.823 | INFO     | __main__:main:184 - ⚠️  Fields in Data but NOT in Schema: 3
+2025-10-29 19:56:48.823 | INFO     | __main__:main:187 -       • attributes (present in 198/198 records)
+2025-10-29 19:56:48.823 | INFO     | __main__:main:187 -       • dataset (present in 198/198 records)
+2025-10-29 19:56:48.823 | INFO     | __main__:main:187 -       • images (present in 198/198 records)
+2025-10-29 19:56:48.823 | INFO     | __main__:main:188 - 
+2025-10-29 19:56:48.823 | INFO     | __main__:main:191 - ================================================================================
+2025-10-29 19:56:48.823 | INFO     | __main__:main:192 - 🎯 TOP 10 MISSING REQUIRED FIELDS
+2025-10-29 19:56:48.823 | INFO     | __main__:main:193 - ================================================================================
+2025-10-29 19:56:48.823 | INFO     | __main__:main:194 - 
+2025-10-29 19:56:48.824 | INFO     | __main__:main:198 -  1. Alteration Level                    Missing: 198/198 records (100.0%)
+2025-10-29 19:56:48.824 | INFO     | __main__:main:198 -  2. Setting                             Missing: 198/198 records (100.0%)
+2025-10-29 19:56:48.824 | INFO     | __main__:main:198 -  3. Roof Type                           Missing: 198/198 records (100.0%)
+2025-10-29 19:56:48.824 | INFO     | __main__:main:198 -  4. Roof Materials                      Missing: 198/198 records (100.0%)
+2025-10-29 19:56:48.824 | INFO     | __main__:main:198 -  5. Roof Features                       Missing: 198/198 records (100.0%)
+2025-10-29 19:56:48.824 | INFO     | __main__:main:198 -  6. Primary Cladding                    Missing: 198/198 records (100.0%)
+2025-10-29 19:56:48.824 | INFO     | __main__:main:198 -  7. Original Use                        Missing: 198/198 records (100.0%)
+2025-10-29 19:56:48.824 | INFO     | __main__:main:198 -  8. NR Evaluation - Individual          Missing: 198/198 records (100.0%)
+2025-10-29 19:56:48.824 | INFO     | __main__:main:198 -  9. NR Evaluation - District            Missing: 198/198 records (100.0%)
+2025-10-29 19:56:48.824 | INFO     | __main__:main:198 - 10. Local Evaluation - Individual       Missing: 198/198 records (100.0%)
+2025-10-29 19:56:48.824 | INFO     | __main__:main:200 - 
+2025-10-29 19:56:48.824 | INFO     | __main__:main:201 - ================================================================================
+2025-10-29 19:56:48.824 | SUCCESS  | __main__:main:202 - ✅ Field coverage analysis complete!
+2025-10-29 19:56:48.824 | INFO     | __main__:main:203 - ================================================================================
