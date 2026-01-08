@@ -34,6 +34,11 @@ class NeighborhoodData:
     schema: Optional['DiscoverDenverSchema'] = None
 
 
+# Constants
+MAX_FIELDS_TO_DISPLAY = 5
+DEFAULT_SCHEMA_PATH = "schema/Discover Denver Schema.txt"
+
+
 class ConfigurableDataLoader:
     """
     Data loader that uses JSON configuration files to locate CSVs and images.
@@ -64,7 +69,7 @@ class ConfigurableDataLoader:
         
         # Load schema
         if schema_path is None:
-            schema_path = "schema/Discover Denver Schema.txt"
+            schema_path = DEFAULT_SCHEMA_PATH
         
         logger.info(f"Loading schema from: {schema_path}")
         schema_loader = SchemaLoader(schema_path)
@@ -103,7 +108,7 @@ class ConfigurableDataLoader:
         
         if missing_required:
             logger.warning(f"Dataset {dataset_name}: Missing {len(missing_required)} required fields")
-            logger.debug(f"Missing required fields: {sorted(missing_required)[:5]}...")
+            logger.debug(f"Missing required fields: {sorted(missing_required)[:MAX_FIELDS_TO_DISPLAY]}...")
         
         # Check for unknown columns (not in schema)
         unknown_columns = df_columns - schema_fields
@@ -114,11 +119,37 @@ class ConfigurableDataLoader:
         
         if unknown_columns:
             logger.debug(f"Dataset {dataset_name}: {len(unknown_columns)} columns not in schema")
-            logger.debug(f"Unknown columns: {sorted(unknown_columns)[:5]}...")
+            logger.debug(f"Unknown columns: {sorted(unknown_columns)[:MAX_FIELDS_TO_DISPLAY]}...")
         
         # Report validation summary
         matching_fields = len(df_columns & schema_fields)
         logger.info(f"Dataset {dataset_name}: {matching_fields}/{len(schema_fields)} schema fields present")
+    
+    def _calculate_coverage(self, with_images: int, total: int) -> float:
+        """Calculate coverage percentage."""
+        return (with_images / total * 100) if total > 0 else 0.0
+    
+    def _calculate_statistics(self, buildings: Dict[str, Dict[str, Any]]) -> tuple:
+        """Calculate buildings with images and total image count."""
+        buildings_with_images = sum(1 for info in buildings.values() if info['images'])
+        total_images = sum(len(info['images']) for info in buildings.values())
+        return buildings_with_images, total_images
+    
+    def _create_attribute_entry(self, value: Any, schema_field=None) -> Dict[str, Any]:
+        """Create attribute dictionary with schema metadata."""
+        if schema_field:
+            return {
+                'value': value,
+                'type': schema_field.field_type,
+                'required': schema_field.required,
+                'options': [opt.name for opt in schema_field.options] if schema_field.options else None
+            }
+        return {
+            'value': value,
+            'type': 'unknown',
+            'required': False,
+            'options': None
+        }
     
     def load_dataset(self, dataset_name: str) -> NeighborhoodData:
         """
@@ -156,9 +187,8 @@ class ConfigurableDataLoader:
         # Build building data
         buildings = self._build_building_data(df, image_index, dataset_name)
         
-        # Calculate statistics
-        buildings_with_images = sum(1 for info in buildings.values() if info['images'])
-        total_images = sum(len(info['images']) for info in buildings.values())
+        # Calculate statistics using helper
+        buildings_with_images, total_images = self._calculate_statistics(buildings)
         
         logger.info(f"Dataset {dataset_name}: {len(buildings)} buildings, "
                    f"{buildings_with_images} with images, {total_images} total images")
@@ -246,9 +276,8 @@ class ConfigurableDataLoader:
                 else:
                     merged_buildings[building_id] = building_info
         
-        # Calculate merged statistics
-        buildings_with_images = sum(1 for info in merged_buildings.values() if info['images'])
-        total_images = sum(len(info['images']) for info in merged_buildings.values())
+        # Calculate merged statistics using helper
+        buildings_with_images, total_images = self._calculate_statistics(merged_buildings)
         
         logger.info(f"Merged {neighborhood}: {len(merged_buildings)} buildings, "
                    f"{buildings_with_images} with images")
@@ -277,48 +306,46 @@ class ConfigurableDataLoader:
         
         for idx, row in df.iterrows():
             try:
-                building_id = str(row[id_column])
-                smithsonian = str(row.get('smithsonianNumber', '')).strip()
-                
-                # Find images for this building
-                images = image_index.find_images(building_id, smithsonian)
-                
-                # Build attributes dict with schema field types
-                attributes = {}
-                for col in df.columns:
-                    value = row[col]
-                    
-                    # Get schema field if it exists
-                    schema_field = self.schema.get_field(col)
-                    
-                    # Store value with type information
-                    if schema_field:
-                        attributes[col] = {
-                            'value': value,
-                            'type': schema_field.field_type,
-                            'required': schema_field.required,
-                            'options': [opt.name for opt in schema_field.options] if schema_field.options else None
-                        }
-                    else:
-                        # Column not in schema, store as-is
-                        attributes[col] = {
-                            'value': value,
-                            'type': 'unknown',
-                            'required': False,
-                            'options': None
-                        }
-                
-                buildings[building_id] = {
-                    'attributes': attributes,
-                    'images': images,
-                    'dataset': dataset_name
-                }
-                
+                building = self._process_building_row(row, id_column, image_index, 
+                                                     dataset_name, df.columns)
+                if building:
+                    buildings[building['id']] = building['data']
             except Exception as e:
                 logger.warning(f"Skipping row {idx} in {dataset_name}: {e}")
                 continue
         
         return buildings
+    
+    def _process_building_row(self, row: pd.Series, id_column: str, 
+                              image_index: ImageIndex, dataset_name: str,
+                              columns: pd.Index) -> Optional[Dict[str, Any]]:
+        """Process a single building row."""
+        building_id = str(row[id_column])
+        smithsonian = str(row.get('smithsonianNumber', '')).strip()
+        
+        # Find images for this building
+        images = image_index.find_images(building_id, smithsonian)
+        
+        # Build attributes with schema enrichment
+        attributes = self._enrich_attributes_with_schema(row, columns)
+        
+        return {
+            'id': building_id,
+            'data': {
+                'attributes': attributes,
+                'images': images,
+                'dataset': dataset_name
+            }
+        }
+    
+    def _enrich_attributes_with_schema(self, row: pd.Series, 
+                                       columns: pd.Index) -> Dict[str, Dict[str, Any]]:
+        """Enrich row data with schema metadata."""
+        attributes = {}
+        for col in columns:
+            schema_field = self.schema.get_field(col)
+            attributes[col] = self._create_attribute_entry(row[col], schema_field)
+        return attributes
     
     def _find_id_column(self, df: pd.DataFrame) -> Optional[str]:
         """Find the appropriate ID column in DataFrame."""
@@ -399,7 +426,7 @@ class ConfigurableDataLoader:
         
         # Per-dataset statistics
         for name, dataset in data.items():
-            coverage = (dataset.buildings_with_images / dataset.total_buildings * 100) if dataset.total_buildings > 0 else 0.0
+            coverage = self._calculate_coverage(dataset.buildings_with_images, dataset.total_buildings)
             logger.info(f"\n📊 {name}:")
             logger.info(f"  Buildings: {dataset.total_buildings}")
             logger.info(f"  Buildings with images: {dataset.buildings_with_images} ({coverage:.1f}%)")

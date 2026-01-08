@@ -135,47 +135,10 @@ def main():
         logger.info(f"... and {len(reports) - max_datasets_to_show} more datasets (omitted for brevity)")
         logger.info("")
     
-    # 6. Global statistics
-    logger.info("=" * 80)
-    logger.info("🌍 GLOBAL VALIDATION STATISTICS")
-    logger.info("=" * 80)
+    # 6. Global statistics using presenter
+    from src.loader.dataset_validator import ValidationReportPresenter
+    ValidationReportPresenter.print_global_summary(reports)
     
-    # Collect all field errors across all datasets
-    all_missing_fields = {}
-    all_empty_fields = {}
-    all_invalid_fields = {}
-    
-    for report in reports.values():
-        for field, count in report.missing_required_fields.items():
-            all_missing_fields[field] = all_missing_fields.get(field, 0) + count
-        for field, count in report.empty_required_fields.items():
-            all_empty_fields[field] = all_empty_fields.get(field, 0) + count
-        for field, count in report.invalid_option_fields.items():
-            all_invalid_fields[field] = all_invalid_fields.get(field, 0) + count
-    
-    if all_missing_fields:
-        logger.info("")
-        logger.info("🔴 Most Commonly Missing Required Fields (across all datasets):")
-        sorted_missing = sorted(all_missing_fields.items(), key=lambda x: x[1], reverse=True)
-        for field, count in sorted_missing[:10]:
-            logger.info(f"   • {field}: {count} records")
-    
-    if all_empty_fields:
-        logger.info("")
-        logger.info("⚠️  Most Commonly Empty Required Fields (across all datasets):")
-        sorted_empty = sorted(all_empty_fields.items(), key=lambda x: x[1], reverse=True)
-        for field, count in sorted_empty[:10]:
-            logger.info(f"   • {field}: {count} records")
-    
-    if all_invalid_fields:
-        logger.info("")
-        logger.info("🔴 Most Common Invalid Option Fields (across all datasets):")
-        sorted_invalid = sorted(all_invalid_fields.items(), key=lambda x: x[1], reverse=True)
-        for field, count in sorted_invalid[:10]:
-            logger.info(f"   • {field}: {count} records")
-    
-    logger.info("")
-    logger.info("=" * 80)
     logger.success("✅ Validation complete!")
     logger.info("=" * 80)
     
