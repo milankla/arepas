@@ -187,20 +187,27 @@ Task Heads (7 Tier 1 heads ONLY):
 
 **Phase 1 Loss Function (Tier 1 Only):**
 ```python
-# Weighted multi-task loss (7 tasks)
-Total Loss = 0.15 * L_stories 
-           + 0.15 * L_roof_type 
-           + 0.15 * L_primary_cladding
-           + 0.15 * L_chimney
-           + 0.15 * L_setting
-           + 0.125 * L_window
-           + 0.125 * L_entrance
+# Phase 1: Weighted multi-task loss (Tier 1 tasks)
+# Weights updated from attribute dependency analysis (docs/ATTRIBUTE_DEPENDENCY_ANALYSIS.md)
+Total Loss = 0.15  * L_stories
+           + 0.12  * L_roof_type          # reduced: style-group task (V=0.725 w/ building_form)
+           + 0.10  * FL_primary_cladding  # FocalLoss(γ=2.0): ~80% Brick dominance
+           + 0.08  * L_chimney
+           + 0.08  * L_setting
+           + 0.10  * L_window
+           + 0.10  * L_entrance
 
 # Phase 2 will add:
-# + 0.25 * L_architectural_style (PRIMARY TARGET)
-# + 0.05 * L_building_form
-# + 0.02 * L_roof_features (multi-label BCE)
-# + 0.02 * L_wall_features (multi-label BCE)
+# + 0.35 * L_architectural_style  # PRIMARY TARGET (increased from 0.25)
+# + 0.12 * L_building_form        # reduced from 0.20: V=0.923 overlap with arch_style
+# + 0.08 * L_building_category
+# + 0.05 * L_roof_features        # multi-label BCE
+# + 0.05 * L_wall_features        # multi-label BCE
+
+# Loss function selection per task:
+#   FocalLoss(γ=2.0)    → primary_cladding  (class imbalance)
+#   BCEWithLogitsLoss   → roof_features, wall_features  (multi-label)
+#   CrossEntropyLoss    → all other tasks
 ```
 
 ---
@@ -375,6 +382,17 @@ class MultiTaskArchitecturalClassifier(nn.Module):
         self.backbone, self.feature_dim = self._build_backbone(backbone_name)
         self.backbone_name = backbone_name
         
+        # Shared style-group layer for co-dependent tasks (Cramér's V ≥ 0.5).
+        # architectural_style ↔ building_form (V=0.923)
+        # building_form       ↔ roof_type     (V=0.725)
+        # architectural_style ↔ roof_type     (V=0.521)
+        # See docs/ATTRIBUTE_DEPENDENCY_ANALYSIS.md
+        self.style_group_fc = nn.Sequential(
+            nn.Linear(self.feature_dim, 512),
+            nn.ReLU(),
+            nn.Dropout(0.3)
+        )
+        
         # Task-specific heads
         self.task_heads = self._build_heads(self.feature_dim, active_tasks)
     
@@ -416,13 +434,15 @@ class MultiTaskArchitecturalClassifier(nn.Module):
                 'roof_features', 'wall_features'
             ]
         
+        # Style-group tasks route through style_group_fc (512-dim).
+        # Independent tasks receive backbone features directly (feature_dim).
         heads = {}
         
-        # Tier 1: Easy single-label tasks
+        # Tier 1: Easy single-label tasks (independent — bypass style_group_fc)
         if 'stories' in active_tasks:
             heads['stories'] = nn.Linear(feature_dim, 6)
         if 'roof_type' in active_tasks:
-            heads['roof_type'] = nn.Linear(feature_dim, 8)
+            heads['roof_type'] = nn.Linear(512, 8)           # style-group (V=0.725 w/ building_form)
         if 'primary_cladding' in active_tasks:
             heads['primary_cladding'] = nn.Linear(feature_dim, 7)
         if 'chimney' in active_tasks:
@@ -434,11 +454,11 @@ class MultiTaskArchitecturalClassifier(nn.Module):
         if 'entrance_type' in active_tasks:
             heads['entrance_type'] = nn.Linear(feature_dim, 5)
         
-        # Tier 2: Architectural classification (PRIMARY TARGET)
+        # Tier 2: Architectural classification (PRIMARY TARGET) — style-group
         if 'architectural_style' in active_tasks:
-            heads['architectural_style'] = nn.Linear(feature_dim, 12)
+            heads['architectural_style'] = nn.Linear(512, 12)  # style-group (V=0.923 w/ building_form)
         if 'building_form' in active_tasks:
-            heads['building_form'] = nn.Linear(feature_dim, 8)
+            heads['building_form'] = nn.Linear(512, 8)         # style-group hub
         
         # Multi-label tasks (use sigmoid activation, not softmax)
         if 'roof_features' in active_tasks:
@@ -468,10 +488,15 @@ class MultiTaskArchitecturalClassifier(nn.Module):
         if features.dim() == 4:
             features = features.flatten(1)  # [B, feature_dim]
         
-        # Task-specific predictions
+        # Style-group branch — shared 512-dim projection for co-dependent tasks
+        style_features = self.style_group_fc(features)
+        
+        # Route each task: style-group → style_features, others → raw features
+        STYLE_GROUP = {'architectural_style', 'building_form', 'roof_type'}
         outputs = {}
         for task_name, head in self.task_heads.items():
-            outputs[task_name] = head(features)
+            feat = style_features if task_name in STYLE_GROUP else features
+            outputs[task_name] = head(feat)
         
         return outputs
 ```
@@ -1006,7 +1031,30 @@ if __name__ == '__main__':
 - **Data Augmentation:** Oversample rare classes
 - **Stratified Sampling:** Ensure validation set has all classes
 
-### **4. Interpretability**
+### **4. Attribute Co-dependence (Data-Driven Finding)**
+
+**Source:** Full Cramér's V matrix in [docs/ATTRIBUTE_DEPENDENCY_ANALYSIS.md](ATTRIBUTE_DEPENDENCY_ANALYSIS.md)
+
+**Key findings from `scripts/attribute_dependency_analysis.py` on 198 Phase 1 buildings:**
+
+| Pair | Cramér's V | Implication |
+|------|-----------|-------------|
+| Architectural Style ↔ Building Form | **0.923** | Near-redundant — label leakage risk |
+| Building Form ↔ Roof Type | **0.725** | Strong structural cluster |
+| Architectural Style ↔ Roof Type | **0.521** | Same cluster |
+| Roof Type ↔ Primary Cladding | 0.408 | Moderate — Roof Type is a hub field |
+| Building Form ↔ Stories | 0.330 | Moderate |
+| Setting ↔ (all others) | < 0.28 | Fully independent — spatial context |
+
+**Architecture impact:** `architectural_style`, `building_form`, and `roof_type` share a single `style_group_fc` (512-dim) layer before their heads. All other tasks receive backbone features directly.
+
+**Label leakage warning:** `Building Form` and `Architectural Style` are near-interchangeable in this dataset. Do not train them as fully independent tasks or the model will learn separate shortcuts for the same underlying concept.
+
+**Class imbalance warning:** Primary Cladding is ~80% Brick across both styles. Use **focal loss or class-weighted cross-entropy** to prevent the minority cladding classes (Stucco, Asbestos shingles, Aluminum siding) being ignored during training.
+
+---
+
+### **5. Interpretability**
 
 **Why Important:** Architectural experts need to **trust** the model
 
