@@ -14,6 +14,7 @@ import pandas as pd
 from loguru import logger
 
 from .schema_loader import DiscoverDenverSchema, SchemaField, load_schema
+from .field_parser import is_empty_value, normalize_value, parse_multi_value, validate_value_against_options
 
 
 # Constants
@@ -256,37 +257,6 @@ class DatasetValidator:
             required.add(field.name)
         return required
     
-    def _is_empty_value(self, value: Any) -> bool:
-        """Check if a value is empty (None, NaN, empty string, etc.)."""
-        if value is None:
-            return True
-        if pd.isna(value):
-            return True
-        if isinstance(value, str) and value.strip() == "":
-            return True
-        return False
-    
-    def _normalize_value(self, value: Any) -> str:
-        """Normalize a value for comparison."""
-        if self._is_empty_value(value):
-            return ""
-        return str(value).strip()
-    
-    def _parse_multi_value(self, value: str) -> List[str]:
-        """Parse a multi-value field (comma or semicolon separated)."""
-        if self._is_empty_value(value):
-            return []
-        
-        # Try different separators
-        if ';' in value:
-            values = [v.strip() for v in value.split(';')]
-        elif ',' in value:
-            values = [v.strip() for v in value.split(',')]
-        else:
-            values = [value.strip()]
-        
-        return [v for v in values if v]  # Remove empty strings
-    
     def _create_error_dict(self, field_name: str, error_type: ValidationErrorType, 
                           message: str, current_value: Any = None, 
                           expected_values: Optional[List[str]] = None) -> ErrorDict:
@@ -302,22 +272,6 @@ class DatasetValidator:
             error_dict['expected_values'] = expected_values
         return error_dict
     
-    def _validate_value_against_options(self, value: Any, valid_options: Set[str], 
-                                       field_type: str) -> Tuple[bool, Optional[List[Any]]]:
-        """
-        Validate a value or multi-value against valid options.
-        
-        Returns:
-            (is_valid, invalid_values_list or None)
-        """
-        if field_type == 'multi':
-            values = self._parse_multi_value(str(value))
-            invalid_values = [v for v in values if v not in valid_options]
-            return (len(invalid_values) == 0, invalid_values if invalid_values else None)
-        else:
-            is_valid = str(value) in valid_options
-            return (is_valid, None)
-    
     def _validate_field_options(self, field: SchemaField, value: str) -> Tuple[bool, Optional[List[str]]]:
         """
         Validate that a field value matches allowed options.
@@ -325,7 +279,7 @@ class DatasetValidator:
         Returns:
             (is_valid, expected_values)
         """
-        if self._is_empty_value(value):
+        if is_empty_value(value):
             return True, None  # Empty values are handled separately
         
         if not field.options:
@@ -334,8 +288,8 @@ class DatasetValidator:
         # Get valid option values
         valid_options = {opt.name for opt in field.options}
         
-        # Use helper method for validation
-        is_valid, _ = self._validate_value_against_options(value, valid_options, field.field_type)
+        # Use shared parser for validation
+        is_valid, _ = validate_value_against_options(value, valid_options, field.field_type)
         
         if not is_valid:
             return False, sorted(valid_options)
@@ -347,7 +301,7 @@ class DatasetValidator:
         # Check if parent field exists (the "Does building have X?" question)
         parent_value = record.get(field.name)
         
-        if self._is_empty_value(parent_value):
+        if is_empty_value(parent_value):
             if field.required:
                 potential_errors.append(self._create_error_dict(
                     field.name,
@@ -365,7 +319,7 @@ class DatasetValidator:
             for subfield in field.subfields:
                 subfield_value = record.get(subfield.name)
                 
-                if self._is_empty_value(subfield_value):
+                if is_empty_value(subfield_value):
                     if subfield.required:
                         potential_errors.append(self._create_error_dict(
                             subfield.name,
@@ -373,9 +327,9 @@ class DatasetValidator:
                             f"Required subfield '{subfield.name}' of '{field.name}' is empty"
                         ))
                 elif subfield.options:
-                    # Validate subfield options using helper
+                    # Validate subfield options using shared field_parser
                     valid_options = {opt.name for opt in subfield.options}
-                    is_valid, invalid_values = self._validate_value_against_options(
+                    is_valid, invalid_values = validate_value_against_options(
                         subfield_value, valid_options, subfield.field_type
                     )
                     
@@ -424,7 +378,7 @@ class DatasetValidator:
                 continue
             
             # Check if required field is empty
-            if field.required and self._is_empty_value(value):
+            if field.required and is_empty_value(value):
                 potential_errors.append(self._create_error_dict(
                     field_name,
                     ValidationErrorType.EMPTY_REQUIRED,
@@ -439,7 +393,7 @@ class DatasetValidator:
                 continue
             
             # Validate field options
-            normalized_value = self._normalize_value(value)
+            normalized_value = normalize_value(value)
             if normalized_value:  # Only validate non-empty values
                 is_valid, expected_values = self._validate_field_options(field, normalized_value)
                 

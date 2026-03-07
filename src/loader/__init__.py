@@ -16,6 +16,12 @@ from .dataset_validator import (
     FieldValidationError,
     validate_dataset_file
 )
+from .field_parser import (
+    is_empty_value,
+    normalize_value,
+    parse_multi_value,
+    validate_value_against_options,
+)
 
 __all__ = [
     'ConfigurableDataLoader',
@@ -31,4 +37,8 @@ __all__ = [
     'RecordValidationResult',
     'FieldValidationError',
     'validate_dataset_file',
+    'is_empty_value',
+    'normalize_value',
+    'parse_multi_value',
+    'validate_value_against_options',
 ]

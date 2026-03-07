@@ -1,7 +1,25 @@
-# requirements.txt for Arepas
-# Add required packages for OpenAI Vision, image processing, and data handling
+# ── Data pipeline ─────────────────────────────────────────────────────────────
 openai
 pandas
 numpy
 Pillow
 loguru
+
+# ── ML training stack ─────────────────────────────────────────────────────────
+# PyTorch: CPU + MPS (Apple Silicon) on macOS; add --index-url for CUDA on Linux
+torch
+torchvision
+timm                  # EfficientNet-B3 and ViT-B/16 backbone support
+scikit-learn          # stratified train/val/test splits, metrics
+
+# ── Config & utilities ────────────────────────────────────────────────────────
+pyyaml                # model_config.yaml loading in train_multi_task.py
+tqdm                  # training progress bars
+
+# ── Visualisation ─────────────────────────────────────────────────────────────
+matplotlib            # class distribution charts, confusion matrices
+
+# ── Track 1: Image preprocessing (YOLOv8) ────────────────────────────────────
+# Install when starting Phase 1 Track 1 (building detection + cropping)
+# ultralytics         # YOLOv8 — uncomment when ready for preprocessing pipeline
+# opencv-python       # image crop/resize — uncomment with ultralytics
