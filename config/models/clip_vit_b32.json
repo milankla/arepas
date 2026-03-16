@@ -1,0 +1,7 @@
+{
+  "_comment": "OpenAI CLIP ViT-B/32 (openai/clip-vit-base-patch32). Uses its own normalisation — NOT ImageNet.",
+  "backbone":    "clip_vit_b32",
+  "image_size":  224,
+  "norm_mean":   [0.48145, 0.45783, 0.40821],
+  "norm_std":    [0.26863, 0.26130, 0.27578]
+}
