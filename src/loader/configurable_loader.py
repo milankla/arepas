@@ -321,6 +321,12 @@ class ConfigurableDataLoader:
                               columns: pd.Index) -> Optional[Dict[str, Any]]:
         """Process a single building row."""
         building_id = str(row[id_column])
+        # Strip the first and last characters to remove surrounding quotes.
+        # The source TSV files enclose values in quotes that may be mixed
+        # types (e.g. U+201D + ASCII 0x22), so slicing is more reliable
+        # than str.strip() which requires knowing the exact characters.
+        if len(building_id) >= 2:
+            building_id = building_id[1:-1]
         smithsonian = str(row.get('smithsonianNumber', '')).strip()
         
         # Find images for this building

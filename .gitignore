@@ -223,6 +223,10 @@ data2/
 config.json
 *.api_key
 
+# Generated training manifests (build artifacts — re-created by
+# scripts/build_phase1_label_mapping.py)
+**/image_label_mapping_phase1.csv
+
 # Model outputs and checkpoints
 models/
 checkpoints/

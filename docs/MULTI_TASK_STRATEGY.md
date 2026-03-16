@@ -1065,6 +1065,30 @@ if __name__ == '__main__':
 
 ---
 
+### **6. Phase 1 Data Edge Cases (Discovered During Implementation)**
+
+The following were found when building `data/image_label_mapping_phase1.csv` and `src/loader/architectural_dataset.py`. Must be resolved before wiring the dataset to the trainer.
+
+**6a. `alteration_level` — extreme class imbalance (99% majority)**
+- Phase 1 dataset: 631/638 rows are `5 - Not Altered`, only 7 are `4 - Minor Alterations`
+- A model that always predicts the majority class would score 99% accuracy with zero learning
+- **Fix before training:** Use `FocalLoss(γ=2.0)` (already defined in `multi_task_classifier.py`) or pass `class_weight` to `CrossEntropyLoss`
+- **Long-term:** Phase 4 alteration tasks need expert-labelled examples across all 5 alteration levels
+
+**6b. `roof_type` — 19 multi-value label strings treated as single classes**
+- Phase 1 data contains compound values like `"Compound Roof; Side Gable; Shed"` (`;`-delimited)
+- `field_parser.normalize_value` preserves the full string → each unique combination becomes its own class (19 total)
+- This is correct for Phase 1 (single-label treatment, simpler pipeline) but loses multi-label signal
+- **Phase 2 action:** Convert to multi-hot encoding using `field_parser.parse_multi_value`, switch loss to `BCEWithLogitsLoss`, update the `roof_type` head to `nn.Linear(512, N_ROOF_PRIMITIVES)` where `N_ROOF_PRIMITIVES` is the count of atomic roof types (Hip, Gable, Flat, etc.)
+
+**6c. `primary_cladding` — actual class count (10) doesn't match `TaskConfig` (7)**
+- `TaskConfig.EASY_TASKS['primary_cladding']['num_classes'] = 7` is hardcoded with placeholder classes
+- Phase 1 dataset has **10 real classes**: Brick, Concrete - Block, Shingles - Asbestos, Shingles - Plain, Shingles - Unknown, Siding - Aluminum, Siding - Horizontal (Unknown Material), Siding - Horizontal (Wood), Stone - Rusticated, Stucco - Historic
+- The head `nn.Linear(feature_dim, 7)` will crash at training time with a 10-class label
+- **Fix (Priority 5):** Update `TaskConfig` to use actual class lists from `ArchitecturalDataset.class_names` at runtime rather than hardcoded counts; or at minimum update the static counts/classes to match the real data
+
+---
+
 ## 📈 Expected Timeline
 
 | Phase | Duration | Focus | Dataset | Expected Accuracy | Status |
