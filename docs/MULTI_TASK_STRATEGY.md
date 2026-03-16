@@ -169,7 +169,7 @@ Global Average Pooling: [Batch, 2048]
   ↓
 Task Heads (7 Tier 1 heads ONLY):
   - stories: 6 classes
-  - roof_type: 8 classes
+  - roof_type: 19 atomics  ← multi-label, BCEWithLogitsLoss (Option B, commit 978f890)
   - primary_cladding: 7 classes
   - chimney_present: 2 classes
   - setting: 3 classes
@@ -206,6 +206,7 @@ Total Loss = 0.15  * L_stories
 
 # Loss function selection per task:
 #   FocalLoss(γ=2.0)    → primary_cladding  (class imbalance)
+#   BCEWithLogitsLoss   → roof_type (multi-label, 19 atomics — Option B)
 #   BCEWithLogitsLoss   → roof_features, wall_features  (multi-label)
 #   CrossEntropyLoss    → all other tasks
 ```
@@ -442,7 +443,7 @@ class MultiTaskArchitecturalClassifier(nn.Module):
         if 'stories' in active_tasks:
             heads['stories'] = nn.Linear(feature_dim, 6)
         if 'roof_type' in active_tasks:
-            heads['roof_type'] = nn.Linear(512, 8)           # style-group (V=0.725 w/ building_form)
+            heads['roof_type'] = nn.Linear(512, 19)          # style-group; multi-label 19 schema atomics (Option B)
         if 'primary_cladding' in active_tasks:
             heads['primary_cladding'] = nn.Linear(feature_dim, 7)
         if 'chimney' in active_tasks:
@@ -1075,11 +1076,41 @@ The following were found when building `data/image_label_mapping_phase1.csv` and
 - **Fix before training:** Use `FocalLoss(γ=2.0)` (already defined in `multi_task_classifier.py`) or pass `class_weight` to `CrossEntropyLoss`
 - **Long-term:** Phase 4 alteration tasks need expert-labelled examples across all 5 alteration levels
 
-**6b. `roof_type` — 19 multi-value label strings treated as single classes**
-- Phase 1 data contains compound values like `"Compound Roof; Side Gable; Shed"` (`;`-delimited)
-- `field_parser.normalize_value` preserves the full string → each unique combination becomes its own class (19 total)
-- This is correct for Phase 1 (single-label treatment, simpler pipeline) but loses multi-label signal
-- **Phase 2 action:** Convert to multi-hot encoding using `field_parser.parse_multi_value`, switch loss to `BCEWithLogitsLoss`, update the `roof_type` head to `nn.Linear(512, N_ROOF_PRIMITIVES)` where `N_ROOF_PRIMITIVES` is the count of atomic roof types (Hip, Gable, Flat, etc.)
+**6b. `roof_type` — multi-label over 19 schema atomics (Option B) ✅ IMPLEMENTED**
+
+The Discover Denver schema defines `roof_type` as type `multi` — surveyors intentionally select multiple atomics joined by `"; "` (e.g. `"Hipped; Front Gable"`). Treating compound strings as atomic single-label classes (Option A) would create 40 classes in `data2/`, of which 21/27 compound classes have <10 examples and are effectively unlearnable.
+
+**Decision: Option B — 19 independent binary classifiers with `BCEWithLogitsLoss`.**
+
+**Implementation (commit `978f890`):**
+- `src/loader/architectural_dataset.py`: `MultiLabelBinarizer(classes=ROOF_TYPE_SCHEMA_ATOMICS)` fitted with fixed class order; `__getitem__` returns `FloatTensor[19]` for `roof_type`, `LongTensor` for all other fields
+- `src/models/multi_task_classifier.py`: `TaskConfig.EASY_TASKS['roof_type']` → `num_classes=19`, `multi_label=True`; `MultiTaskLoss` already dispatches to `BCEWithLogitsLoss` for `multi_label=True` tasks
+
+**`data2/` atomic label frequency analysis (n=2708 rows, 762 buildings):**
+
+| Atomic | Positive examples | % buildings | Signal |
+|---|---|---|---|
+| Hipped | 928 | 34.3% | ✅ strong |
+| Front Gable | 596 | 22.0% | ✅ strong |
+| Cross Gable | 407 | 15.0% | ✅ strong |
+| Flat | 395 | 14.6% | ✅ strong |
+| Side Gable | 373 | 13.8% | ✅ strong |
+| Compound Roof | 97 | 3.6% | ⚠️ weak |
+| Hip-on-Gable | 81 | 3.0% | ⚠️ weak |
+| Cross Hip-on-Gable | 44 | 1.6% | ⚠️ weak |
+| Shed | 25 | 0.9% | ⚠️ weak |
+| Pyramidal | 18 | 0.7% | ⚠️ rare |
+| Dutch Hipped | 17 | 0.6% | ⚠️ rare |
+| Mansard | 15 | 0.6% | ⚠️ rare |
+| Gambrel | 9 | 0.3% | ⚠️ rare |
+| Other | 3 | 0.1% | ⚠️ rare |
+| Unknown Roof Type | 1 | 0.04% | ⚠️ rare |
+| Barrel Roof | 0 | — | ❌ never seen |
+| Conical | 0 | — | ❌ never seen |
+| Dome | 0 | — | ❌ never seen |
+| Monitor | 0 | — | ❌ never seen |
+
+**Key stats:** avg 1.11 labels/building; 8.4% of buildings have compound roof types; all compound strings decompose cleanly into schema atomics (no unrecognised parts).
 
 **6c. `primary_cladding` — actual class count (10) doesn't match `TaskConfig` (7)**
 - `TaskConfig.EASY_TASKS['primary_cladding']['num_classes'] = 7` is hardcoded with placeholder classes

@@ -227,11 +227,11 @@ config.json
 # scripts/build_phase1_label_mapping.py)
 **/image_label_mapping_phase1.csv
 
-# Model outputs and checkpoints
-models/
-checkpoints/
-outputs/
-fine_tuned_models/
+# Model outputs and checkpoints (root-level only — does not affect src/models/)
+/models/
+/checkpoints/
+/outputs/
+/fine_tuned_models/
 
 # Temporary files
 tmp/

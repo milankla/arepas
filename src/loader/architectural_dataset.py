@@ -28,27 +28,32 @@ Usage
 
     train_loader = DataLoader(train_ds, batch_size=32, shuffle=True)
     for images, labels in train_loader:
-        # images : FloatTensor [B, 3, 224, 224]
-        # labels : dict[str, LongTensor [B]]  — one key per LABEL_COLS
+        # images    : FloatTensor [B, 3, 224, 224]
+        # labels    : dict[str, Tensor] — one key per LABEL_COLS
+        #   single-label fields  → LongTensor  [B]      (class index)
+        #   roof_type            → FloatTensor [B, 19]  (19 schema atomics, binary)
         ...
 
 Label encoding
 ──────────────
     ds.label_encoders["architectural_style"].classes_
     ds.label_encoders["architectural_style"].transform(["Craftsman"])  → [2]
+    # roof_type uses MultiLabelBinarizer over 19 fixed schema atomics:
+    ds.label_encoders["roof_type"].classes_                              # → 19 atomics
+    ds.label_encoders["roof_type"].transform([["Hipped", "Front Gable"]])  # → [[0,0,...,1,...]]
 """
 
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple, Union
 
 import pandas as pd
 import torch
 from loguru import logger
 from PIL import Image
 from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import LabelEncoder
+from sklearn.preprocessing import LabelEncoder, MultiLabelBinarizer
 from torch import Tensor
 from torch.utils.data import Dataset
 from torchvision import transforms
@@ -94,6 +99,20 @@ STRATIFY_COL = "architectural_style"
 #   [-1,1]: mean=(0.5, 0.5, 0.5),             std=(0.5, 0.5, 0.5)
 IMAGENET_MEAN: Tuple[float, float, float] = (0.485, 0.456, 0.406)
 IMAGENET_STD:  Tuple[float, float, float] = (0.229, 0.224, 0.225)
+
+# roof_type is a schema 'multi' field — surveyors pick multiple atomics joined
+# by "; " (e.g. "Hipped; Front Gable").  These 19 fixed schema atomics define a
+# stable binary label vector used with BCEWithLogitsLoss (Option B).
+ROOF_TYPE_SCHEMA_ATOMICS: List[str] = [
+    "Barrel Roof", "Compound Roof", "Conical", "Cross Gable", "Cross Hip-on-Gable",
+    "Dome", "Dutch Hipped", "Flat", "Front Gable", "Gambrel", "Hip-on-Gable",
+    "Hipped", "Mansard", "Monitor", "Other", "Pyramidal", "Shed", "Side Gable",
+    "Unknown Roof Type",
+]
+
+# Columns that use MultiLabelBinarizer (→ FloatTensor[n_atomics]) instead of
+# LabelEncoder (→ LongTensor scalar).
+MULTILABEL_COLS: List[str] = ["roof_type"]
 
 
 # ── Transforms ───────────────────────────────────────────────────────────────
@@ -147,8 +166,9 @@ class ArchitecturalDataset(Dataset):
 
     Args:
         df:             DataFrame slice (train / val / test rows).
-        label_encoders: Shared dict of fitted sklearn LabelEncoders,
-                        one per PHASE1_LABEL_COLS entry.
+        label_encoders: Shared dict of fitted encoders, one per PHASE1_LABEL_COLS.
+                        Single-label cols → LabelEncoder; multi-label cols
+                        (currently roof_type) → MultiLabelBinarizer.
         image_root:     Base path; image_path column values are joined to it.
         transform:      torchvision transform applied to each loaded image.
     """
@@ -156,7 +176,7 @@ class ArchitecturalDataset(Dataset):
     def __init__(
         self,
         df: pd.DataFrame,
-        label_encoders: Dict[str, LabelEncoder],
+        label_encoders: Dict[str, Union[LabelEncoder, MultiLabelBinarizer]],
         image_root: str = IMAGE_ROOT_DEFAULT,
         transform: Optional[transforms.Compose] = None,
         image_size: int = IMAGE_SIZE,
@@ -189,8 +209,15 @@ class ArchitecturalDataset(Dataset):
         for col in PHASE1_LABEL_COLS:
             raw   = row[col]
             value = normalize_value(raw)        # field_parser — single source of truth
-            idx_  = self.label_encoders[col].transform([value])[0]
-            labels[col] = torch.tensor(idx_, dtype=torch.long)
+            if col in MULTILABEL_COLS:
+                # Multi-label: split on "; " → binary vector FloatTensor[n_atomics]
+                parts = [p.strip() for p in value.split("; ")] if value else []
+                vec = self.label_encoders[col].transform([parts])[0]
+                labels[col] = torch.tensor(vec, dtype=torch.float32)
+            else:
+                # Single-label: integer class index → LongTensor scalar
+                idx_  = self.label_encoders[col].transform([value])[0]
+                labels[col] = torch.tensor(idx_, dtype=torch.long)
 
         return image, labels
 
@@ -307,17 +334,31 @@ def make_splits(
     if len(df) < before:
         logger.warning(f"Dropped {before - len(df)} rows with empty labels")
 
-    # ── Fit one LabelEncoder per label column ─────────────────────────────
-    label_encoders: Dict[str, LabelEncoder] = {}
+    # ── Fit encoders: MultiLabelBinarizer for multi-label cols, LabelEncoder for rest ──
+    label_encoders: Dict[str, Union[LabelEncoder, MultiLabelBinarizer]] = {}
     for col in PHASE1_LABEL_COLS:
-        enc = LabelEncoder()
-        enc.fit(df[col].map(normalize_value))
-        label_encoders[col] = enc
-        logger.debug(f"  {col}: {len(enc.classes_)} classes → {list(enc.classes_)}")
+        if col in MULTILABEL_COLS:
+            # Fixed schema atomics keep class order stable across datasets.
+            mlb = MultiLabelBinarizer(classes=ROOF_TYPE_SCHEMA_ATOMICS)
+            all_rows = [
+                [p.strip() for p in normalize_value(val).split("; ")]
+                for val in df[col]
+            ]
+            mlb.fit(all_rows)
+            label_encoders[col] = mlb
+            logger.debug(f"  {col}: {len(mlb.classes_)} atomics (multi-label)")
+        else:
+            enc = LabelEncoder()
+            enc.fit(df[col].map(normalize_value))
+            label_encoders[col] = enc
+            logger.debug(f"  {col}: {len(enc.classes_)} classes → {list(enc.classes_)}")
 
     logger.info(
-        "Label encoders fitted — class counts: "
-        + ", ".join(f"{c}: {len(label_encoders[c].classes_)}" for c in PHASE1_LABEL_COLS)
+        "Encoders fitted — class counts: "
+        + ", ".join(
+            f"{c}: {len(label_encoders[c].classes_)}{'(multi)' if c in MULTILABEL_COLS else ''}"
+            for c in PHASE1_LABEL_COLS
+        )
     )
 
     # ── Stratified 70 / 15 / 15 split — AT BUILDING LEVEL ───────────────
@@ -456,13 +497,24 @@ if __name__ == "__main__":
     image, labels = train_ds[0]
     print(f"  Sample image shape  : {tuple(image.shape)}")
     print(f"  Sample image dtype  : {image.dtype}")
-    print(f"  Sample labels       : { {k: v.item() for k, v in labels.items()} }")
+    print(f"  Sample labels:")
+    for k, v in labels.items():
+        if k in MULTILABEL_COLS:
+            active = [ROOF_TYPE_SCHEMA_ATOMICS[i] for i, b in enumerate(v.tolist()) if b]
+            print(f"    {k}: {active}  (shape={tuple(v.shape)}, dtype={v.dtype})")
+        else:
+            print(f"    {k}: {v.item()}")
     print()
 
-    # Verify label indices are in range
+    # Verify label tensors are valid
     for col, tensor in labels.items():
-        idx_ = tensor.item()
-        n    = train_ds.num_classes[col]
-        assert 0 <= idx_ < n, f"Label index {idx_} out of range [0, {n}) for {col}"
-    print("  ✅ All label indices in range")
+        if col in MULTILABEL_COLS:
+            assert tensor.dtype == torch.float32, f"{col} must be float32"
+            assert tensor.shape == (len(ROOF_TYPE_SCHEMA_ATOMICS),), \
+                f"{col} shape {tuple(tensor.shape)} != ({len(ROOF_TYPE_SCHEMA_ATOMICS)},)"
+        else:
+            idx_ = tensor.item()
+            n    = train_ds.num_classes[col]
+            assert 0 <= idx_ < n, f"Label index {idx_} out of range [0, {n}) for {col}"
+    print("  ✅ All label tensors valid")
     print("=" * 60)
