@@ -213,13 +213,39 @@ class MultiTaskArchitecturalClassifier(nn.Module):
         active_phase: int = 1,  # 1: Easy, 2: +Medium, 3: +Hard, 4: +Very Hard
         freeze_backbone: bool = False,
         model_config: Optional[ModelConfig] = None,
+        num_classes: Optional[Dict[str, int]] = None,
     ):
+        """
+        Args:
+            backbone:      Backbone architecture name (default: 'resnet50').
+            weights:       Torchvision weights preset ('DEFAULT' = ImageNet).
+            active_phase:  Which task groups to activate (1–4).
+            freeze_backbone: Freeze backbone weights (useful for fine-tuning).
+            model_config:  Optional ModelConfig — drives backbone selection.
+            num_classes:   Per-task class counts from the dataset, e.g.
+                           ``train_ds.num_classes``.  Values here override the
+                           static counts in TaskConfig, making head sizes
+                           data-driven.  Tasks absent from this dict fall back
+                           to the TaskConfig default.  Pass this whenever
+                           training against a real CSV to avoid shape mismatches.
+
+                           Example::
+
+                               train_ds, val_ds, test_ds = make_splits(csv_path=...)
+                               model = MultiTaskArchitecturalClassifier(
+                                   num_classes=train_ds.num_classes
+                               )
+        """
         super().__init__()
 
         # model_config drives backbone selection when provided;
         # explicit backbone= kwarg still takes precedence if both are passed.
         if model_config is not None and backbone == 'resnet50':
             backbone = model_config.backbone
+
+        # Per-task class counts supplied by the caller override TaskConfig values.
+        # Stored here so _build_task_heads() can reference them.
+        self._num_classes_override: Dict[str, int] = num_classes or {}
 
         self.active_phase = active_phase
         
@@ -307,7 +333,11 @@ class MultiTaskArchitecturalClassifier(nn.Module):
         # the 512-dim output of style_group_fc — their heads are a single Linear.
         # All other tasks get their own 2-layer projection from backbone features.
         for task_name, task_config in all_tasks.items():
-            num_classes = task_config['num_classes']
+            # Data-driven count from the caller (train_ds.num_classes) takes
+            # precedence over the static placeholder in TaskConfig.
+            num_classes = self._num_classes_override.get(
+                task_name, task_config['num_classes']
+            )
 
             if task_name in STYLE_GROUP_TASKS:
                 # Input is STYLE_GROUP_DIM (512) from the shared style_group_fc
@@ -439,31 +469,45 @@ class MultiTaskLoss(nn.Module):
 
 # Example usage
 if __name__ == "__main__":
-    # Phase 1: Start with easy tasks
+    # Preferred pattern: pass data-driven class counts so model heads match real data.
+    #
+    #   from src.loader.architectural_dataset import make_splits
+    #   train_ds, val_ds, test_ds = make_splits("data2/image_label_mapping_phase1.csv")
+    #   model = MultiTaskArchitecturalClassifier(
+    #       backbone='resnet50',
+    #       active_phase=1,
+    #       num_classes=train_ds.num_classes,  # data-driven head sizes
+    #   )
+    #
+    # The smoke-test below falls back to TaskConfig placeholder counts because
+    # no CSV is available at import time.
+
+    # Phase 1: Easy tasks — static fallback counts (fine for a shape-only smoke test)
     model_phase1 = MultiTaskArchitecturalClassifier(
         backbone='resnet50',
         weights='DEFAULT',
-        active_phase=1,  # Only easy tasks
-        freeze_backbone=False
+        active_phase=1,
+        freeze_backbone=False,
     )
-    
+
     # Test forward pass
     batch_size = 4
     dummy_images = torch.randn(batch_size, 3, 224, 224)
     outputs = model_phase1(dummy_images)
-    
-    print("Phase 1 (Easy Tasks):")
+
+    print("Phase 1 (Easy Tasks) — TaskConfig fallback counts:")
     for task_name, output in outputs.items():
         config = model_phase1.get_task_config(task_name)
-        print(f"  {task_name}: {output.shape} -> {config['num_classes']} classes")
-    
+        n = model_phase1._num_classes_override.get(task_name, config['num_classes'])
+        print(f"  {task_name}: {tuple(output.shape)} -> {n} classes")
+
     # Phase 2: Add medium tasks (architectural style)
     model_phase2 = MultiTaskArchitecturalClassifier(
         backbone='resnet50',
         weights='DEFAULT',
-        active_phase=2,  # Easy + Medium tasks
-        freeze_backbone=False
+        active_phase=2,
+        freeze_backbone=False,
     )
-    
+
     outputs_phase2 = model_phase2(dummy_images)
     print(f"\nPhase 2 (Easy + Medium): {len(outputs_phase2)} total tasks")
