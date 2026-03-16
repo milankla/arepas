@@ -8,6 +8,7 @@ Progressive training strategy:
 4. Phase 4 (Week 7-8): Add alteration detection
 """
 
+import argparse
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -18,7 +19,9 @@ from pathlib import Path
 from tqdm import tqdm
 import json
 
-from multi_task_classifier import MultiTaskArchitecturalClassifier, MultiTaskLoss
+from src.models.multi_task_classifier import MultiTaskArchitecturalClassifier, MultiTaskLoss
+from src.models.model_config import ModelConfig
+from src.loader.architectural_dataset import make_splits
 
 
 logger = logging.getLogger(__name__)
@@ -278,77 +281,236 @@ class MultiTaskTrainer:
             json.dump(self.training_history, f, indent=2)
 
 
-def progressive_training_pipeline():
+# ── Phase metadata ───────────────────────────────────────────────────────────
+
+_PHASE_NAMES: Dict[int, str] = {
+    1: "EASY VISUAL FEATURES (stories, roof type, cladding)",
+    2: "ARCHITECTURAL CLASSIFICATION (+ style, building form)",
+    3: "FINE-GRAINED FEATURES",
+    4: "ALTERATION DETECTION",
+}
+
+
+# ── DataLoader factory ────────────────────────────────────────────────────────
+
+def build_dataloaders(
+    csv_path: str,
+    model_config: ModelConfig,
+    batch_size: int = 32,
+    num_workers: int = 4,
+) -> Tuple[DataLoader, DataLoader, DataLoader, Dict[str, int]]:
+    """Build train / val / test DataLoaders from any CSV + ModelConfig.
+
+    Dataset-agnostic — works with data/ or data2/ (or any future dataset)
+    provided the CSV was produced by build_phase1_label_mapping.py.
+
+    Model-agnostic — image resolution and normalisation statistics are taken
+    from ``model_config``, so the same call works for ResNet, EfficientNet,
+    CLIP, ViT, etc.
+
+    Args:
+        csv_path:     Path to the label-mapping CSV.
+        model_config: Backbone configuration (drives image_size + norm stats).
+        batch_size:   Samples per GPU batch.
+        num_workers:  DataLoader worker processes.
+
+    Returns:
+        (train_loader, val_loader, test_loader, num_classes)
+        where num_classes is {task_name: int} derived from the training split.
     """
-    Complete progressive training pipeline
-    
-    Phase 1 (2 weeks): Easy tasks
-    Phase 2 (2 weeks): + Architectural style
-    Phase 3 (2 weeks): + Fine-grained features
-    Phase 4 (2 weeks): + Alteration detection
+    train_ds, val_ds, test_ds = make_splits(
+        csv_path=csv_path,
+        model_config=model_config,
+    )
+    logger.info(
+        f"Dataset splits — train: {len(train_ds)}, "
+        f"val: {len(val_ds)}, test: {len(test_ds)}"
+    )
+    logger.info(
+        "Class counts per task: "
+        + ", ".join(f"{k}: {v}" for k, v in train_ds.num_classes.items())
+    )
+
+    pin = torch.cuda.is_available()
+
+    train_loader = DataLoader(
+        train_ds,
+        batch_size=batch_size,
+        shuffle=True,
+        num_workers=num_workers,
+        pin_memory=pin,
+        drop_last=True,
+    )
+    val_loader = DataLoader(
+        val_ds,
+        batch_size=batch_size,
+        shuffle=False,
+        num_workers=num_workers,
+        pin_memory=pin,
+    )
+    test_loader = DataLoader(
+        test_ds,
+        batch_size=batch_size,
+        shuffle=False,
+        num_workers=num_workers,
+        pin_memory=pin,
+    )
+    return train_loader, val_loader, test_loader, train_ds.num_classes
+
+
+# ── Pipeline ──────────────────────────────────────────────────────────────────
+
+def progressive_training_pipeline(
+    csv_path: str,
+    model_config: ModelConfig,
+    start_phase: int = 1,
+    end_phase: int = 1,
+    epochs_per_phase: int = 20,
+    batch_size: int = 32,
+    lr: float = 1e-4,
+    output_dir: str = "./outputs",
+    num_workers: int = 4,
+) -> None:
+    """Dataset- and model-agnostic progressive training pipeline.
+
+    Builds DataLoaders once (shared across all phases), then trains a
+    MultiTaskArchitecturalClassifier for each requested phase.  Each phase
+    warm-starts from the previous phase's best checkpoint — shared backbone
+    weights and earlier task heads are transferred via non-strict loading.
+
+    Args:
+        csv_path:          Label-mapping CSV (any dataset: data/ or data2/).
+        model_config:      Backbone config — drives backbone choice, input
+                           resolution, and normalisation statistics.
+        start_phase:       First phase to train (1–4).
+        end_phase:         Last phase to train inclusive (1–4).
+        epochs_per_phase:  Training epochs per phase.
+        batch_size:        Samples per GPU batch.
+        lr:                AdamW initial learning rate.
+        output_dir:        Root output directory; phase sub-dirs created here.
+        num_workers:       DataLoader worker processes.
     """
-    
-    # TODO: Initialize dataloaders (from your data preparation script)
-    # train_loader = get_dataloader(split='train', phase=1)
-    # val_loader = get_dataloader(split='val', phase=1)
-    
-    device = 'cuda' if torch.cuda.is_available() else 'cpu'
-    print(f"Using device: {device}")
-    
-    # Phase 1: Easy Tasks (Foundation)
-    print("\n" + "="*60)
-    print("PHASE 1: EASY VISUAL FEATURES")
-    print("="*60)
-    
-    model_phase1 = MultiTaskArchitecturalClassifier(
-        backbone='resnet50',
-        weights='DEFAULT',
-        active_phase=1,
-        freeze_backbone=False
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    logger.info(
+        f"Device: {device} | Backbone: {model_config.backbone} | "
+        f"CSV: {csv_path} | Phases: {start_phase}\u2013{end_phase}"
     )
-    
-    # trainer_phase1 = MultiTaskTrainer(
-    #     model=model_phase1,
-    #     train_loader=train_loader,
-    #     val_loader=val_loader,
-    #     device=device,
-    #     learning_rate=1e-4,
-    #     output_dir='./outputs/phase1'
-    # )
-    # trainer_phase1.train(num_epochs=20)
-    
-    # Phase 2: Add Architectural Style
-    print("\n" + "="*60)
-    print("PHASE 2: ARCHITECTURAL CLASSIFICATION")
-    print("="*60)
-    
-    model_phase2 = MultiTaskArchitecturalClassifier(
-        backbone='resnet50',
-        weights='DEFAULT',
-        active_phase=2,
-        freeze_backbone=False
+
+    # Build loaders once — image size and norm stats come from model_config.
+    train_loader, val_loader, _, num_classes = build_dataloaders(
+        csv_path=csv_path,
+        model_config=model_config,
+        batch_size=batch_size,
+        num_workers=num_workers,
     )
-    
-    # Load Phase 1 weights (transfer learning)
-    # checkpoint = torch.load('./outputs/phase1/best_model_phase1.pth')
-    # Load shared backbone and Phase 1 task heads
-    # model_phase2.load_state_dict(checkpoint['model_state_dict'], strict=False)
-    
-    # Continue training...
-    
-    print("\nProgressive training pipeline configured!")
-    print("Next steps:")
-    print("1. Prepare image-to-label mapping CSV")
-    print("2. Create PyTorch Dataset class")
-    print("3. Run Phase 1 training (easy tasks)")
-    print("4. Evaluate Phase 1 results")
-    print("5. Move to Phase 2 (architectural style)")
+
+    prev_checkpoint: Optional[str] = None
+
+    for phase in range(start_phase, end_phase + 1):
+        print("\n" + "=" * 60)
+        print(f"PHASE {phase}: {_PHASE_NAMES.get(phase, f'Phase {phase}')}")
+        print("=" * 60)
+
+        phase_out = Path(output_dir) / f"phase{phase}"
+
+        model = MultiTaskArchitecturalClassifier(
+            backbone=model_config.backbone,
+            weights="DEFAULT",
+            active_phase=phase,
+            freeze_backbone=False,
+            num_classes=num_classes,   # data-driven head sizes
+        )
+
+        # Warm-start: transfer backbone + earlier task heads from previous phase.
+        if prev_checkpoint is not None and Path(prev_checkpoint).exists():
+            ckpt = torch.load(prev_checkpoint, map_location="cpu")
+            missing, unexpected = model.load_state_dict(
+                ckpt["model_state_dict"], strict=False
+            )
+            logger.info(
+                f"Phase {phase} warm-start \u2190 phase {phase - 1} checkpoint "
+                f"({len(missing)} missing keys, {len(unexpected)} unexpected)"
+            )
+
+        trainer = MultiTaskTrainer(
+            model=model,
+            train_loader=train_loader,
+            val_loader=val_loader,
+            device=device,
+            learning_rate=lr,
+            output_dir=str(phase_out),
+        )
+        trainer.train(num_epochs=epochs_per_phase)
+
+        best_ckpt = phase_out / f"best_model_phase{phase}.pth"
+        if best_ckpt.exists():
+            prev_checkpoint = str(best_ckpt)
+        logger.info(f"Phase {phase} complete. Best checkpoint \u2192 {best_ckpt}")
 
 
 if __name__ == "__main__":
     logging.basicConfig(
         level=logging.INFO,
-        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     )
-    
-    progressive_training_pipeline()
+
+    parser = argparse.ArgumentParser(
+        description="Progressive multi-task training — dataset- and model-agnostic.",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+    parser.add_argument(
+        "--csv",
+        required=True,
+        help=(
+            "Path to the label-mapping CSV "
+            "(e.g. data/image_label_mapping_phase1.csv or "
+            "data2/image_label_mapping_phase1.csv)"
+        ),
+    )
+    parser.add_argument(
+        "--model-config",
+        default="config/models/resnet50.json",
+        help="Path to a config/models/*.json backbone preset.",
+    )
+    parser.add_argument(
+        "--start-phase", type=int, default=1, choices=[1, 2, 3, 4],
+        help="First phase to train.",
+    )
+    parser.add_argument(
+        "--end-phase", type=int, default=1, choices=[1, 2, 3, 4],
+        help="Last phase to train (inclusive).",
+    )
+    parser.add_argument(
+        "--epochs", type=int, default=20,
+        help="Training epochs per phase.",
+    )
+    parser.add_argument(
+        "--batch-size", type=int, default=32,
+    )
+    parser.add_argument(
+        "--lr", type=float, default=1e-4,
+        help="AdamW initial learning rate.",
+    )
+    parser.add_argument(
+        "--output-dir", default="./outputs",
+        help="Root directory for checkpoints and training history.",
+    )
+    parser.add_argument(
+        "--num-workers", type=int, default=4,
+        help="DataLoader worker processes.",
+    )
+    args = parser.parse_args()
+
+    cfg = ModelConfig.from_json(args.model_config)
+
+    progressive_training_pipeline(
+        csv_path=args.csv,
+        model_config=cfg,
+        start_phase=args.start_phase,
+        end_phase=args.end_phase,
+        epochs_per_phase=args.epochs,
+        batch_size=args.batch_size,
+        lr=args.lr,
+        output_dir=args.output_dir,
+        num_workers=args.num_workers,
+    )
