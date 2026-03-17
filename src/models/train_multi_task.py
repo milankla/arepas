@@ -39,7 +39,8 @@ class MultiTaskTrainer:
         val_loader: DataLoader,
         device: str = 'cuda',
         learning_rate: float = 1e-4,
-        output_dir: str = './outputs'
+        output_dir: str = './outputs',
+        max_batches: Optional[int] = None,
     ):
         self.model = model.to(device)
         self.train_loader = train_loader
@@ -47,6 +48,9 @@ class MultiTaskTrainer:
         self.device = device
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(parents=True, exist_ok=True)
+        # If set, each epoch/validation phase stops after this many batches.
+        # Useful for smoke tests without needing a separate tiny dataset.
+        self.max_batches = max_batches
         
         # Optimizer and loss
         self.optimizer = optim.AdamW(
@@ -62,7 +66,6 @@ class MultiTaskTrainer:
             mode='min',
             factor=0.5,
             patience=3,
-            verbose=True
         )
         
         # Tracking
@@ -78,9 +81,11 @@ class MultiTaskTrainer:
         
         pbar = tqdm(self.train_loader, desc=f"Epoch {epoch} [Train]")
         for batch_idx, (images, targets) in enumerate(pbar):
+            if self.max_batches is not None and batch_idx >= self.max_batches:
+                break
             images = images.to(self.device)
             targets = {k: v.to(self.device) for k, v in targets.items()}
-            
+
             # Forward pass
             self.optimizer.zero_grad()
             predictions = self.model(images)
@@ -123,7 +128,9 @@ class MultiTaskTrainer:
         
         with torch.no_grad():
             pbar = tqdm(self.val_loader, desc=f"Epoch {epoch} [Val]")
-            for images, targets in pbar:
+            for batch_idx, (images, targets) in enumerate(pbar):
+                if self.max_batches is not None and batch_idx >= self.max_batches:
+                    break
                 images = images.to(self.device)
                 targets = {k: v.to(self.device) for k, v in targets.items()}
                 
@@ -370,6 +377,7 @@ def progressive_training_pipeline(
     lr: float = 1e-4,
     output_dir: str = "./outputs",
     num_workers: int = 4,
+    max_batches: Optional[int] = None,
 ) -> None:
     """Dataset- and model-agnostic progressive training pipeline.
 
@@ -389,6 +397,8 @@ def progressive_training_pipeline(
         lr:                AdamW initial learning rate.
         output_dir:        Root output directory; phase sub-dirs created here.
         num_workers:       DataLoader worker processes.
+        max_batches:       If set, each train/val pass stops after this many
+                           batches.  Useful for smoke tests on full datasets.
     """
     device = "cuda" if torch.cuda.is_available() else "cpu"
     logger.info(
@@ -439,6 +449,7 @@ def progressive_training_pipeline(
             device=device,
             learning_rate=lr,
             output_dir=str(phase_out),
+            max_batches=max_batches,
         )
         trainer.train(num_epochs=epochs_per_phase)
 
@@ -499,6 +510,13 @@ if __name__ == "__main__":
         "--num-workers", type=int, default=4,
         help="DataLoader worker processes.",
     )
+    parser.add_argument(
+        "--max-batches", type=int, default=None,
+        help=(
+            "Stop each train/val pass after this many batches. "
+            "Use --max-batches 3 for a quick smoke test on the full dataset."
+        ),
+    )
     args = parser.parse_args()
 
     cfg = ModelConfig.from_json(args.model_config)
@@ -513,4 +531,5 @@ if __name__ == "__main__":
         lr=args.lr,
         output_dir=args.output_dir,
         num_workers=args.num_workers,
+        max_batches=args.max_batches,
     )
