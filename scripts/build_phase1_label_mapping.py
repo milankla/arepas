@@ -32,6 +32,7 @@ Output columns
   primary_cladding
   stories
   alteration_level
+  chimney_present      derived: "Yes" if Chimney column is non-empty, else "No"
 
 TODO (Priority 3): add a record_valid column once architectural_dataset.py
   is wired up — DatasetValidator maps by Address, not smithsonianNumber, so
@@ -82,22 +83,33 @@ PHASE1_FIELDS = [
 # CSV column names (snake_case)
 LABEL_COLUMNS = [f.lower().replace(" ", "_") for f in PHASE1_FIELDS]
 
+# chimney_present is derived from the presence of data in the Chimney column
+# (schema "Does the building have chimneys?" gate).  It is always Yes/No so it
+# never fails the has_all_labels() check.
+LABEL_COLUMNS = LABEL_COLUMNS + ["chimney_present"]
+
 
 # ── Helpers ──────────────────────────────────────────────────────────────────
 
 def extract_labels(attributes: dict) -> dict:
     """
-    Extract the 6 Phase 1 label strings from a building's attribute dict.
+    Extract the Phase 1 label strings from a building's attribute dict.
 
     Uses normalize_value from field_parser — the single source of truth for
     reading raw CSV field values.
 
     Returns a dict mapping LABEL_COLUMNS keys to strings (possibly '' if empty).
+    chimney_present is always 'Yes' or 'No' — never empty.
     """
     labels = {}
     for field_name, col_name in zip(PHASE1_FIELDS, LABEL_COLUMNS):
         raw = attributes.get(field_name, {}).get("value", None)
         labels[col_name] = normalize_value(raw)
+
+    # Derived field: Yes when the Chimney multipart column has any data.
+    chimney_raw = attributes.get("Chimney", {}).get("value", None)
+    labels["chimney_present"] = "Yes" if normalize_value(chimney_raw) else "No"
+
     return labels
 
 

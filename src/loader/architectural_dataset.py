@@ -76,7 +76,7 @@ IMAGE_ROOT_DEFAULT = "."
 IMAGE_SIZE        = 224
 RANDOM_STATE      = 42
 
-# Label columns expected in the CSV.  The same 6 fields apply to both the
+# Label columns expected in the CSV.  The same fields apply to both the
 # data/ and data2/ datasets for Phase 1 training.
 PHASE1_LABEL_COLS: List[str] = [
     "architectural_style",
@@ -85,6 +85,7 @@ PHASE1_LABEL_COLS: List[str] = [
     "primary_cladding",
     "stories",
     "alteration_level",
+    "chimney_present",   # derived: "Yes"/"No" gate from Chimney multipart column
 ]
 LABEL_COLS = PHASE1_LABEL_COLS   # dataset-agnostic alias
 

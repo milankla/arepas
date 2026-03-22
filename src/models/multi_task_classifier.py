@@ -116,8 +116,13 @@ class TaskConfig:
         },
         'chimney_present': {
             'num_classes': 2,
-            'classes': ['Present', 'Absent'],
-            'loss_weight': 0.10
+            # Schema gate: "Does the building have chimneys?" (Yes/No).
+            # Sorted alphabetically to match LabelEncoder.fit() order.
+            'classes': ['No', 'Yes'],
+            'loss_weight': 0.10,
+            # Extreme imbalance: ~90-96 % No in both datasets.
+            'focal_loss': True,
+            'focal_gamma': 2.0,
         },
         'setting': {
             'num_classes': 3,
@@ -173,7 +178,28 @@ class TaskConfig:
             'num_classes': 7,
             'classes': ['Double-Hung', 'Casement', 'Fixed', 'Bay', 'Bow', 'Awning', 'Sliding'],
             'loss_weight': 0.10
-        }
+        },
+        # Chimney sub-fields — schema-compliant multi-label stubs.
+        # loss_weight=0.0: only ~330 positive buildings across both datasets;
+        # 5 of 7 material atomics have < 10 samples — not learnable yet.
+        # Raise loss_weight once data volume or augmentation addresses sparsity.
+        'chimney_material': {
+            'num_classes': 7,
+            'classes': [
+                'Brick', 'Concrete', 'Metal', 'Other Chimney Material',
+                'Stone', 'Stucco', 'Unknown Chimney Material',
+            ],
+            'loss_weight': 0.0,
+            'multi_label': True,
+        },
+        'chimney_features': {
+            'num_classes': 4,
+            'classes': [
+                'Chimney Pots', 'Decorative', 'Multiple Flues', 'Other Chimney Features',
+            ],
+            'loss_weight': 0.0,
+            'multi_label': True,
+        },
     }
     
     # Phase 4: Alteration Detection (Requires expert labels)
