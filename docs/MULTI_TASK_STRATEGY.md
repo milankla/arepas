@@ -12,10 +12,10 @@ Your project requires predicting **25 architectural attributes** from building p
 Directly observable from single photo, clear visual features:
 
 1. **Stories** - Count visible floors (1, 1.5, 2, 2.5, 3+)
-2. **Roof Type** - Geometric pattern (Hip, Gable, Flat, Gambrel, Mansard)
+2. **Roof Type** - Geometric pattern (Hip, Gable, Flat, Gambrel, Mansard) — multi-label, 19 schema atomics
 3. **Primary Cladding** - Surface material (Brick, Wood, Stucco, Stone, Vinyl)
-4. **Setting** - Spatial context (Detached, Attached, Set back from sidewalk)
-5. **Chimney** - Presence, location, material
+4. **Setting** - Spatial context: 6 schema atomics, multi-label (`Attached on 1 Side`, `Attached on 2 Sides`, `Corner`, `Flush at Sidewalk`, `Set at Back of Lot`, `Set Back from Sidewalk`)
+5. **Chimney** - `chimney_present` (Yes/No, binary) active in Phase 1; `chimney_material` (7 atomics) and `chimney_features` (4 atomics) deferred to Phase 3 (< 330 positive buildings)
 6. **Window** - Type and configuration (Double-hung, Casement, Bay, Fixed)
 7. **Entrance** - Type and location (Full porch, Partial porch, Recessed)
 
@@ -163,21 +163,22 @@ Input: [Batch, 3, 224, 224] RGB images (ORIGINAL, not cropped)
   ↓
 Backbone: ResNet50 (baseline)
   ↓
-Shared Features: [Batch, 2048, 7, 7]
+Shared Features: [Batchsch, 2048, 7, 7]
   ↓
 Global Average Pooling: [Batch, 2048]
   ↓
 Task Heads (7 Tier 1 heads ONLY):
   - stories: 6 classes
-  - roof_type: 19 atomics  ← multi-label, BCEWithLogitsLoss (Option B, commit 978f890)
-  - primary_cladding: 7 classes
-  - chimney_present: 2 classes
-  - setting: 3 classes
+  - roof_type: 19 atomics       ← multi-label, BCEWithLogitsLoss
+  - primary_cladding: 7 classes ← FocalLoss(γ=2.0)
+  - chimney_present: 2 classes (No/Yes) ← FocalLoss(γ=2.0), ~90-96% No
+  - setting: 6 atomics          ← multi-label, BCEWithLogitsLoss, FocalLoss(γ=2.0)
   - window_type: 7 classes
   - entrance_type: 5 classes
 
-# NOTE: Tier 2 tasks deferred to Phase 2
-# Will add architectural_style, building_form, roof_features, wall_features in Phase 2
+# Phase 3 stubs (loss_weight=0.0 until data volume warrants training):
+#   chimney_material: 7 atomics (multi-label) — < 330 positive buildings
+#   chimney_features: 4 atomics (multi-label) — < 330 positive buildings
 ```
 
 **Model Flexibility (See Implementation section):**

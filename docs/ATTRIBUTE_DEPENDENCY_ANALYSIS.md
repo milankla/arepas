@@ -194,7 +194,7 @@ class MultiTaskArchitecturalClassifier(nn.Module):
             # Independent heads (routed directly from backbone)
             'stories':           nn.Linear(self.feature_dim, 6),
             'primary_cladding':  nn.Linear(self.feature_dim, 7),
-            'setting':           nn.Linear(self.feature_dim, 3),
+            'setting':           nn.Linear(self.feature_dim, 6),  # multi-label, 6 schema atomics
             'window_type':       nn.Linear(self.feature_dim, 7),
             'entrance_type':     nn.Linear(self.feature_dim, 5),
         })
