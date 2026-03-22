@@ -32,6 +32,7 @@ Output columns
   primary_cladding
   stories
   alteration_level
+  setting              schema 'multi': sorted atomics joined by "; "
   chimney_present      derived: "Yes" if Chimney column is non-empty, else "No"
 
 TODO (Priority 3): add a record_valid column once architectural_dataset.py
@@ -78,6 +79,7 @@ PHASE1_FIELDS = [
     "Primary Cladding",
     "Stories",
     "Alteration Level",
+    "Setting",
 ]
 
 # CSV column names (snake_case)
@@ -100,11 +102,20 @@ def extract_labels(attributes: dict) -> dict:
 
     Returns a dict mapping LABEL_COLUMNS keys to strings (possibly '' if empty).
     chimney_present is always 'Yes' or 'No' — never empty.
+    Multi-value fields (setting) are written with parts sorted alphabetically
+    so order-variant inputs produce identical CSV strings.
     """
     labels = {}
     for field_name, col_name in zip(PHASE1_FIELDS, LABEL_COLUMNS):
         raw = attributes.get(field_name, {}).get("value", None)
-        labels[col_name] = normalize_value(raw)
+        value = normalize_value(raw)
+        # Canonicalise multi-value fields: sort parts so surveyor-order
+        # variation (e.g. "Corner; Set Back" vs "Set Back; Corner") maps
+        # to the same string and thus the same binarized vector.
+        if col_name == "setting" and value:
+            parts = sorted(p.strip() for p in value.split(";") if p.strip())
+            value = "; ".join(parts)
+        labels[col_name] = value
 
     # Derived field: Yes when the Chimney multipart column has any data.
     chimney_raw = attributes.get("Chimney", {}).get("value", None)

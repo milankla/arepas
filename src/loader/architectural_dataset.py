@@ -85,6 +85,7 @@ PHASE1_LABEL_COLS: List[str] = [
     "primary_cladding",
     "stories",
     "alteration_level",
+    "setting",           # schema 'multi': building’s relation to adjacent lots/street
     "chimney_present",   # derived: "Yes"/"No" gate from Chimney multipart column
 ]
 LABEL_COLS = PHASE1_LABEL_COLS   # dataset-agnostic alias
@@ -111,9 +112,29 @@ ROOF_TYPE_SCHEMA_ATOMICS: List[str] = [
     "Unknown Roof Type",
 ]
 
+# Schema 'multi' field: how the building relates to adjacent lots and the street.
+# 6 options sorted alphabetically — matches MultiLabelBinarizer class order.
+SETTING_SCHEMA_ATOMICS: List[str] = [
+    "Attached on 1 Side",
+    "Attached on 2 Sides",
+    "Corner",
+    "Flush at Sidewalk",
+    "Set at Back of Lot",
+    "Set Back from Sidewalk",
+]
+
+# Dispatch table: multi-label column → fixed ordered list of schema atomics.
+# Adding a new multi-label field: add its atomics list above and register here.
+# The order determines the bit positions in the FloatTensor label vector.
+MULTILABEL_ATOMICS: Dict[str, List[str]] = {
+    "roof_type": ROOF_TYPE_SCHEMA_ATOMICS,
+    "setting":   SETTING_SCHEMA_ATOMICS,
+}
+
 # Columns that use MultiLabelBinarizer (→ FloatTensor[n_atomics]) instead of
-# LabelEncoder (→ LongTensor scalar).
-MULTILABEL_COLS: List[str] = ["roof_type"]
+# LabelEncoder (→ LongTensor scalar).  Derived from MULTILABEL_ATOMICS so the
+# two are always in sync.
+MULTILABEL_COLS: List[str] = list(MULTILABEL_ATOMICS.keys())
 
 
 # ── Transforms ───────────────────────────────────────────────────────────────
@@ -340,7 +361,7 @@ def make_splits(
     for col in PHASE1_LABEL_COLS:
         if col in MULTILABEL_COLS:
             # Fixed schema atomics keep class order stable across datasets.
-            mlb = MultiLabelBinarizer(classes=ROOF_TYPE_SCHEMA_ATOMICS)
+            mlb = MultiLabelBinarizer(classes=MULTILABEL_ATOMICS[col])
             all_rows = [
                 [p.strip() for p in normalize_value(val).split("; ")]
                 for val in df[col]
@@ -501,7 +522,8 @@ if __name__ == "__main__":
     print(f"  Sample labels:")
     for k, v in labels.items():
         if k in MULTILABEL_COLS:
-            active = [ROOF_TYPE_SCHEMA_ATOMICS[i] for i, b in enumerate(v.tolist()) if b]
+            atomics = MULTILABEL_ATOMICS[k]
+            active = [atomics[i] for i, b in enumerate(v.tolist()) if b]
             print(f"    {k}: {active}  (shape={tuple(v.shape)}, dtype={v.dtype})")
         else:
             print(f"    {k}: {v.item()}")
@@ -510,9 +532,10 @@ if __name__ == "__main__":
     # Verify label tensors are valid
     for col, tensor in labels.items():
         if col in MULTILABEL_COLS:
+            atomics = MULTILABEL_ATOMICS[col]
             assert tensor.dtype == torch.float32, f"{col} must be float32"
-            assert tensor.shape == (len(ROOF_TYPE_SCHEMA_ATOMICS),), \
-                f"{col} shape {tuple(tensor.shape)} != ({len(ROOF_TYPE_SCHEMA_ATOMICS)},)"
+            assert tensor.shape == (len(atomics),), \
+                f"{col} shape {tuple(tensor.shape)} != ({len(atomics)},)"
         else:
             idx_ = tensor.item()
             n    = train_ds.num_classes[col]

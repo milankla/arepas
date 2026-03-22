@@ -125,9 +125,20 @@ class TaskConfig:
             'focal_gamma': 2.0,
         },
         'setting': {
-            'num_classes': 3,
-            'classes': ['Detached', 'Attached', 'Set Back from Sidewalk'],
-            'loss_weight': 0.10
+            'num_classes': 6,
+            # Schema 'multi' field — 6 options sorted alphabetically (matches
+            # MultiLabelBinarizer class order and SETTING_SCHEMA_ATOMICS).
+            # ~19.5% of rows select 2 options; Corner almost always co-occurs
+            # with Set Back from Sidewalk.  Extreme skew: Set Back present in
+            # ~94% of rows — focal loss prevents trivial all-ones prediction.
+            'classes': [
+                'Attached on 1 Side', 'Attached on 2 Sides', 'Corner',
+                'Flush at Sidewalk', 'Set at Back of Lot', 'Set Back from Sidewalk',
+            ],
+            'loss_weight': 0.10,
+            'multi_label': True,
+            'focal_loss': True,
+            'focal_gamma': 2.0,
         }
     }
     
