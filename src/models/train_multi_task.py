@@ -9,11 +9,12 @@ Progressive training strategy:
 """
 
 import argparse
+import warnings
 import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader
-from typing import Dict, Tuple, Optional
+from typing import Any, Dict, List, Tuple, Optional
 import logging
 from pathlib import Path
 from tqdm import tqdm
@@ -21,6 +22,7 @@ import json
 
 from src.models.multi_task_classifier import MultiTaskArchitecturalClassifier, MultiTaskLoss
 from src.models.model_config import ModelConfig
+from src.models.metrics import compute_metrics, format_metrics_table
 from src.loader.architectural_dataset import make_splits
 
 
@@ -118,86 +120,58 @@ class MultiTaskTrainer:
         epoch_losses = {k: v / total_samples for k, v in epoch_losses.items()}
         return epoch_losses
     
-    def validate(self, epoch: int) -> Tuple[Dict[str, float], Dict[str, float]]:
-        """Validate model"""
+    def validate(self, epoch: int) -> Tuple[Dict[str, float], Dict[str, Any]]:
+        """Validate model.
+
+        Collects all predictions and targets across batches first, then computes
+        metrics in one shot so macro F1 is accurate (not a batch-wise average).
+
+        Returns:
+            (avg_losses, metrics) where metrics is the nested dict from
+            compute_metrics() — includes per-task accuracy/F1 and 'overall_accuracy'.
+        """
         self.model.eval()
-        
-        epoch_losses = {}
-        epoch_accuracies = {}
+
+        all_losses: Dict[str, float]               = {}
+        all_preds:  Dict[str, List[torch.Tensor]]  = {}
+        all_tgts:   Dict[str, List[torch.Tensor]]  = {}
         total_samples = 0
-        
+
         with torch.no_grad():
             pbar = tqdm(self.val_loader, desc=f"Epoch {epoch} [Val]")
             for batch_idx, (images, targets) in enumerate(pbar):
                 if self.max_batches is not None and batch_idx >= self.max_batches:
                     break
-                images = images.to(self.device)
+                images  = images.to(self.device)
                 targets = {k: v.to(self.device) for k, v in targets.items()}
-                
-                # Forward pass
+
                 predictions = self.model(images)
-                
-                # Calculate losses
-                losses = self.criterion(predictions, targets)
-                
-                # Calculate accuracies
-                accuracies = self._calculate_accuracies(predictions, targets)
-                
-                # Accumulate
+                losses      = self.criterion(predictions, targets)
+
                 batch_size = images.size(0)
                 total_samples += batch_size
-                
+
                 for loss_name, loss_value in losses.items():
-                    if loss_name not in epoch_losses:
-                        epoch_losses[loss_name] = 0.0
-                    epoch_losses[loss_name] += loss_value.item() * batch_size
-                
-                for task_name, acc_value in accuracies.items():
-                    if task_name not in epoch_accuracies:
-                        epoch_accuracies[task_name] = 0.0
-                    epoch_accuracies[task_name] += acc_value * batch_size
-                
+                    all_losses[loss_name] = (
+                        all_losses.get(loss_name, 0.0) + loss_value.item() * batch_size
+                    )
+
+                for task_name, pred in predictions.items():
+                    all_preds.setdefault(task_name, []).append(pred.cpu())
+                for task_name, tgt in targets.items():
+                    all_tgts.setdefault(task_name, []).append(tgt.cpu())
+
                 pbar.set_postfix({'loss': losses['total'].item()})
-        
-        # Average
-        epoch_losses = {k: v / total_samples for k, v in epoch_losses.items()}
-        epoch_accuracies = {k: v / total_samples for k, v in epoch_accuracies.items()}
-        
-        return epoch_losses, epoch_accuracies
-    
-    def _calculate_accuracies(
-        self,
-        predictions: Dict[str, torch.Tensor],
-        targets: Dict[str, torch.Tensor]
-    ) -> Dict[str, float]:
-        """Calculate per-task accuracy"""
-        accuracies = {}
-        
-        for task_name in predictions.keys():
-            if task_name not in targets:
-                continue
-            
-            pred = predictions[task_name]
-            target = targets[task_name]
-            
-            # Get task config
-            config = self.model.get_task_config(task_name)
-            
-            if config.get('multi_label', False):
-                # Multi-label accuracy (threshold at 0.5)
-                pred_binary = (torch.sigmoid(pred) > 0.5).float()
-                correct = (pred_binary == target).all(dim=1).sum().item()
-                total = target.size(0)
-                accuracies[task_name] = correct / total
-            else:
-                # Single-label accuracy
-                pred_classes = pred.argmax(dim=1)
-                correct = (pred_classes == target).sum().item()
-                total = target.size(0)
-                accuracies[task_name] = correct / total
-        
-        return accuracies
-    
+
+        avg_losses = {k: v / total_samples for k, v in all_losses.items()}
+
+        # Compute metrics over the full validation set in one shot (accurate macro F1).
+        concat_preds   = {k: torch.cat(v) for k, v in all_preds.items()}
+        concat_targets = {k: torch.cat(v) for k, v in all_tgts.items()}
+        metrics = compute_metrics(self.model, concat_preds, concat_targets)
+
+        return avg_losses, metrics
+
     def train(self, num_epochs: int):
         """
         Full training loop
@@ -207,70 +181,62 @@ class MultiTaskTrainer:
         logger.info(f"Active tasks: {list(self.model.task_heads.keys())}")
         
         for epoch in range(1, num_epochs + 1):
-            # Train
             train_losses = self.train_epoch(epoch)
-            
-            # Validate
-            val_losses, val_accuracies = self.validate(epoch)
-            
-            # Update scheduler
+            val_losses, val_metrics = self.validate(epoch)
+
             self.scheduler.step(val_losses['total'])
-            
-            # Log results
-            self._log_epoch_results(epoch, train_losses, val_losses, val_accuracies)
-            
-            # Save checkpoint if best
+            self._log_epoch_results(epoch, train_losses, val_losses, val_metrics)
+
             if val_losses['total'] < self.best_val_loss:
                 self.best_val_loss = val_losses['total']
-                self._save_checkpoint(epoch, val_losses, val_accuracies, is_best=True)
+                self._save_checkpoint(epoch, val_losses, val_metrics, is_best=True)
                 logger.info(f"✓ New best model saved (val_loss: {self.best_val_loss:.4f})")
-            
-            # Save regular checkpoint
+
             if epoch % 5 == 0:
-                self._save_checkpoint(epoch, val_losses, val_accuracies, is_best=False)
+                self._save_checkpoint(epoch, val_losses, val_metrics, is_best=False)
     
     def _log_epoch_results(
         self,
         epoch: int,
         train_losses: Dict[str, float],
         val_losses: Dict[str, float],
-        val_accuracies: Dict[str, float]
+        val_metrics: Dict[str, Any],
     ):
-        """Log training results"""
-        logger.info(f"\nEpoch {epoch} Results:")
-        logger.info(f"  Train Loss: {train_losses['total']:.4f}")
-        logger.info(f"  Val Loss: {val_losses['total']:.4f}")
-        
-        # Log per-task accuracies
-        logger.info("  Task Accuracies:")
-        for task_name, acc in sorted(val_accuracies.items()):
-            logger.info(f"    {task_name}: {acc:.3f}")
-        
-        # Save to history
+        """Log training results and save to history."""
+        overall = val_metrics.get('overall_accuracy', 0.0)
+        logger.info(
+            f"\nEpoch {epoch}"
+            f"  |  Train Loss: {train_losses['total']:.4f}"
+            f"  |  Val Loss: {val_losses['total']:.4f}"
+            f"  |  Overall Acc: {overall:.4f}"
+        )
+        logger.info(format_metrics_table(val_metrics))
+
         self.training_history.append({
             'epoch': epoch,
             'train_losses': train_losses,
             'val_losses': val_losses,
-            'val_accuracies': val_accuracies
+            'val_metrics': val_metrics,
         })
     
     def _save_checkpoint(
         self,
         epoch: int,
         val_losses: Dict[str, float],
-        val_accuracies: Dict[str, float],
-        is_best: bool = False
+        val_metrics: Dict[str, Any],
+        is_best: bool = False,
     ):
-        """Save model checkpoint"""
+        """Save model checkpoint."""
         checkpoint = {
             'epoch': epoch,
             'model_state_dict': self.model.state_dict(),
             'optimizer_state_dict': self.optimizer.state_dict(),
             'scheduler_state_dict': self.scheduler.state_dict(),
             'val_losses': val_losses,
-            'val_accuracies': val_accuracies,
+            'val_metrics': val_metrics,
             'best_val_loss': self.best_val_loss,
-            'active_phase': self.model.active_phase
+            'active_phase': self.model.active_phase,
+            'num_classes': dict(self.model._num_classes_override),
         }
         
         # Save best model
