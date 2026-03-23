@@ -88,7 +88,11 @@ class TaskConfig:
         'stories': {
             'num_classes': 6,
             'classes': ['1', '1.5', '2', '2.5', '3+', 'Unknown'],
-            'loss_weight': 0.15
+            'loss_weight': 0.15,
+            # 90 %+ class '1' in both datasets — focal loss prevents the head
+            # from collapsing to predicting "1" for every building.
+            'focal_loss': True,
+            'focal_gamma': 2.0,
         },
         'roof_type': {
             'num_classes': 19,
