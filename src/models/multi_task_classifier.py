@@ -95,19 +95,13 @@ class TaskConfig:
             'focal_gamma': 2.0,
         },
         'roof_type': {
-            'num_classes': 19,
-            'classes': [
-                "Barrel Roof", "Compound Roof", "Conical", "Cross Gable", "Cross Hip-on-Gable",
-                "Dome", "Dutch Hipped", "Flat", "Front Gable", "Gambrel", "Hip-on-Gable",
-                "Hipped", "Mansard", "Monitor", "Other", "Pyramidal", "Shed", "Side Gable",
-                "Unknown Roof Type",
-            ],
-            # Multi-label (Option B): schema defines roof_type as a 'multi' field —
-            # surveyors select multiple atomics joined by "; " (e.g. "Hipped; Front Gable").
-            # 19 independent binary classifiers with BCEWithLogitsLoss.
-            # MultiTaskLoss already dispatches to bce_loss when multi_label=True.
+            'num_classes': 12,  # data-driven at runtime; ~12 classes after Compound folding
+            # Single-label: any building with multiple roof types is collapsed to
+            # "Compound" by normalize_roof_type_label() in the dataset loader.
+            # Focal loss: "Compound" (~15%), Hip-on-Gable, Mansard etc. are minorities.
             'loss_weight': 0.12,
-            'multi_label': True,
+            'focal_loss': True,
+            'focal_gamma': 2.0,
         },
         'primary_cladding': {
             'num_classes': 7,

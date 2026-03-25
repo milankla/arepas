@@ -31,22 +31,25 @@ Usage
         # images    : FloatTensor [B, 3, 224, 224]
         # labels    : dict[str, Tensor] — one key per LABEL_COLS
         #   single-label fields  → LongTensor  [B]      (class index)
-        #   roof_type            → FloatTensor [B, 19]  (19 schema atomics, binary)
+        #   setting              → FloatTensor [B,  6]  (6 schema atomics, binary)
         ...
 
 Label encoding
 ──────────────
     ds.label_encoders["architectural_style"].classes_
     ds.label_encoders["architectural_style"].transform(["Craftsman"])  → [2]
-    # roof_type uses MultiLabelBinarizer over 19 fixed schema atomics:
-    ds.label_encoders["roof_type"].classes_                              # → 19 atomics
-    ds.label_encoders["roof_type"].transform([["Hipped", "Front Gable"]])  # → [[0,0,...,1,...]]
+    # roof_type is now a single-label field — compound roofs are collapsed to
+    # the "Compound" class at encode time:
+    ds.label_encoders["roof_type"].classes_       # → ['Compound', 'Cross Gable', ...]
+    ds.label_encoders["roof_type"].transform(["Hipped"])               # → [5]
+    ds.label_encoders["roof_type"].transform(["Hipped; Front Gable"])  # KeyError — use
+    # normalize_roof_type_label() first:  → "Compound" → [0]
 """
 
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Callable, Dict, List, Optional, Tuple, Union
 
 import pandas as pd
 import torch
@@ -102,15 +105,26 @@ STRATIFY_COL = "architectural_style"
 IMAGENET_MEAN: Tuple[float, float, float] = (0.485, 0.456, 0.406)
 IMAGENET_STD:  Tuple[float, float, float] = (0.229, 0.224, 0.225)
 
-# roof_type is a schema 'multi' field — surveyors pick multiple atomics joined
-# by "; " (e.g. "Hipped; Front Gable").  These 19 fixed schema atomics define a
-# stable binary label vector used with BCEWithLogitsLoss (Option B).
-ROOF_TYPE_SCHEMA_ATOMICS: List[str] = [
-    "Barrel Roof", "Compound Roof", "Conical", "Cross Gable", "Cross Hip-on-Gable",
-    "Dome", "Dutch Hipped", "Flat", "Front Gable", "Gambrel", "Hip-on-Gable",
-    "Hipped", "Mansard", "Monitor", "Other", "Pyramidal", "Shed", "Side Gable",
-    "Unknown Roof Type",
-]
+def normalize_roof_type_label(value: str) -> str:
+    """Collapse compound/multi-type roof strings to the single label 'Compound'.
+
+    Any raw roof_type value that contains "; " (i.e. surveyors selected more
+    than one type) or is the bare meta-tag "Compound Roof" is normalised to the
+    canonical single label "Compound".  All other values are returned unchanged.
+
+    This converts roof_type from a multi-label problem (19-bit binary vector,
+    ~13% Jaccard) to a clean single-label problem (~12 classes, CrossEntropy).
+
+    Examples::
+
+        normalize_roof_type_label("Hipped")              # → "Hipped"
+        normalize_roof_type_label("Hipped; Front Gable") # → "Compound"
+        normalize_roof_type_label("Compound Roof")       # → "Compound"
+    """
+    if "; " in value or value.strip() == "Compound Roof":
+        return "Compound"
+    return value
+
 
 # Schema 'multi' field: how the building relates to adjacent lots and the street.
 # 6 options sorted alphabetically — matches MultiLabelBinarizer class order.
@@ -124,17 +138,23 @@ SETTING_SCHEMA_ATOMICS: List[str] = [
 ]
 
 # Dispatch table: multi-label column → fixed ordered list of schema atomics.
-# Adding a new multi-label field: add its atomics list above and register here.
-# The order determines the bit positions in the FloatTensor label vector.
+# Only 'setting' remains multi-label; roof_type was converted to single-label
+# (compound roofs are folded into the 'Compound' class via PRE_ENCODE_TRANSFORMS).
 MULTILABEL_ATOMICS: Dict[str, List[str]] = {
-    "roof_type": ROOF_TYPE_SCHEMA_ATOMICS,
-    "setting":   SETTING_SCHEMA_ATOMICS,
+    "setting": SETTING_SCHEMA_ATOMICS,
 }
 
 # Columns that use MultiLabelBinarizer (→ FloatTensor[n_atomics]) instead of
 # LabelEncoder (→ LongTensor scalar).  Derived from MULTILABEL_ATOMICS so the
 # two are always in sync.
 MULTILABEL_COLS: List[str] = list(MULTILABEL_ATOMICS.keys())
+
+# Per-column label normalisation applied BEFORE LabelEncoder fitting and before
+# per-sample encoding in __getitem__.  Use for fields that need bespoke
+# string → canonical-string mapping beyond the generic normalize_value().
+PRE_ENCODE_TRANSFORMS: Dict[str, Callable[[str], str]] = {
+    "roof_type": normalize_roof_type_label,
+}
 
 
 # ── Transforms ───────────────────────────────────────────────────────────────
@@ -231,6 +251,8 @@ class ArchitecturalDataset(Dataset):
         for col in PHASE1_LABEL_COLS:
             raw   = row[col]
             value = normalize_value(raw)        # field_parser — single source of truth
+            if col in PRE_ENCODE_TRANSFORMS:
+                value = PRE_ENCODE_TRANSFORMS[col](value)
             if col in MULTILABEL_COLS:
                 # Multi-label: split on "; " → binary vector FloatTensor[n_atomics]
                 parts = [p.strip() for p in value.split("; ")] if value else []
@@ -371,7 +393,11 @@ def make_splits(
             logger.debug(f"  {col}: {len(mlb.classes_)} atomics (multi-label)")
         else:
             enc = LabelEncoder()
-            enc.fit(df[col].map(normalize_value))
+            transform_fn = PRE_ENCODE_TRANSFORMS.get(col)
+            if transform_fn:
+                enc.fit(df[col].map(normalize_value).map(transform_fn))
+            else:
+                enc.fit(df[col].map(normalize_value))
             label_encoders[col] = enc
             logger.debug(f"  {col}: {len(enc.classes_)} classes → {list(enc.classes_)}")
 
