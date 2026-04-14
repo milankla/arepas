@@ -231,8 +231,16 @@ config.json
 /models/
 /checkpoints/
 /outputs/
+/outputs_data2/
+/outputs_data2_v2/
+/outputs_data2_v3/
 /fine_tuned_models/
+
+# Experiment tracking (MLflow local store — runs are machine-local)
+mlruns/
+runs/
 
 # Temporary files
 tmp/
 temp/
+mlflow.db

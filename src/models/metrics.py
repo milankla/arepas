@@ -12,7 +12,7 @@ from typing import TYPE_CHECKING, Any, Dict, List
 
 import numpy as np
 import torch
-from sklearn.metrics import f1_score, hamming_loss
+from sklearn.metrics import f1_score, hamming_loss, jaccard_score
 
 if TYPE_CHECKING:
     from src.models.multi_task_classifier import MultiTaskArchitecturalClassifier
@@ -59,10 +59,22 @@ def compute_metrics(
             hamm  = float(1.0 - hamming_loss(tgt_np, pred_bin))
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore")
-                f1 = float(f1_score(tgt_np, pred_bin, average="macro", zero_division=0))
+                f1_macro  = float(f1_score(tgt_np, pred_bin, average="macro",   zero_division=0))
+                f1_sample = float(f1_score(tgt_np, pred_bin, average="samples", zero_division=0))
+                # Jaccard (IoU) per sample then averaged — partial credit for partial
+                # label-set matches; more informative than exact-match for multi-label.
+                jaccard = float(jaccard_score(tgt_np, pred_bin, average="samples", zero_division=0))
 
-            task_metrics[task_name] = {"exact": exact, "hamming": hamm, "f1": f1}
-            primary_accs.append(exact)
+            task_metrics[task_name] = {
+                "exact":    exact,
+                "jaccard":  jaccard,
+                "hamming":  hamm,
+                "f1_sample": f1_sample,
+                "f1":       f1_macro,
+            }
+            # Use Jaccard (not exact-match) as this task's contribution to
+            # overall_accuracy so partial-label matches get partial credit.
+            primary_accs.append(jaccard)
         else:
             pred_cls = pred.argmax(dim=1).numpy()
             tgt_np   = tgt.numpy()
@@ -92,20 +104,32 @@ def format_metrics_table(metrics: Dict[str, Any]) -> str:
 
     overall = metrics.get("overall_accuracy")
     if overall is not None:
-        lines.append(f"  Overall Accuracy : {overall:.4f}")
+        lines.append(f"  Overall Accuracy : {overall:.2%}")
 
     lines.append("")
-    lines.append(f"  {'Task':<25} {'Metric':<13} {'Value':>7}   {'Macro F1':>8}")
-    lines.append("  " + "\u2500" * 58)
+    lines.append(f"  {'Task':<25} {'Metric':<13} {'Value':>8}   {'Macro F1':>9}")
+    lines.append("  " + "\u2500" * 78)
 
     for task_name, vals in metrics.items():
         if task_name == "overall_accuracy" or not isinstance(vals, dict):
             continue
 
         if "exact" in vals:
-            label   = "exact-match"
-            acc_val = vals["exact"]
-            extra   = f"   hamming={vals.get('hamming', 0):.4f}"
+            # Multi-label task — prefer jaccard, fall back to exact for legacy runs
+            if "jaccard" in vals:
+                label   = "jaccard"
+                acc_val = vals["jaccard"]
+            else:
+                label   = "exact"
+                acc_val = vals["exact"]
+            extra_parts = []
+            if "exact" in vals and label != "exact":
+                extra_parts.append(f"exact={vals['exact']:.2%}")
+            if "f1_sample" in vals:
+                extra_parts.append(f"sF1={vals['f1_sample']:.2%}")
+            if "hamming" in vals:
+                extra_parts.append(f"ham={vals['hamming']:.2%}")
+            extra = ("   " + "  ".join(extra_parts)) if extra_parts else ""
         else:
             label   = "accuracy"
             acc_val = vals.get("acc", 0.0)
@@ -113,7 +137,7 @@ def format_metrics_table(metrics: Dict[str, Any]) -> str:
 
         f1 = vals.get("f1", 0.0)
         lines.append(
-            f"  {task_name:<25} {label:<13} {acc_val:>7.4f}   {f1:>8.4f}{extra}"
+            f"  {task_name:<25} {label:<13} {acc_val:>8.2%}   {f1:>9.2%}{extra}"
         )
 
     return "\n".join(lines)

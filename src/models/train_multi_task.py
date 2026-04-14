@@ -24,6 +24,8 @@ from src.models.multi_task_classifier import MultiTaskArchitecturalClassifier, M
 from src.models.model_config import ModelConfig
 from src.models.metrics import compute_metrics, format_metrics_table
 from src.loader.architectural_dataset import make_splits
+from src.models.run_config import RunConfig
+from src.models.experiment_logger import ExperimentLogger
 
 
 logger = logging.getLogger(__name__)
@@ -43,6 +45,8 @@ class MultiTaskTrainer:
         learning_rate: float = 1e-4,
         output_dir: str = './outputs',
         max_batches: Optional[int] = None,
+        early_stopping_patience: Optional[int] = None,
+        experiment_logger: Optional[ExperimentLogger] = None,
     ):
         self.model = model.to(device)
         self.train_loader = train_loader
@@ -53,6 +57,10 @@ class MultiTaskTrainer:
         # If set, each epoch/validation phase stops after this many batches.
         # Useful for smoke tests without needing a separate tiny dataset.
         self.max_batches = max_batches
+        # Early stopping: stop if val_loss doesn't improve for this many epochs.
+        self.early_stopping_patience = early_stopping_patience
+        self._epochs_without_improvement = 0
+        self.experiment_logger = experiment_logger
         
         # Optimizer and loss
         self.optimizer = optim.AdamW(
@@ -186,14 +194,37 @@ class MultiTaskTrainer:
 
             self.scheduler.step(val_losses['total'])
             self._log_epoch_results(epoch, train_losses, val_losses, val_metrics)
+            if self.experiment_logger is not None:
+                self.experiment_logger.log_epoch(epoch, train_losses, val_losses, val_metrics)
 
             if val_losses['total'] < self.best_val_loss:
                 self.best_val_loss = val_losses['total']
                 self._save_checkpoint(epoch, val_losses, val_metrics, is_best=True)
                 logger.info(f"✓ New best model saved (val_loss: {self.best_val_loss:.4f})")
+                if self.experiment_logger is not None:
+                    _best_ckpt = str(
+                        self.output_dir / f"best_model_phase{self.model.active_phase}.pth"
+                    )
+                    self.experiment_logger.log_best_checkpoint(
+                        epoch, val_losses, val_metrics, _best_ckpt
+                    )
+                self._epochs_without_improvement = 0
+            else:
+                self._epochs_without_improvement += 1
 
             if epoch % 5 == 0:
                 self._save_checkpoint(epoch, val_losses, val_metrics, is_best=False)
+
+            if (
+                self.early_stopping_patience is not None
+                and self._epochs_without_improvement >= self.early_stopping_patience
+            ):
+                logger.info(
+                    f"Early stopping triggered: no improvement for "
+                    f"{self.early_stopping_patience} consecutive epochs. "
+                    f"Best val_loss: {self.best_val_loss:.4f}"
+                )
+                break
     
     def _log_epoch_results(
         self,
@@ -341,9 +372,13 @@ def progressive_training_pipeline(
     epochs_per_phase: int = 20,
     batch_size: int = 32,
     lr: float = 1e-4,
-    output_dir: str = "./outputs",
+    output_dir: Optional[str] = None,
     num_workers: int = 4,
     max_batches: Optional[int] = None,
+    early_stopping_patience: Optional[int] = None,
+    run_name: Optional[str] = None,
+    dataset_version: str = "",
+    model_config_path: str = "",
 ) -> None:
     """Dataset- and model-agnostic progressive training pipeline.
 
@@ -366,7 +401,12 @@ def progressive_training_pipeline(
         max_batches:       If set, each train/val pass stops after this many
                            batches.  Useful for smoke tests on full datasets.
     """
-    device = "cuda" if torch.cuda.is_available() else "cpu"
+    if torch.cuda.is_available():
+        device = "cuda"
+    elif torch.backends.mps.is_available():
+        device = "mps"
+    else:
+        device = "cpu"
     logger.info(
         f"Device: {device} | Backbone: {model_config.backbone} | "
         f"CSV: {csv_path} | Phases: {start_phase}\u2013{end_phase}"
@@ -380,6 +420,27 @@ def progressive_training_pipeline(
         num_workers=num_workers,
     )
 
+    # Build a RunConfig to capture all parameters that define this run.
+    run_cfg = RunConfig(
+        csv_path=csv_path,
+        dataset_version=dataset_version,
+        backbone=model_config.backbone,
+        model_config_path=model_config_path or "config/models/resnet50.json",
+        start_phase=start_phase,
+        end_phase=end_phase,
+        epochs=epochs_per_phase,
+        batch_size=batch_size,
+        lr=lr,
+        num_workers=num_workers,
+        early_stopping_patience=early_stopping_patience,
+        run_name=run_name or "",
+    )
+    # Derive output dir from the auto-slug if not explicitly provided.
+    if output_dir is None:
+        output_dir = f"runs/{run_cfg.run_name}"
+    run_cfg.output_dir = output_dir
+    logger.info(f"Run: {run_cfg.run_name}  ->  {output_dir}")
+
     prev_checkpoint: Optional[str] = None
 
     for phase in range(start_phase, end_phase + 1):
@@ -388,6 +449,28 @@ def progressive_training_pipeline(
         print("=" * 60)
 
         phase_out = Path(output_dir) / f"phase{phase}"
+
+        # Per-phase RunConfig snapshot — written to phase_out/run_config.json.
+        _phase_run_name = (
+            f"{run_cfg.run_name}_ph{phase}" if start_phase != end_phase
+            else run_cfg.run_name
+        )
+        phase_cfg = RunConfig(
+            csv_path=run_cfg.csv_path,
+            dataset_version=run_cfg.dataset_version,
+            backbone=run_cfg.backbone,
+            model_config_path=run_cfg.model_config_path,
+            start_phase=phase,
+            end_phase=phase,
+            epochs=run_cfg.epochs,
+            batch_size=run_cfg.batch_size,
+            lr=run_cfg.lr,
+            num_workers=run_cfg.num_workers,
+            early_stopping_patience=run_cfg.early_stopping_patience,
+            run_name=_phase_run_name,
+            output_dir=str(phase_out),
+        )
+        phase_cfg.save(phase_out)
 
         model = MultiTaskArchitecturalClassifier(
             backbone=model_config.backbone,
@@ -408,16 +491,19 @@ def progressive_training_pipeline(
                 f"({len(missing)} missing keys, {len(unexpected)} unexpected)"
             )
 
-        trainer = MultiTaskTrainer(
-            model=model,
-            train_loader=train_loader,
-            val_loader=val_loader,
-            device=device,
-            learning_rate=lr,
-            output_dir=str(phase_out),
-            max_batches=max_batches,
-        )
-        trainer.train(num_epochs=epochs_per_phase)
+        with ExperimentLogger(phase_cfg, experiment_name="arepas") as exp_logger:
+            trainer = MultiTaskTrainer(
+                model=model,
+                train_loader=train_loader,
+                val_loader=val_loader,
+                device=device,
+                learning_rate=lr,
+                output_dir=str(phase_out),
+                max_batches=max_batches,
+                early_stopping_patience=early_stopping_patience,
+                experiment_logger=exp_logger,
+            )
+            trainer.train(num_epochs=epochs_per_phase)
 
         best_ckpt = phase_out / f"best_model_phase{phase}.pth"
         if best_ckpt.exists():
@@ -469,8 +555,22 @@ if __name__ == "__main__":
         help="AdamW initial learning rate.",
     )
     parser.add_argument(
-        "--output-dir", default="./outputs",
-        help="Root directory for checkpoints and training history.",
+        "--run-name", default=None,
+        help=(
+            "Human-readable name for this run. "
+            "Auto-generates a slug from backbone/dataset/lr/etc. if omitted."
+        ),
+    )
+    parser.add_argument(
+        "--dataset-version", default="",
+        help="Short label for the dataset (e.g. 'data2'). Auto-derived if omitted.",
+    )
+    parser.add_argument(
+        "--output-dir", default=None,
+        help=(
+            "Root directory for checkpoints and training history. "
+            "Defaults to runs/<auto-slug>/ if omitted."
+        ),
     )
     parser.add_argument(
         "--num-workers", type=int, default=4,
@@ -481,6 +581,13 @@ if __name__ == "__main__":
         help=(
             "Stop each train/val pass after this many batches. "
             "Use --max-batches 3 for a quick smoke test on the full dataset."
+        ),
+    )
+    parser.add_argument(
+        "--early-stopping-patience", type=int, default=None,
+        help=(
+            "Stop training if val_loss does not improve for this many consecutive "
+            "epochs. Omit to disable early stopping."
         ),
     )
     args = parser.parse_args()
@@ -498,4 +605,8 @@ if __name__ == "__main__":
         output_dir=args.output_dir,
         num_workers=args.num_workers,
         max_batches=args.max_batches,
+        early_stopping_patience=args.early_stopping_patience,
+        run_name=args.run_name,
+        dataset_version=args.dataset_version,
+        model_config_path=args.model_config,
     )
