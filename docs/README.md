@@ -25,6 +25,13 @@ Technical documentation for the Arepas historical architectural building data sy
   - Configuration file usage
   - Demo scripts overview
 
+- **[TRAINING_AND_EVALUATION.md](TRAINING_AND_EVALUATION.md)** - Model training & evaluation guide
+  - Training the multi-task classifier with all CLI options
+  - Experiment tracking with MLflow (setup, UI, metrics)
+  - Evaluating checkpoints with `eval_checkpoint.py`
+  - Comparing runs in terminal and MLflow
+  - Backfilling legacy runs into MLflow
+
 ## Quick Start
 
 ```python

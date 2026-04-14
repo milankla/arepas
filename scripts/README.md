@@ -127,3 +127,55 @@ python demo_configurable_loader.py
 python test_performance.py
 python verify_github_ready.py
 ```
+
+---
+
+## Model Training & Evaluation Scripts
+
+See [docs/TRAINING_AND_EVALUATION.md](../docs/TRAINING_AND_EVALUATION.md) for the
+full reference. Quick start:
+
+```bash
+python -m src.models.train_multi_task \
+    --csv data2/image_label_mapping_phase1.csv \
+    --epochs 30 --batch-size 32 --lr 1e-4 --num-workers 2
+```
+
+### `eval_checkpoint.py`
+**Purpose**: Re-evaluate any saved checkpoint against the validation set without re-running training.
+
+```bash
+python scripts/eval_checkpoint.py \
+    --csv data2/image_label_mapping_phase1.csv \
+    --checkpoint outputs_data2_v3/phase1/best_model_phase1.pth \
+    --phase 1
+```
+
+**Options**: `--csv`, `--checkpoint`, `--phase`, `--model-config`, `--batch-size`
+
+### `backfill_mlflow.py`
+**Purpose**: Import pre-`ExperimentLogger` training runs into MLflow from
+`training_history.json` files. Re-run after wiping `mlflow.db`.
+
+```bash
+python scripts/backfill_mlflow.py
+# or target one specific run:
+python scripts/backfill_mlflow.py \
+    --history outputs_data2_v3/phase1/training_history.json
+```
+
+### `analyze_roof_type.py`
+**Purpose**: Analyse `roof_type` label distribution across buildings to inform
+taxonomy coarsening decisions.
+
+```bash
+python scripts/analyze_roof_type.py
+```
+
+### `test_roof_type_encoding.py`
+**Purpose**: Smoke test that verifies `normalize_roof_type_label()` produces
+the expected 13 single-label classes.
+
+```bash
+python scripts/test_roof_type_encoding.py
+```
