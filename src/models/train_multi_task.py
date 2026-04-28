@@ -47,6 +47,7 @@ class MultiTaskTrainer:
         max_batches: Optional[int] = None,
         early_stopping_patience: Optional[int] = None,
         experiment_logger: Optional[ExperimentLogger] = None,
+        class_weights: Optional[Dict[str, torch.Tensor]] = None,
     ):
         self.model = model.to(device)
         self.train_loader = train_loader
@@ -68,7 +69,10 @@ class MultiTaskTrainer:
             lr=learning_rate,
             weight_decay=0.01
         )
-        self.criterion = MultiTaskLoss(active_phase=model.active_phase)
+        self.criterion = MultiTaskLoss(
+            active_phase=model.active_phase,
+            class_weights=class_weights,
+        ).to(device)
         
         # Learning rate scheduler
         self.scheduler = optim.lr_scheduler.ReduceLROnPlateau(
@@ -302,7 +306,7 @@ def build_dataloaders(
     model_config: ModelConfig,
     batch_size: int = 32,
     num_workers: int = 4,
-) -> Tuple[DataLoader, DataLoader, DataLoader, Dict[str, int]]:
+) -> Tuple[DataLoader, DataLoader, DataLoader, Dict[str, int], Dict[str, torch.Tensor]]:
     """Build train / val / test DataLoaders from any CSV + ModelConfig.
 
     Dataset-agnostic — works with data/ or data2/ (or any future dataset)
@@ -319,8 +323,9 @@ def build_dataloaders(
         num_workers:  DataLoader worker processes.
 
     Returns:
-        (train_loader, val_loader, test_loader, num_classes)
-        where num_classes is {task_name: int} derived from the training split.
+        (train_loader, val_loader, test_loader, num_classes, class_weights)
+        where num_classes is {task_name: int} and class_weights is
+        {task_name: FloatTensor[n_classes]}, both derived from the training split.
     """
     train_ds, val_ds, test_ds = make_splits(
         csv_path=csv_path,
@@ -359,7 +364,7 @@ def build_dataloaders(
         num_workers=num_workers,
         pin_memory=pin,
     )
-    return train_loader, val_loader, test_loader, train_ds.num_classes
+    return train_loader, val_loader, test_loader, train_ds.num_classes, train_ds.class_weights
 
 
 # ── Pipeline ──────────────────────────────────────────────────────────────────
@@ -413,7 +418,7 @@ def progressive_training_pipeline(
     )
 
     # Build loaders once — image size and norm stats come from model_config.
-    train_loader, val_loader, _, num_classes = build_dataloaders(
+    train_loader, val_loader, _, num_classes, class_weights = build_dataloaders(
         csv_path=csv_path,
         model_config=model_config,
         batch_size=batch_size,
@@ -502,6 +507,7 @@ def progressive_training_pipeline(
                 max_batches=max_batches,
                 early_stopping_patience=early_stopping_patience,
                 experiment_logger=exp_logger,
+                class_weights=class_weights,
             )
             trainer.train(num_epochs=epochs_per_phase)
 

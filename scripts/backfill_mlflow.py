@@ -78,14 +78,16 @@ KNOWN_RUNS: dict[str, dict] = {
 
 
 def _flat_metrics(d: dict, prefix: str = "") -> dict[str, float]:
-    """Recursively flatten a nested metrics dict into dot-separated keys.
+    """Recursively flatten a nested metrics dict into underscore-separated keys.
 
+    Uses underscores (not dots) to match the key format emitted by
+    ExperimentLogger.log_epoch(), e.g. 'val_stories_acc' not 'val.stories.acc'.
     All float values are stored as percentages (×100) so the MLflow UI
     shows e.g. 77.21 instead of 0.7721.
     """
     out: dict[str, float] = {}
     for k, v in d.items():
-        key = f"{prefix}{k}" if not prefix else f"{prefix}.{k}"
+        key = f"{prefix}{k}" if not prefix else f"{prefix}_{k}"
         if isinstance(v, dict):
             out.update(_flat_metrics(v, key))
         elif isinstance(v, (int, float)):

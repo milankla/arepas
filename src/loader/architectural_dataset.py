@@ -126,6 +126,117 @@ def normalize_roof_type_label(value: str) -> str:
     return value
 
 
+def normalize_stories_label(value: str) -> str:
+    """Coarsen rare high-storey classes into a single '3+' bucket.
+
+    Raw class distribution in data2/ (2 708 images):
+        "1"    : 1864 (68.8%)
+        "1-1/2":  540 (19.9%)
+        "2"    :  268  (9.9%)
+        "2-1/2":   14  (0.5%)  ← too rare to learn reliably
+        "3"    :    8  (0.3%)  ← too rare
+        "4"    :    6  (0.2%)  ← too rare
+        "5-9"  :    4  (0.1%)  ← too rare
+        "10-19":    4  (0.1%)  ← too rare
+
+    Coarsening strategy
+    ───────────────────
+    * "2-1/2"          → "2+" (keeps fractional-storey distinction, ~0.5%)
+    * "3", "4", "5-9", "10-19" → "3+" (all tall buildings, ~0.7% combined)
+
+    Result: 5 classes — "1" (68.8%), "1-1/2" (19.9%), "2" (9.9%),
+            "2+" (0.5%), "3+" (0.7%)
+
+    The two merged buckets still have too few samples for strong recall, but
+    macro F1 will be measured per class and class weights will up-weight them
+    so the model at least attempts to learn "not-1-storey" buildings.
+
+    Examples::
+
+        normalize_stories_label("1")      # → "1"
+        normalize_stories_label("2-1/2")  # → "2+"
+        normalize_stories_label("3")      # → "3+"
+        normalize_stories_label("10-19")  # → "3+"
+    """
+    _TALL = {"3", "4", "5-9", "10-19"}
+    if value in _TALL:
+        return "3+"
+    if value == "2-1/2":
+        return "2+"
+    return value
+
+
+# Mapping used by normalize_cladding_label — defined at module level so it can
+# be inspected / extended without touching the function body.
+CLADDING_COARSEN_MAP: Dict[str, str] = {
+    # ── Brick ─────────────────────────────────────────────────────────────
+    "Brick":                                 "Brick",
+    # ── Stucco ────────────────────────────────────────────────────────────
+    "Stucco - Modern":                       "Stucco",
+    "Stucco - Historic":                     "Stucco",
+    # ── Vinyl siding (large enough to keep separate) ─────────────────────
+    "Siding - Vinyl":                        "Siding - Vinyl",
+    # ── All other siding variants → one bucket ────────────────────────────
+    "Siding - Horizontal, Unknown Material": "Siding - Other",
+    "Siding - Horizontal, Wood":             "Siding - Other",
+    "Siding - Aluminum":                     "Siding - Other",
+    "Siding - Vertical, Unknown Material":   "Siding - Other",
+    "Siding - Vertical, Wood":               "Siding - Other",
+    # ── Shingle variants ──────────────────────────────────────────────────
+    "Shingles - Asbestos":                   "Shingles",
+    "Shingles - Plain":                      "Shingles",
+    "Shingles - Asphalt":                    "Shingles",
+    # ── Masonry / stone ───────────────────────────────────────────────────
+    "Concrete - Block":                      "Concrete / Stone",
+    "Concrete - Modular/Precast":            "Concrete / Stone",
+    "Stone - Faux":                          "Concrete / Stone",
+    "Stone - Smooth":                        "Concrete / Stone",
+    # ── Sheet metal ───────────────────────────────────────────────────────
+    "Sheet Metal":                           "Sheet Metal",
+    # ── Catch-all ─────────────────────────────────────────────────────────
+    "Other Cladding":                        "Other Cladding",
+}
+
+
+def normalize_cladding_label(value: str) -> str:
+    """Coarsen 18 raw primary_cladding classes into 8 meaningful groups.
+
+    Raw class distribution in data2/ (2 708 images):
+        Brick                                : 1836 (67.8%)
+        Siding - Vinyl                       :  236  (8.7%)
+        Stucco - Modern                      :  183  (6.8%)
+        Stucco - Historic                    :  124  (4.6%)
+        Siding - Horiz, Unknown Material     :   70  (2.6%)
+        Siding - Horizontal, Wood            :   52  (1.9%)
+        Siding - Aluminum                    :   47  (1.7%)
+        Shingles - Asbestos                  :   41  (1.5%)
+        Concrete - Block                     :   24  (0.9%)
+        Stone - Faux                         :   23  (0.8%)
+        8 further classes with < 20 samples each
+
+    After coarsening (8 classes):
+        Brick             67.8%
+        Siding - Vinyl     8.7%
+        Stucco            11.4%  (Modern + Historic merged)
+        Siding - Other     6.7%  (Wood + Aluminum + Vertical + Horiz-Unknown)
+        Shingles           1.9%  (Asbestos + Plain + Asphalt)
+        Concrete / Stone   2.0%  (Concrete Block/Precast + Stone Faux/Smooth)
+        Sheet Metal        ~1%
+        Other Cladding     ~0.5%
+
+    Any unseen value falls back to "Other Cladding".
+
+    Examples::
+
+        normalize_cladding_label("Brick")               # → "Brick"
+        normalize_cladding_label("Stucco - Modern")     # → "Stucco"
+        normalize_cladding_label("Siding - Aluminum")   # → "Siding - Other"
+        normalize_cladding_label("Stone - Faux")        # → "Concrete / Stone"
+        normalize_cladding_label("Unknown Material")    # → "Other Cladding"
+    """
+    return CLADDING_COARSEN_MAP.get(value, "Other Cladding")
+
+
 # Schema 'multi' field: how the building relates to adjacent lots and the street.
 # 6 options sorted alphabetically — matches MultiLabelBinarizer class order.
 SETTING_SCHEMA_ATOMICS: List[str] = [
@@ -152,8 +263,14 @@ MULTILABEL_COLS: List[str] = list(MULTILABEL_ATOMICS.keys())
 # Per-column label normalisation applied BEFORE LabelEncoder fitting and before
 # per-sample encoding in __getitem__.  Use for fields that need bespoke
 # string → canonical-string mapping beyond the generic normalize_value().
+#
+# roof_type:         collapse multi-type compound roofs → "Compound"
+# stories:           coarsen rare high-storey classes   → "2+" / "3+"
+# primary_cladding:  coarsen 18 raw classes             → 8 meaningful groups
 PRE_ENCODE_TRANSFORMS: Dict[str, Callable[[str], str]] = {
-    "roof_type": normalize_roof_type_label,
+    "roof_type":        normalize_roof_type_label,
+    "stories":          normalize_stories_label,
+    "primary_cladding": normalize_cladding_label,
 }
 
 
@@ -276,6 +393,58 @@ class ArchitecturalDataset(Dataset):
     def class_names(self) -> Dict[str, List[str]]:
         """Return {col: [class_name, ...]} sorted list for each label field."""
         return {col: list(enc.classes_) for col, enc in self.label_encoders.items()}
+
+    @property
+    def class_weights(self) -> Dict[str, torch.Tensor]:
+        """Balanced inverse-frequency class weights for single-label tasks.
+
+        For each non-multi-label column, computes the sklearn-style balanced
+        weight for each class:
+
+            weight[i] = n_samples / (n_classes * count[i])
+
+        This up-weights rare classes so the loss function penalises errors on
+        minority classes more heavily.  Multi-label columns (e.g. ``setting``)
+        are excluded — BCEWithLogitsLoss handles them differently.
+
+        The same normalisation pipeline applied in ``__getitem__`` (field-parser
+        ``normalize_value`` + any ``PRE_ENCODE_TRANSFORMS`` function) is applied
+        here so that the weight tensor aligns with the fitted LabelEncoder.
+
+        Returns:
+            Dict mapping column name → FloatTensor of shape [n_classes].
+        """
+        weights: Dict[str, torch.Tensor] = {}
+        for col in PHASE1_LABEL_COLS:
+            if col in MULTILABEL_COLS:
+                continue  # BCE handles multi-label tasks directly
+
+            enc = self.label_encoders[col]
+            transform_fn = PRE_ENCODE_TRANSFORMS.get(col)
+
+            # Apply the same pipeline as __getitem__
+            values: "pd.Series" = self.df[col].map(normalize_value)
+            if transform_fn:
+                values = values.map(transform_fn)
+
+            n_classes = len(enc.classes_)
+            n_samples = len(values)
+
+            w = torch.ones(n_classes, dtype=torch.float32)
+            for i, cls in enumerate(enc.classes_):
+                count = int((values == cls).sum())
+                if count > 0:
+                    w[i] = n_samples / (n_classes * count)
+                # else: leave w[i] = 1.0 (fallback for classes absent in this split)
+
+            # Cap at 3× to prevent extreme weights on very rare classes
+            # (e.g. stories "2+" = ×76 uncapped) from causing overfitting.
+            # v5 max=10.0 → F1 ↑ but acc −9pp; v6 max=5.0 → acc −7.7pp.
+            # 3.0 further softens minority push to recover more accuracy.
+            w = w.clamp(max=3.0)
+
+            weights[col] = w
+        return weights
 
     def class_counts(self) -> Dict[str, Dict[str, int]]:
         """Return {col: {class_name: count}} from this split."""

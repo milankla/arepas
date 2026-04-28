@@ -49,14 +49,29 @@ class FocalLoss(nn.Module):
     Used here for: primary_cladding (~80% Brick dominance in Phase 1 dataset)
 
     Args:
-        gamma: Focusing parameter. 0 = standard cross-entropy. Default: 2.0
+        gamma:  Focusing parameter. 0 = standard cross-entropy. Default: 2.0
         reduction: 'mean' or 'sum'. Default: 'mean'
+        weight: Optional FloatTensor[num_classes] of per-class inverse-frequency
+                weights.  Registered as a buffer so it moves to the correct
+                device automatically with .to(device) / .cuda().
+                When provided, the cross-entropy term is scaled by weight[class]
+                *before* the focal modulating factor — this is equivalent to
+                class-weighted focal loss as used in RetinaNet variants.
     """
 
-    def __init__(self, gamma: float = FOCAL_GAMMA_DEFAULT, reduction: str = 'mean'):
+    def __init__(
+        self,
+        gamma: float = FOCAL_GAMMA_DEFAULT,
+        reduction: str = 'mean',
+        weight: Optional[torch.Tensor] = None,
+    ):
         super().__init__()
         self.gamma = gamma
         self.reduction = reduction
+        # register_buffer: tensor moves to device with .to() / .cuda(),
+        # saved/loaded with state_dict, but NOT treated as a learnable param.
+        # Passing None is valid — sets self.weight = None.
+        self.register_buffer('weight', weight)
 
     def forward(self, logits: torch.Tensor, targets: torch.Tensor) -> torch.Tensor:
         """
@@ -66,7 +81,9 @@ class FocalLoss(nn.Module):
         Returns:
             Scalar focal loss
         """
-        ce = F.cross_entropy(logits, targets, reduction='none')  # [B]
+        # Pass class weights to cross_entropy for per-class upweighting.
+        # weight must be on the same device as logits (guaranteed by register_buffer).
+        ce = F.cross_entropy(logits, targets, weight=self.weight, reduction='none')  # [B]
         pt = torch.exp(-ce)                                       # probability of correct class
         focal = (1.0 - pt) ** self.gamma * ce
         return focal.mean() if self.reduction == 'mean' else focal.sum()
@@ -433,18 +450,46 @@ class MultiTaskLoss(nn.Module):
     Combined loss for multi-task learning with task weighting
     """
     
-    def __init__(self, active_phase: int = 1, focal_gamma: float = FOCAL_GAMMA_DEFAULT):
+    def __init__(
+        self,
+        active_phase: int = 1,
+        focal_gamma: float = FOCAL_GAMMA_DEFAULT,
+        class_weights: Optional[Dict[str, torch.Tensor]] = None,
+    ):
         """
         Args:
-            active_phase: Controls which task configs are active (1–4).
-            focal_gamma:  Focusing parameter for FocalLoss on imbalanced tasks.
-                          0.0 = standard cross-entropy. Default: 2.0 (Lin et al., 2017).
+            active_phase:   Controls which task configs are active (1–4).
+            focal_gamma:    Focusing parameter for FocalLoss on imbalanced tasks.
+                            0.0 = standard cross-entropy. Default: 2.0 (Lin et al., 2017).
+            class_weights:  Optional dict mapping task name → FloatTensor[n_classes]
+                            of inverse-frequency weights.  When provided, each
+                            focal-loss task gets its own FocalLoss instance with
+                            the corresponding weight tensor baked in.  Tasks not
+                            present in the dict (or None dict) use unweighted FL.
         """
         super().__init__()
         self.active_phase = active_phase
         self.ce_loss = nn.CrossEntropyLoss()
         self.bce_loss = nn.BCEWithLogitsLoss()          # multi-label tasks
-        self.focal_loss = FocalLoss(gamma=focal_gamma)  # imbalanced single-label tasks
+
+        # Build per-task FocalLoss instances so each can carry its own class-weight
+        # tensor (registered as a buffer → moves to device with .to() automatically).
+        # Using nn.ModuleDict ensures buffers are included in state_dict and .to().
+        all_task_configs = {
+            **TaskConfig.EASY_TASKS,
+            **TaskConfig.MEDIUM_TASKS,
+            **TaskConfig.HARD_TASKS,
+            **TaskConfig.VERY_HARD_TASKS,
+        }
+        focal_modules: Dict[str, nn.Module] = {}
+        for task_name, task_cfg in all_task_configs.items():
+            if task_cfg.get('focal_loss', False):
+                w = (class_weights or {}).get(task_name)   # None if not provided
+                focal_modules[task_name] = FocalLoss(gamma=focal_gamma, weight=w)
+        self._focal_losses = nn.ModuleDict(focal_modules)
+
+        # Fallback for any focal-loss task not pre-registered above.
+        self._default_focal = FocalLoss(gamma=focal_gamma)
         
     def forward(
         self,
@@ -486,12 +531,13 @@ class MultiTaskLoss(nn.Module):
             
             # Dispatch to the appropriate loss function:
             #   multi_label tasks  → BCEWithLogitsLoss  (sigmoid, binary per class)
-            #   focal_loss tasks   → FocalLoss          (down-weight easy majority class)
+            #   focal_loss tasks   → per-task FocalLoss  (class-weighted focal CE)
             #   everything else    → CrossEntropyLoss
             if task_config.get('multi_label', False):
                 task_loss = self.bce_loss(pred, target.float())
             elif task_config.get('focal_loss', False):
-                task_loss = self.focal_loss(pred, target)
+                focal = self._focal_losses[task_name] if task_name in self._focal_losses else self._default_focal
+                task_loss = focal(pred, target)
             else:
                 task_loss = self.ce_loss(pred, target)
             

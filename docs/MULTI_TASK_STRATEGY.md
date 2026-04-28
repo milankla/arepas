@@ -1033,6 +1033,35 @@ if __name__ == '__main__':
 - **Data Augmentation:** Oversample rare classes
 - **Stratified Sampling:** Ensure validation set has all classes
 
+#### **Standardized Imbalance Policy (Current Default)**
+
+To avoid over-correcting minority classes, use **capped inverse-frequency class weights** with a hard cap:
+
+- **Default cap:** `max=3.0` for single-label tasks
+- Compute weights on the **training split only** (never val/test)
+- Combine with focal loss only for tasks with severe skew
+
+This is now the preferred default because runs with larger caps (e.g. 10.0 and 5.0) increased minority F1 but caused larger drops in overall accuracy and higher validation loss. `max=3.0` provided the best balance so far.
+
+#### **Where to Apply It**
+
+Apply capped class weights (`max=3.0`) to **single-label** attributes with imbalance, for example:
+- `stories`
+- `primary_cladding`
+- `architectural_style`
+- `building_form`
+- `alteration_level` (after class coarsening if needed)
+
+Do **not** apply this exact class-weight path directly to **multi-label** tasks (`roof_type`, `roof_features`, `wall_features`, etc.). For multi-label tasks, use `BCEWithLogitsLoss(pos_weight=...)` per label instead.
+
+#### **Decision Rule Before Enabling Weights on a Task**
+
+1. Check class histogram and tail sizes.
+2. Coarsen classes if multiple labels are too rare to learn.
+3. Start with cap `max=3.0`.
+4. Evaluate using **macro-F1 + per-class recall + overall accuracy + val loss**.
+5. Keep weighting only if minority recall improves without unacceptable accuracy/regression tradeoff.
+
 ### **4. Attribute Co-dependence (Data-Driven Finding)**
 
 **Source:** Full Cramér's V matrix in [docs/ATTRIBUTE_DEPENDENCY_ANALYSIS.md](ATTRIBUTE_DEPENDENCY_ANALYSIS.md)

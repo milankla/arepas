@@ -125,7 +125,7 @@ class ExperimentLogger:
         if not _MLFLOW_AVAILABLE or self._run is None:
             return
 
-        mlflow.log_param("best_epoch", epoch)
+        mlflow.log_metric("best_epoch", epoch)
         mlflow.log_metric("best_val_loss", val_losses.get("total", 0.0))
 
         overall = val_metrics.get("overall_accuracy")
@@ -143,7 +143,7 @@ class ExperimentLogger:
                 mlflow.log_metric(f"best_{task}_f1", float(f1) * 100)
 
         if checkpoint_path and Path(checkpoint_path).exists():
-            mlflow.log_param("best_checkpoint_path", checkpoint_path)
+            mlflow.set_tag("best_checkpoint_path", checkpoint_path)
 
     # ── Context manager support ───────────────────────────────────────────────
 
