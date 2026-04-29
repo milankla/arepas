@@ -1,7 +1,7 @@
 # ── Data pipeline ─────────────────────────────────────────────────────────────
 openai
 pandas
-numpy
+numpy<2               # NumPy 2.0 compatibility fix
 Pillow
 loguru
 
@@ -19,8 +19,6 @@ tqdm                  # training progress bars
 # ── Visualisation ─────────────────────────────────────────────────────────────
 matplotlib            # class distribution charts, confusion matrices
 
-# ── Track 1: Image preprocessing (YOLOv8) ────────────────────────────────────
-# Install when starting Phase 1 Track 1 (building detection + cropping)
-# ultralytics         # YOLOv8 — uncomment when ready for preprocessing pipeline
-# opencv-python       # image crop/resize — uncomment with ultralytics
-mlflow>=3.11.1
+# ── Track 1: Building Detection (Faster R-CNN via torchvision) ──────────────────
+# Precise building detection using torchvision's pre-trained Faster R-CNN
+# (torchvision already included in ML training stack above)

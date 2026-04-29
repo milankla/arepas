@@ -87,37 +87,28 @@ Require historical comparison or expert architectural knowledge:
 #### **Track 1: Image Preprocessing Pipeline (Parallel - Weeks 1-4)**
 **Goal:** Build automated house detection + cropping system
 
-**Approach Options:**
-1. **YOLOv8 Object Detection**
-   - Pre-trained on COCO dataset (includes "building" class)
-   - Fast inference (~100-200ms per image)
-   - Detects bounding box → crop → resize
-   - **Pros:** Fast, easy to implement
-   - **Cons:** May miss houses or include multiple buildings
+**Approach: Mask R-CNN Instance Segmentation**
 
-2. **Detectron2 Instance Segmentation**
-   - More precise boundaries than YOLO
-   - ~200-300ms per image
-   - Better for complex scenes with multiple buildings
-   - **Pros:** More accurate crops
-   - **Cons:** Slightly slower
+Using **Detectron2 Mask R-CNN** for building detection:
+- Pre-trained on COCO dataset with instance segmentation
+- Precise boundaries for building detection and cropping
+- ~200-300ms per image
+- Better handles complex scenes with multiple buildings
+- Provides both bounding boxes and instance masks
 
-3. **SAM (Segment Anything Model)**
-   - State-of-the-art segmentation
-   - ~500ms-1s per image
-   - Most precise building boundaries
-   - **Pros:** Best quality crops
-   - **Cons:** Slowest, requires more GPU memory
-
-**Recommended:** Start with **YOLOv8** (fastest), upgrade to Detectron2/SAM if needed
+**Why Mask R-CNN:**
+- **Pros:** More accurate crops, precise segmentation boundaries, robust building detection
+- **Cons:** Requires Detectron2 installation, more memory than lightweight detectors
+- **Best for:** Architectural photography with varying building positions and complex scenes
 
 **Pipeline Steps:**
 ```python
 # Preprocessing Pipeline (Track 1)
 1. Load raw image from /data/
-2. Run YOLOv8 to detect building bounding box
-3. Crop image to building region (with 10% padding)
-4. Resize to 512x512 (higher res for fine details)
+2. Run Mask R-CNN to detect and segment building
+3. Extract bounding box from instance mask
+4. Crop image to building region (with 10% padding)
+5. Resize to 512x512 (higher res for fine details)
 5. Save cropped image to /data/preprocessed/
 6. Generate metadata: {image_id, bbox_coords, confidence_score}
 ```
@@ -693,30 +684,29 @@ if __name__ == '__main__':
 
 **Week 1: Setup Object Detection**
 
-1. ⏳ **Install YOLOv8**
+1. ⏳ **Install Detectron2 & Mask R-CNN**
    ```bash
-   pip install ultralytics
+   pip install detectron2 -f https://dl.fbaipublicfiles.com/detectron2/wheels/cpu/torch1.10/index.html
+   # For GPU, replace 'cpu' with 'cu101', 'cu111', or 'cu113' as needed
    ```
 
-2. ⏳ **Test YOLOv8 on Sample Images**
+2. ⏳ **Test Mask R-CNN on Sample Images**
    ```bash
-   python scripts/test_yolo_detection.py \
-     --images data/Bungalows\ -\ Photos/ \
-     --num-samples 10
+   python scripts/run_preprocessing_comparison.py
    ```
    - Verify detection works on architectural photos
-   - Check confidence scores (should be >0.7 for "building" class)
-   - Visualize bounding boxes
+   - Check confidence scores (should be >0.5)
+   - Review generated bounding boxes and segmentation masks
 
 3. ⏳ **Build Preprocessing Script**
    ```python
    # scripts/preprocess_images.py
    
-   from ultralytics import YOLO
+   from src.image_preprocessing import MaskRCNNDetector, PreprocessingPipeline
    import cv2
    from pathlib import Path
    
-   def preprocess_image(image_path, output_dir, model):
+   def preprocess_image(image_path, output_dir, detector):
        # Load image
        img = cv2.imread(str(image_path))
        
@@ -771,16 +761,16 @@ if __name__ == '__main__':
 
 **Week 2-3: Process All Images**
 
-4. ⏳ **Preprocess `/data/` Images**
+4. ⏳ **Preprocess `/data/` Images with Mask R-CNN**
    ```bash
    python scripts/preprocess_images.py \
      --data-dir data/ \
      --output-dir data/preprocessed/ \
-     --model yolov8m.pt
+     --detector mask-rcnn
    ```
    - Process all images in `Bungalows - Photos/` and `Minimal Traditional - Photos/`
    - Save to `data/preprocessed/`
-   - Generate metadata CSV with detection results
+   - Generate metadata JSON with detection results
 
 5. ⏳ **Quality Control Review**
    ```bash
@@ -790,20 +780,20 @@ if __name__ == '__main__':
      --num-samples 100
    ```
    - Manually review 100 random crops (side-by-side with originals)
-   - Flag poor crops (confidence < 0.7 or bad framing)
+   - Flag poor crops (confidence < 0.5 or bad framing)
    - Calculate success metrics:
      - Detection rate: % images with building detected
      - Avg confidence score
-     - Fallback rate: % using center crop
+     - Segmentation quality: mask accuracy
 
 **Week 4: Prepare for Phase 2**
 
-6. ⏳ **Process `/data2/` Images**
+6. ⏳ **Process `/data2/` Images with Mask R-CNN**
    ```bash
    python scripts/preprocess_images.py \
      --data-dir data2/ \
      --output-dir data2/preprocessed/ \
-     --model yolov8m.pt
+     --detector mask-rcnn
    ```
    - Apply preprocessing to larger `/data2/` dataset
    - Generate `data2/preprocessed/` folder

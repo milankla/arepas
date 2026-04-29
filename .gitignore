@@ -239,6 +239,16 @@ config.json
 mlruns/
 runs/
 
+# Pre-trained model weights (large files)
+*.pth
+*.pt
+sam_vit_b_*.pth
+yolov8*.pt
+
+# Generated preprocessed data (commit scripts, not data)
+data/preprocessed/cropped/
+data/preprocessed/cropped_old/
+
 # Temporary files
 tmp/
 temp/

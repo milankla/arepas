@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Three Image Comparison</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 40px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .container {
+            max-width: 1200px;
+            width: 100%;
+        }
+        
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 50px;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.95;
+        }
+        
+        .images-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 30px;
+            margin-bottom: 50px;
+        }
+        
+        .image-card {
+            background: white;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .image-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 20px 50px rgba(0,0,0,0.4);
+        }
+        
+        .image-card-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .image-card-header h2 {
+            font-size: 1.3em;
+            margin-bottom: 5px;
+        }
+        
+        .image-card-header p {
+            font-size: 0.9em;
+            opacity: 0.9;
+        }
+        
+        .image-wrapper {
+            width: 100%;
+            height: 400px;
+            background: #f0f0f0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            flex: 1;
+        }
+        
+        .image-wrapper img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .image-card-footer {
+            background: #f8f9fa;
+            padding: 20px;
+            text-align: center;
+            border-top: 1px solid #eee;
+        }
+        
+        .image-card-footer p {
+            color: #666;
+            font-size: 0.95em;
+            line-height: 1.5;
+        }
+        
+        .info-box {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            margin-top: 30px;
+        }
+        
+        .info-box h3 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+        
+        .info-box ul {
+            list-style: none;
+            color: #666;
+            line-height: 2;
+        }
+        
+        .info-box li:before {
+            content: "✓ ";
+            color: #28a745;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+        
+        @media (max-width: 1024px) {
+            .images-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .images-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .header h1 {
+                font-size: 1.8em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏠 Building Image Comparison</h1>
+            <p>Original, Old Crop, and New Crop Side-by-Side</p>
+        </div>
+        
+        <div class="images-grid">
+            <!-- Image 1: Original -->
+            <div class="image-card">
+                <div class="image-card-header">
+                    <h2>Original Image</h2>
+                    <p>Full Scene</p>
+                </div>
+                <div class="image-wrapper">
+                    <img src="../../data/Bungalows/Bungalows - Photos/5DV.45993_4537_N_BEACH_CT.6IKEhK.jpg" alt="Original Image" onerror="this.style.display='none'; this.parentElement.innerHTML='<p style=\"color:#999;\">Image not found</p>'">
+                </div>
+                <div class="image-card-footer">
+                    <p><strong>Bungalows Style</strong><br>Clayton Data - 4537 N Beach Ct</p>
+                </div>
+            </div>
+            
+            <!-- Image 2: Old Crop -->
+            <div class="image-card">
+                <div class="image-card-header">
+                    <h2>Old Crop</h2>
+                    <p>10% Padding, 70% Size</p>
+                </div>
+                <div class="image-wrapper">
+                    <img src="cropped_old/5DV.45993_4537_N_BEACH_CT.6IKEhK_cropped.jpg" alt="Old Crop" onerror="this.style.display='none'; this.parentElement.innerHTML='<p style=\"color:#999;\">Image not found</p>'">
+                </div>
+                <div class="image-card-footer">
+                    <p><strong>Processing Parameters</strong><br>Larger crop area, size-focused selection</p>
+                </div>
+            </div>
+            
+            <!-- Image 3: New Crop -->
+            <div class="image-card">
+                <div class="image-card-header">
+                    <h2>New Crop</h2>
+                    <p>5% Padding, 55% Center</p>
+                </div>
+                <div class="image-wrapper">
+                    <img src="cropped/5DV.45993_4537_N_BEACH_CT.6IKEhK_cropped.jpg" alt="New Crop" onerror="this.style.display='none'; this.parentElement.innerHTML='<p style=\"color:#999;\">Image not found</p>'">
+                </div>
+                <div class="image-card-footer">
+                    <p><strong>Processing Parameters</strong><br>Tighter crop, center-focused selection</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="info-box">
+            <h3>Processing Updates</h3>
+            <ul>
+                <li><strong>Padding reduced:</strong> 10% → 5% (tighter crops)</li>
+                <li><strong>Size weight reduced:</strong> 70% → 45%</li>
+                <li><strong>Center position weight increased:</strong> 30% → 55%</li>
+                <li><strong>Total images processed:</strong> 1,172 buildings</li>
+                <li><strong>Success rate:</strong> 100% (0 failures)</li>
+                <li><strong>Average processing time:</strong> ~0.6 seconds per image</li>
+            </ul>
+        </div>
+    </div>
+</body>
+</html>

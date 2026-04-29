@@ -523,7 +523,7 @@ def analyze_dataset(data_dir: Path = Path('./data'), phase: str = 'all', output_
                 logger.info(f"   ✗ {field} (not ready)")
         
         logger.info(f"\nPHASE 1 TRACK 1: IMAGE PREPROCESSING")
-        logger.info(f"   → Run YOLOv8 building detection on all images")
+        logger.info(f"   → Run Mask R-CNN building detection on all images")
         logger.info(f"   → Generate cropped 512x512 images")
         logger.info(f"   → Save to {data_dir}/preprocessed/")
         logger.info(f"   → Quality control: Review 100 random crops")
