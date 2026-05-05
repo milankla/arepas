@@ -1,5 +1,11 @@
 <!-- Use this file to provide workspace-specific custom instructions to Copilot. For more details, visit https://code.visualstudio.com/docs/copilot/copilot-customization#_use-a-githubcopilotinstructionsmd-file -->
 
+Key rules:
+- Don’t assume. Don’t hide confusion. Surface tradeoffs.
+- Minimum code that solves the problem. Nothing speculative.
+- Touch only what you must. Clean up only your own mess.
+- Define success criteria. Loop until verified.
+
 Project: Arepas
 Purpose: Fine-tune an AI model (OpenAI Vision) to categorize historical architectural buildings based on multiple attributes. Each building will have multiple images and an attributes file for fine-tuning.
 

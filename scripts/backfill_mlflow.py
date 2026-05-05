@@ -35,7 +35,7 @@ KNOWN_RUNS: dict[str, dict] = {
         "roof_type_encoding": "multi_label_19",
         "note": "Phase-1 baseline on original data/",
     },
-    "outputs_data2": {
+    "v1": {
         "run_name": "resnet50_data2_ph1-1_lr1e-04_bs32_ep8_legacy_multi_roof",
         "csv_path": "data2/image_label_mapping_phase1.csv",
         "dataset_version": "data2",
@@ -48,7 +48,7 @@ KNOWN_RUNS: dict[str, dict] = {
         "roof_type_encoding": "multi_label_19",
         "note": "data2 v1 — multi-label roof_type, stopped epoch 8",
     },
-    "outputs_data2_v2": {
+    "v2": {
         "run_name": "resnet50_data2_ph1-1_lr1e-04_bs32_ep8_legacy_single_roof_pat5",
         "csv_path": "data2/image_label_mapping_phase1.csv",
         "dataset_version": "data2",
@@ -61,7 +61,7 @@ KNOWN_RUNS: dict[str, dict] = {
         "roof_type_encoding": "single_label_compound",
         "note": "data2 v2 — single-label roof, patience=5, stopped epoch 8",
     },
-    "outputs_data2_v3": {
+    "v3": {
         "run_name": "resnet50_data2_ph1-1_lr1e-04_bs32_ep30_legacy_single_roof_nopat",
         "csv_path": "data2/image_label_mapping_phase1.csv",
         "dataset_version": "data2",
@@ -97,8 +97,8 @@ def _flat_metrics(d: dict, prefix: str = "") -> dict[str, float]:
 
 def backfill_run(history_path: Path, tracking_uri: str = "mlruns") -> None:
     history_path = Path(history_path)
-    # Infer output dir name (e.g. "outputs_data2_v3") — try two levels up.
-    run_dir = history_path.parent.parent.name   # phase1 -> parent -> outputs_data2_v3
+    # Infer run dir name (e.g. "v3") — two levels up from the history file.
+    run_dir = history_path.parent.parent.name   # phase1 -> parent -> v3 (under outputs/data2/)
     meta = KNOWN_RUNS.get(run_dir, {})
     run_name = meta.get("run_name") or f"legacy_{run_dir}"
 

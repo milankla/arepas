@@ -1144,19 +1144,18 @@ The Discover Denver schema defines `roof_type` as type `multi` — surveyors int
 
 | Phase | Duration | Focus | Dataset | Expected Accuracy | Status |
 |-------|----------|-------|---------|-------------------|--------|
-| **Setup** | 1 week | Pipeline infrastructure | N/A | N/A | 🔄 Ready |
-| **Phase 1** | 3-4 weeks | Pipeline + baseline model | `/data/` only (style-based) | 80-85% avg | ⏳ Pending |
-| ↳ Data prep | 1 week | Image-label mapping, class analysis | `/data/` | N/A | - |
-| ↳ Tier 1 tasks | 1 week | Easy visual features (7 tasks) | `/data/` | 85-90% | - |
-| ↳ Tier 2 tasks | 1-2 weeks | + Architectural style (4 tasks) | `/data/` | 70-80% | - |
-| ↳ Model comparison | 1 week | Test ResNet vs EfficientNet vs ViT | `/data/` | Compare | - |
-| **Phase 2** | 2-3 weeks | Scale to full dataset | `/data2/` (neighborhood-based) | 75-85% avg | ⏳ Pending |
-| ↳ Data migration | 3 days | Map `/data2/`, deduplicate | `/data2/` | N/A | - |
-| ↳ Transfer learning | 1-2 weeks | Fine-tune on larger dataset | `/data2/` | 75-85% | - |
-| ↳ Generalization test | 2 days | Held-out neighborhood validation | `/data2/` | Test | - |
-| **Phase 3** | 2 weeks | Advanced tasks (OPTIONAL) | `/data2/` | 60-70% | ⏳ Future |
+| **Setup** | 1 week | Pipeline infrastructure | N/A | N/A | ✅ Done |
+| **Phase 1** | 3-4 weeks | Tier 1 tasks (5 active) | `data2/` | 80-85% avg | ✅ Done — 71.86% (B5 bs=16) |
+| ↳ Data prep | 1 week | Image-label mapping (759 buildings) | `data2/` | N/A | ✅ Done |
+| ↳ Tier 1 tasks | 2-3 weeks | stories, roof_type, cladding, chimney, setting | `data2/` | 85-90% | ✅ Done — actual ceiling ~72% |
+| ↳ Model comparison | — | ResNet50 vs B5; grid search + batch scaling | `data2/` | Compare | ✅ Done — B5 bs=16 wins |
+| **Phase 2** | 2-3 weeks | Tier 2 tasks (arch style, building form, etc.) | `data2/` | 60-75% new tasks | 🔜 Next |
+| ↳ CSV extension | 3 days | Parse Tier 2 cols from CLEAN.txt files | `data2/` | N/A | ⏳ Pending |
+| ↳ Two-stage training | 1-2 weeks | Stage 1: freeze heads; Stage 2: joint fine-tune | `data2/` | 60-75% | ⏳ Pending |
+| ↳ Gate A/B decision | 1 day | arch_style ≥70%? → Phase 3 vs. preprocessing first | `data2/` | Evaluate | ⏳ Pending |
+| **Phase 3** | 2 weeks | Tier 3 tasks (building_plan, category, use) | `data2/` | 50-70% | ⏳ Future |
 | **Phase 4** | 2 weeks | Alteration detection (RESEARCH) | Both | 50-65% | ⏳ Future |
-| **Total** | **6-8 weeks** | **Core pipeline + 11 tasks** | **Both datasets** | **75-85% avg** | |
+| **Total** | **6-8 weeks** | **Core pipeline + 11 tasks** | **Both datasets** | **65-75% avg** | |
 
 ---
 
@@ -1210,7 +1209,167 @@ The Discover Denver schema defines `roof_type` as type `multi` — surveyors int
 
 ---
 
-## 📚 References
+## � Empirical Training Learnings — Phase 1 on `data2/`
+
+> **Status as of May 2026:** Phase 1 training (5 tasks: stories, roof_type, primary_cladding, chimney_present, setting) on `data2/` is complete. Best checkpoint: EfficientNet-B5 bs=16 at **71.86% overall** (b5/v7_bs16).
+
+---
+
+### What We Actually Achieved vs. Expectations
+
+| Task | Tier 1 prediction | Actual best (B5 v7_bs16) | Gap | Verdict |
+|------|------------------|--------------------------|-----|---------|
+| chimney_present | 85–95% | **92.42%** | ✅ | Met |
+| setting (Jaccard) | 85–95% | **80.81%** | ~5% below | Close |
+| stories | 85–95% | **73.59%** | ~15% below | Harder than expected |
+| primary_cladding | 85–95% | **59.66%** / F1 22.9% | ~30% below | Severely bottlenecked by class imbalance |
+| roof_type (multi-label) | 85–95% | **52.81%** / F1 36.2% | ~35% below | Multi-label BCE is correct choice but task is harder than projected |
+
+**Root cause for gaps:** `primary_cladding` is ~68% Brick in the training set — the model learns a near-Brick default. `roof_type` multi-label accuracy is artificially depressed because exact multi-label match is a strict criterion; Hamming accuracy is ~95%+ (per-label error is low). Stories is genuinely harder — 1.5-story and 2.5-story count distinctions are ambiguous from single photos.
+
+---
+
+### EfficientNet-B5 Batch Size Findings
+
+The single biggest variable was **batch size**, not learning rate or weight decay.
+
+| BS | Best LR | Best WD | Overall Acc | Notes |
+|----|---------|---------|-------------|-------|
+| 4 | 1e-4 | — | 69.45% | Likely overfit; no early stopping |
+| 4 | 1e-4 | 0.01–0.03 | 60–61% | High WD killed minority-class learning |
+| 8 | 1.0–1.1e-4 | 0.010 | 68.51–68.96% | Grid winner at bs=8; noisy gradients |
+| **16** | **1.5e-4** | **0.010** | **71.86%** | New best; LR scaled by √2 per linear rule |
+
+**Why B5 needs bs≥16:** EfficientNet-B5's stochastic depth and compound-scaled width amplify gradient variance. At bs=8, the noise floor prevents stable convergence — the model oscillates between plateaus. At bs=16 with LR scaled by √2, the effective gradient noise drops enough to use B5's extra capacity.
+
+**Tested:** bs=32 (LR ~2.1e-4) — not yet run. Next candidate.
+
+---
+
+### Hyperparameter Sensitivity
+
+- **Weight decay:** 0.010 is clearly better than 0.005 or 0.030 for B5 on this dataset. Low WD allows overfitting; high WD collapses minority-class prediction.
+- **LR:** Grid searched 1.0–1.2e-4 at bs=8 — range is very flat (65–68%). The bigger gain came from fixing batch size, not LR tuning.
+- **Early stopping:** Essential. Best epoch was 11/25 for b5/v7_bs16; without patience=10 the model would have continued degrading on val. ResNet50 v7 (no early stopping) converged cleanly at epoch 30 — B5 peaks earlier and decays faster.
+
+---
+
+### The Cladding Problem
+
+**Summary:** 8-class coarsened cladding is the right scheme for now. The problem is data, not architecture or loss function.
+
+- Brick = ~68% of training buildings. Even perfect focal loss cannot invent minority-class signal that isn't in the data.
+- The coarsening (`CLADDING_COARSEN_MAP`, 30→8 classes) consolidates learnable groups. Reverting to 18-class raw (b5/v6) made things worse, not better.
+- **Threshold for revisiting 18-class:** When any non-Brick class has ≥200 buildings in the training CSV (currently ~20–80 each).
+- **Focal loss / class weighting:** Worth trying with `max=3.0` cap once the data ceiling is confirmed. Do not apply before ruling out data shortage as the primary cause.
+
+---
+
+### ResNet50 vs. B5 Comparison
+
+| Model | Best overall | Stories | Roof | Cladding | Chimney | Setting |
+|-------|-------------|---------|------|----------|---------|---------|
+| ResNet50 v7 | 71.35% | 73.11% | 52.32% | 55.50% | 93.64% | 81.30% |
+| **B5 v7_bs16** | **71.86%** | **73.59%** | **52.81%** | **59.66%** | 92.42% | 80.81% |
+| Delta | +0.51% | +0.48% | +0.49% | **+4.16%** | −1.22% | −0.49% |
+
+B5's only meaningful win is **cladding** (+4.2 pp accuracy). The extra model capacity appears to benefit fine-grained texture discrimination (which distinguishes brick from stucco from concrete). Chimney (binary) and setting (multi-label sparse) are effectively at ceiling — no architecture will improve them without more labeled diversity.
+
+**Hypothesis for Phase 2:** B5's advantage will grow on style-based tasks (architectural_style, building_form, roof_features) where fine-grained shape + texture features matter more. ResNet50 should remain competitive on coarse binary tasks.
+
+---
+
+## 🗺️ Training Path Forward After Phase 1
+
+### Immediate: Squeeze Phase 1 Further (Optional)
+
+Before moving to Phase 2 tasks, two low-effort runs are worth attempting if time permits:
+
+1. **B5 bs=32, LR=2.1e-4, WD=0.010** — test whether the bs scaling law continues. If ≥73%, B5 bs=32 becomes the preferred backbone config. If no gain, the bs=16 sweet spot is confirmed.
+2. **Focal loss on cladding** — swap `CrossEntropyLoss` for `FocalLoss(γ=2.0)` with `max_weight=3.0` cap. Expected to raise cladding F1 from 22.9% without hurting overall acc. Only run this after confirming the training data count per class hasn't changed.
+
+---
+
+### Phase 2: Expand to Tier 2 Tasks (architectural_style, building_form, roof_features, wall_features)
+
+**Prerequisite:** `data2/image_label_mapping_phase1.csv` covers only the 5 Phase 1 tasks. Phase 2 requires extending the CSV with Tier 2 columns parsed from the raw CLEAN.txt files.
+
+**Recommended sequence:**
+
+**Step 1 — Extend the CSV** (`data2/image_label_mapping_phase2.csv`):
+- Parse `architectural_style`, `building_form`, `roof_features`, `wall_features` from `data2/*/CLEAN.txt` files
+- Join on `smithsonianNumber` — same key used for Phase 1
+- Verify coverage: check what % of the 759 buildings have non-null values for each new task
+- Expected: `architectural_style` ~95% coverage, `roof_features` / `wall_features` ~70% coverage (many fields left blank in survey)
+
+**Step 2 — Two-stage transfer training:**
+
+```bash
+# Stage 1: Freeze Phase 1 heads, train Tier 2 heads only (5 epochs, higher LR on new heads)
+python -m src.models.train_multi_task \
+  --csv data2/image_label_mapping_phase2.csv \
+  --model-config config/models/efficientnet_b5.json \
+  --start-phase 2 --end-phase 2 \
+  --load-checkpoint outputs/data2/b5/v7_bs16/phase1/best_model_phase1.pth \
+  --freeze-phase1-heads \
+  --epochs 5 --batch-size 16 --lr 3.0e-4 --weight-decay 0.010 \
+  --output-dir ./outputs/data2/b5/phase2_warmup
+
+# Stage 2: Fine-tune all tasks jointly (25 epochs, original LR for phase 1 heads)
+python -m src.models.train_multi_task \
+  --csv data2/image_label_mapping_phase2.csv \
+  --model-config config/models/efficientnet_b5.json \
+  --start-phase 2 --end-phase 2 \
+  --load-checkpoint outputs/data2/b5/phase2_warmup/best_model_phase2.pth \
+  --epochs 25 --batch-size 16 --lr 1.5e-4 --weight-decay 0.010 \
+  --early-stopping-patience 10 \
+  --output-dir ./outputs/data2/b5/phase2_full
+```
+
+**Expected results (Phase 2):**
+
+| Task | Expected accuracy | Basis |
+|------|------------------|-------|
+| architectural_style | 60–75% | 12 styles, Bungalow/MinTraditional dominant in data2 |
+| building_form | 65–80% | High correlation with arch style (Cramér's V=0.923) — head gets style_group_fc features |
+| roof_features (multi-label) | 45–60% | Sparse labels, many rare atomics (<10 buildings each) |
+| wall_features (multi-label) | 40–55% | Same sparsity issue |
+| Phase 1 tasks (retained) | ≥69% | Expected slight regression; acceptable |
+
+**Key risks:**
+- `building_form` and `architectural_style` are near-redundant (V=0.923). If Phase 2 shows the model conflating them, consider dropping `building_form` and using a single shared head.
+- `roof_features` and `wall_features` have many rare atomics (<10 buildings). Expect those rare labels to be near-random; focus evaluation on the top 5 atomics per task.
+
+---
+
+### After Phase 2: Decision Gates
+
+#### Gate A — If Phase 2 architectural_style ≥ 70%
+Proceed to **Phase 3 tasks** (building_plan, building_category, original_use, current_use).
+
+#### Gate B — If Phase 2 architectural_style < 70%
+Investigate before advancing. Likely causes:
+1. **Label noise** — `architectural_style` field has free-text entries; check for inconsistent labelling (e.g., "Bungalow" vs "Craftsman Bungalow")
+2. **Insufficient style diversity** — data2 may skew heavily toward Bungalow/Minimal Traditional; model has no signal to distinguish rarer styles
+3. **Image resolution limit** — style classification benefits from fine detail; consider image preprocessing (building detection + crop) before retraining
+
+**If Gate B:** Run image preprocessing (Track 1 Mask R-CNN pipeline) on data2 photos, crop to building bounding box at 456×456 (B5's native resolution), retrain from Phase 1 checkpoint.
+
+---
+
+### Phase 3 Considerations (Informed by Phase 1 Results)
+
+The strategy originally projected 60–70% for Tier 3 tasks. Based on Phase 1 outcomes, revise expectations:
+
+- **building_plan** — now expected **45–60%** (single front photo rarely shows plan shape)
+- **building_category** — **65–75%** (exterior appearance is informative; remains feasible)
+- **original_use / current_use** — **50–65%** (depends heavily on signage / context clues in photos)
+
+Multi-view aggregation (Option B: ensemble across 3–8 photos per building) is **strongly recommended** before declaring Phase 3 tasks infeasible. Buildings in data2 average ~3.6 photos. Averaging backbone features across views before the head should give a material boost on shape-dependent tasks like building_plan.
+
+---
+
+## �📚 References
 
 **Multi-Task Learning:**
 - "An Overview of Multi-Task Learning in Deep Neural Networks" (Ruder, 2017)
@@ -1236,6 +1395,18 @@ The Discover Denver schema defines `roof_type` as type `multi` — surveyors int
 4. **Plan for 9 weeks:** Progressive training across 4 phases
 5. **Get expert validation:** Especially for alteration detection
 
-**The model architecture (`multi_task_classifier.py`) and training script (`train_multi_task.py`) are ready!**
+---
 
-**Next: Create image-label mapping CSV to begin Phase 1 training.**
+### Current State (May 2026)
+
+**Phase 1 complete** on `data2/` (5 tasks). Best: **EfficientNet-B5 bs=16 → 71.86% overall** (b5/v7_bs16).
+
+| What we confirmed | What we revised |
+|---|---|
+| B5 > ResNet50 at cladding texture discrimination | Tier 1 accuracy projections were too optimistic by 15–30 pp |
+| bs=16 is the B5 sweet spot; LR √2 scaling works | Batch size matters more than LR tuning for B5 |
+| 8-class cladding coarsening is correct for now | Raw 18-class cladding is definitively worse (b5/v6 confirmed) |
+| Multi-label BCE is correct for roof_type | Multi-label Hamming accuracy (~95%) ≠ exact-match accuracy (~53%) |
+| Early stopping is essential for B5 | Best epoch is ~11–12/25; B5 peaks earlier than ResNet50 |
+
+**Next: Extend CSV with Tier 2 columns → two-stage Phase 2 training → Gate A/B decision.** See `## 🗺️ Training Path Forward` above.

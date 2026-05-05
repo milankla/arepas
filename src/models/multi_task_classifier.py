@@ -9,7 +9,12 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torchvision import models
-from torchvision.models import ResNet18_Weights, ResNet50_Weights, EfficientNet_B0_Weights
+from torchvision.models import (
+    ResNet18_Weights,
+    ResNet50_Weights,
+    EfficientNet_B0_Weights,
+    EfficientNet_B5_Weights,
+)
 from typing import Dict, List, Optional
 from enum import Enum
 
@@ -327,7 +332,8 @@ class MultiTaskArchitecturalClassifier(nn.Module):
         """Build shared feature extractor.
 
         Args:
-            backbone: Architecture name ('resnet50' or 'efficientnet_b0').
+            backbone: Architecture name ('resnet50', 'efficientnet_b0', or
+                      'efficientnet_b5').
             weights: Weight preset string.  Use 'DEFAULT' for ImageNet-pretrained
                      weights (recommended), or None to train from scratch.
                      Passed to the torchvision weights= API (v0.13+).
@@ -345,6 +351,10 @@ class MultiTaskArchitecturalClassifier(nn.Module):
             w = EfficientNet_B0_Weights[weights] if weights else None
             model = models.efficientnet_b0(weights=w)
             return nn.Sequential(*list(model.children())[:-1])
+        elif backbone == 'efficientnet_b5':
+            w = EfficientNet_B5_Weights[weights] if weights else None
+            model = models.efficientnet_b5(weights=w)
+            return nn.Sequential(*list(model.children())[:-1])
         else:
             raise ValueError(f"Unsupported backbone: {backbone}")
     
@@ -356,6 +366,8 @@ class MultiTaskArchitecturalClassifier(nn.Module):
             return 2048
         elif 'efficientnet_b0' in backbone:
             return 1280
+        elif 'efficientnet_b5' in backbone:
+            return 2048
         else:
             return 2048
     

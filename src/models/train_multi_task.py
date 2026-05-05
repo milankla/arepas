@@ -43,6 +43,8 @@ class MultiTaskTrainer:
         val_loader: DataLoader,
         device: str = 'cuda',
         learning_rate: float = 1e-4,
+        weight_decay: float = 0.01,
+        grad_accum_steps: int = 1,
         output_dir: str = './outputs',
         max_batches: Optional[int] = None,
         early_stopping_patience: Optional[int] = None,
@@ -62,12 +64,14 @@ class MultiTaskTrainer:
         self.early_stopping_patience = early_stopping_patience
         self._epochs_without_improvement = 0
         self.experiment_logger = experiment_logger
+        self.grad_accum_steps = max(1, int(grad_accum_steps))
+        self.weight_decay = weight_decay
         
         # Optimizer and loss
         self.optimizer = optim.AdamW(
             model.parameters(),
             lr=learning_rate,
-            weight_decay=0.01
+            weight_decay=weight_decay
         )
         self.criterion = MultiTaskLoss(
             active_phase=model.active_phase,
@@ -84,6 +88,7 @@ class MultiTaskTrainer:
         
         # Tracking
         self.best_val_loss = float('inf')
+        self.best_overall_acc = float('-inf')
         self.training_history = []
     
     def train_epoch(self, epoch: int) -> Dict[str, float]:
@@ -93,7 +98,14 @@ class MultiTaskTrainer:
         epoch_losses = {}
         total_samples = 0
         
+        max_train_batches = (
+            min(len(self.train_loader), self.max_batches)
+            if self.max_batches is not None
+            else len(self.train_loader)
+        )
+
         pbar = tqdm(self.train_loader, desc=f"Epoch {epoch} [Train]")
+        self.optimizer.zero_grad(set_to_none=True)
         for batch_idx, (images, targets) in enumerate(pbar):
             if self.max_batches is not None and batch_idx >= self.max_batches:
                 break
@@ -101,7 +113,6 @@ class MultiTaskTrainer:
             targets = {k: v.to(self.device) for k, v in targets.items()}
 
             # Forward pass
-            self.optimizer.zero_grad()
             predictions = self.model(images)
             
             # Calculate losses
@@ -109,12 +120,18 @@ class MultiTaskTrainer:
             total_loss = losses['total']
             
             # Backward pass
-            total_loss.backward()
-            
-            # Gradient clipping for stability
-            torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=1.0)
-            
-            self.optimizer.step()
+            (total_loss / self.grad_accum_steps).backward()
+
+            # Step optimizer after gradient accumulation window (or at epoch end)
+            should_step = (
+                ((batch_idx + 1) % self.grad_accum_steps == 0)
+                or ((batch_idx + 1) == max_train_batches)
+            )
+            if should_step:
+                # Gradient clipping for stability
+                torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=1.0)
+                self.optimizer.step()
+                self.optimizer.zero_grad(set_to_none=True)
             
             # Accumulate losses
             batch_size = images.size(0)
@@ -198,6 +215,7 @@ class MultiTaskTrainer:
 
             self.scheduler.step(val_losses['total'])
             self._log_epoch_results(epoch, train_losses, val_losses, val_metrics)
+            self._save_training_history()
             if self.experiment_logger is not None:
                 self.experiment_logger.log_epoch(epoch, train_losses, val_losses, val_metrics)
 
@@ -215,6 +233,21 @@ class MultiTaskTrainer:
                 self._epochs_without_improvement = 0
             else:
                 self._epochs_without_improvement += 1
+
+            overall_acc = float(val_metrics.get('overall_accuracy', 0.0))
+            if overall_acc > self.best_overall_acc:
+                self.best_overall_acc = overall_acc
+                self._save_checkpoint(
+                    epoch,
+                    val_losses,
+                    val_metrics,
+                    is_best=False,
+                    best_by_acc=True,
+                )
+                logger.info(
+                    f"✓ New best-accuracy model saved "
+                    f"(overall_acc: {self.best_overall_acc:.4f})"
+                )
 
             if epoch % 5 == 0:
                 self._save_checkpoint(epoch, val_losses, val_metrics, is_best=False)
@@ -260,6 +293,7 @@ class MultiTaskTrainer:
         val_losses: Dict[str, float],
         val_metrics: Dict[str, Any],
         is_best: bool = False,
+        best_by_acc: bool = False,
     ):
         """Save model checkpoint."""
         checkpoint = {
@@ -270,6 +304,7 @@ class MultiTaskTrainer:
             'val_losses': val_losses,
             'val_metrics': val_metrics,
             'best_val_loss': self.best_val_loss,
+            'best_overall_acc': self.best_overall_acc,
             'active_phase': self.model.active_phase,
             'num_classes': dict(self.model._num_classes_override),
         }
@@ -278,12 +313,20 @@ class MultiTaskTrainer:
         if is_best:
             path = self.output_dir / f'best_model_phase{self.model.active_phase}.pth'
             torch.save(checkpoint, path)
+
+        if best_by_acc:
+            path = self.output_dir / f'best_model_by_acc_phase{self.model.active_phase}.pth'
+            torch.save(checkpoint, path)
         
         # Save latest
         path = self.output_dir / f'checkpoint_epoch{epoch}.pth'
         torch.save(checkpoint, path)
         
         # Save training history
+        self._save_training_history()
+
+    def _save_training_history(self) -> None:
+        """Persist training history to disk."""
         history_path = self.output_dir / 'training_history.json'
         with open(history_path, 'w') as f:
             json.dump(self.training_history, f, indent=2)
@@ -377,6 +420,8 @@ def progressive_training_pipeline(
     epochs_per_phase: int = 20,
     batch_size: int = 32,
     lr: float = 1e-4,
+    weight_decay: float = 0.01,
+    grad_accum_steps: int = 1,
     output_dir: Optional[str] = None,
     num_workers: int = 4,
     max_batches: Optional[int] = None,
@@ -414,7 +459,8 @@ def progressive_training_pipeline(
         device = "cpu"
     logger.info(
         f"Device: {device} | Backbone: {model_config.backbone} | "
-        f"CSV: {csv_path} | Phases: {start_phase}\u2013{end_phase}"
+        f"CSV: {csv_path} | Phases: {start_phase}\u2013{end_phase} | "
+        f"weight_decay: {weight_decay} | grad_accum_steps: {grad_accum_steps}"
     )
 
     # Build loaders once — image size and norm stats come from model_config.
@@ -503,6 +549,8 @@ def progressive_training_pipeline(
                 val_loader=val_loader,
                 device=device,
                 learning_rate=lr,
+                weight_decay=weight_decay,
+                grad_accum_steps=grad_accum_steps,
                 output_dir=str(phase_out),
                 max_batches=max_batches,
                 early_stopping_patience=early_stopping_patience,
@@ -561,6 +609,17 @@ if __name__ == "__main__":
         help="AdamW initial learning rate.",
     )
     parser.add_argument(
+        "--weight-decay", type=float, default=0.01,
+        help="AdamW weight decay (regularization strength).",
+    )
+    parser.add_argument(
+        "--grad-accum-steps", type=int, default=1,
+        help=(
+            "Number of mini-batches to accumulate before optimizer.step(). "
+            "Effective batch size = batch_size * grad_accum_steps."
+        ),
+    )
+    parser.add_argument(
         "--run-name", default=None,
         help=(
             "Human-readable name for this run. "
@@ -608,6 +667,8 @@ if __name__ == "__main__":
         epochs_per_phase=args.epochs,
         batch_size=args.batch_size,
         lr=args.lr,
+        weight_decay=args.weight_decay,
+        grad_accum_steps=args.grad_accum_steps,
         output_dir=args.output_dir,
         num_workers=args.num_workers,
         max_batches=args.max_batches,

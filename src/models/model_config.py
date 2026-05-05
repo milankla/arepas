@@ -53,6 +53,7 @@ KNOWN_BACKBONES: frozenset[str] = frozenset({
     "resnet50",
     "efficientnet_b0",
     "efficientnet_b4",
+    "efficientnet_b5",
     "mobilenet_v3_small",
     "mobilenet_v3_large",
     "vit_b_16",
