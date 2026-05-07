@@ -39,6 +39,7 @@ def evaluate(
     split: str = "test",
     batch_size: int = 32,
     num_workers: int = 4,
+    prefetch_factor: int = 4,
 ) -> Tuple[Dict[str, Any], Dict[str, str]]:
     """Run evaluation and return (metrics, per_task_reports).
 
@@ -50,12 +51,18 @@ def evaluate(
         split:           Which split to evaluate: 'train', 'val', or 'test'.
         batch_size:      Samples per batch.
         num_workers:     DataLoader worker processes.
+        prefetch_factor: Batches to prefetch per worker (ignored when num_workers=0).
 
     Returns:
         metrics:          Nested dict from compute_metrics() with overall_accuracy.
         per_task_reports: {task_name: sklearn classification_report string}.
     """
-    device = "cuda" if torch.cuda.is_available() else "cpu"
+    if torch.cuda.is_available():
+        device = "cuda"
+    elif torch.backends.mps.is_available():
+        device = "mps"
+    else:
+        device = "cpu"
 
     # ── Load checkpoint ───────────────────────────────────────────────────
     ckpt = torch.load(checkpoint_path, map_location=device, weights_only=False)
@@ -75,12 +82,15 @@ def evaluate(
         num_classes = train_ds.num_classes
         logger.warning("No num_classes in checkpoint (old format) — using training split counts")
 
+    pf = prefetch_factor if num_workers > 0 else None
     loader = DataLoader(
         ds,
         batch_size=batch_size,
         shuffle=False,
         num_workers=num_workers,
         pin_memory=(device == "cuda"),
+        persistent_workers=(num_workers > 0),
+        prefetch_factor=pf,
     )
 
     # ── Build model ───────────────────────────────────────────────────────
@@ -171,6 +181,10 @@ def main() -> None:
     parser.add_argument("--split", default="test", choices=["train", "val", "test"])
     parser.add_argument("--batch-size", type=int, default=32)
     parser.add_argument("--num-workers", type=int, default=4)
+    parser.add_argument(
+        "--prefetch-factor", type=int, default=4,
+        help="Batches to prefetch per worker (persistent_workers always enabled when num_workers>0).",
+    )
     parser.add_argument("--output", default=None, help="Path to save JSON report (optional)")
     args = parser.parse_args()
 
@@ -183,6 +197,7 @@ def main() -> None:
         split=args.split,
         batch_size=args.batch_size,
         num_workers=args.num_workers,
+        prefetch_factor=args.prefetch_factor,
     )
 
     # ── Print summary ─────────────────────────────────────────────────────

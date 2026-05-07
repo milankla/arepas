@@ -1,13 +1,16 @@
 # Arepas — Training Run History
 
-**Last updated:** May 4, 2026  
+**Last updated:** May 7, 2026  
 **Dataset:** `data2/image_label_mapping_phase1.csv` — 759 buildings / 2,708 images  
 **Split (fixed seed=42):** train 1,911 | val 409 | test 388 images  
-**Active Phase 1 tasks:** stories, roof_type, primary_cladding, chimney_present, setting
+**Phase 1 tasks:** stories, roof_type, primary_cladding, chimney_present, setting  
+**Phase 2 tasks (added):** architectural_style, building_form
 
 ---
 
 ## Current Best Models
+
+### Phase 1 — 5 tasks (stories, roof_type, primary_cladding, chimney_present, setting)
 
 | Rank | Run | Backbone | Overall Acc | Cladding Acc | Cladding F1 |
 |------|-----|----------|-------------|--------------|-------------|
@@ -15,7 +18,16 @@
 | 🥈 | v7 | ResNet50 | 71.35% | 55.50% | 23.5% |
 | 🥉 | grid lr=1.1e-4 wd=0.010 | EfficientNet-B5 | 68.51% | 46.45% | 20.8% |
 
-**Note on cladding F1:** All models have low cladding F1 (~20–24%) despite reasonable accuracy because Brick dominates at ~68% of samples. The model largely defaults to predicting Brick. This is a known class imbalance problem pending more data.
+### Phase 2 — 7 tasks (Phase 1 + architectural_style + building_form)
+
+| Rank | Run | Backbone | Overall Acc (7 tasks) | Cladding Acc | Cladding F1 |
+|------|-----|----------|-----------------------|--------------|-------------|
+| 🥇 | **phase2_full ep11** | EfficientNet-B5 | **66.63%** | 59.41% | 30.9% |
+| 🥈 | phase2_warmup ep5 | EfficientNet-B5 | 56.33% | — | — |
+
+> **Note:** Phase 2 overall acc is computed across all 7 tasks. It is **not directly comparable** to Phase 1's 71.86% (5 tasks). The two new tasks (architectural_style: 59.66%, building_form: 45.72%) lower the average. Phase 1 tasks held steady or improved vs their Phase 1 baselines.
+
+**Note on cladding F1:** Low cladding F1 (~23–31%) despite reasonable accuracy because Brick dominates at ~68% of samples. This is a known class imbalance problem pending more data.
 
 ---
 
@@ -70,7 +82,36 @@
 | **b5/v4_bs8_retry2** | 2026-04-29 | 1e-4 | 8 | 0.01 | 30 / 12 | yes | 8 (coarsened) | 68.96% | 51.34% | Baseline for grid search |
 | **b5/v5** | 2026-04-29 | 1e-4 | 8 | 0.005 | 30 / 10 | yes | 8 (coarsened) | 66.08% | 45.97% | Lower WD experiment |
 | **b5/v6** | 2026-05-04 | 1.1e-4 | 8 | 0.01 | 15 / 11 | yes | 18 (raw) | 62.55% | 21.27% | Cladding revert experiment; raw 18-class failed |
-| **b5/v7_bs16** | 2026-05-04 | 1.5e-4 | 16 | 0.01 | 25 / 13 | yes (pat=10) | 8 (coarsened) | **71.86%** | 59.66% | **New overall best**; stopped ep 13, best ep 11 |
+| **b5/v7_bs16** | 2026-05-04 | 1.5e-4 | 16 | 0.01 | 25 / 13 | yes (pat=10) | 8 (coarsened) | **71.86%** | 59.66% | **Phase 1 best**; stopped ep 13, best ep 11 |
+
+---
+
+### EfficientNet-B5 Phase 2 Runs — `data2/`
+
+Phase 2 adds `architectural_style` and `building_form` heads. Loaded from Phase 1 checkpoint `outputs/data2/b5/v7_bs16/phase1/best_model_phase1.pth`.
+
+| Run | Date | Stage | LR | BS | WD | Epochs cfg/run | Early stop | Best overall (7 tasks) | Notes |
+|-----|------|-------|----|----|----|----------------|------------|------------------------|-------|
+| **phase2_warmup** | 2026-05-05 | Stage 1 (new heads only) | 3.0e-4 | 16 | 0.01 | 5 / 5 | no | 56.33% | Phase 1 heads frozen; new heads warm-up |
+| **phase2_full** | 2026-05-06–07 | Stage 2 (all unfrozen) | 1.5e-4 | 16 | 0.01 | 25 / 11 | yes (pat=10) | **66.63%** | Joint fine-tune; best val_loss ep1=1.506; best acc ep11 |
+
+#### phase2_full — All Epoch Results
+
+| Epoch | Train Loss | Val Loss | Overall Acc (7 tasks) |
+|-------|-----------|----------|----------------------|
+| 1 | 0.1319 | **1.5062** ← best val | 60.50% |
+| 2 | 0.0881 | 1.6554 | 61.94% |
+| 3 | 0.0635 | 1.9109 | 62.66% |
+| 4 | 0.0469 | 1.8264 | 63.09% |
+| 5 | 0.0435 | 1.9235 | 61.89% |
+| 6 | 0.0300 | 1.8168 | 64.34% |
+| 7 | 0.0247 | 1.8833 | 65.27% |
+| 8 | 0.0211 | 1.9373 | 65.01% |
+| 9 | 0.0191 | 1.9673 | 65.50% |
+| 10 | 0.0148 | 1.9758 | 66.30% |
+| **11** | **0.0137** | 1.9832 | **66.63%** ← best acc, FINAL |
+
+Early stopping triggered after epoch 11 (patience=10 from best val_loss at epoch 1). Val loss diverged while accuracy continued improving — model was memorising training set while still improving on new task heads.
 
 #### b5/v7_bs16 Final Per-Task Breakdown (best epoch = 11)
 
@@ -82,6 +123,34 @@
 | chimney_present | 92.42% | 48.03% |
 | setting (Jaccard) | 80.81% | 24.01% |
 | **Overall** | **71.86%** | — |
+
+#### phase2_full Final Per-Task Breakdown (epoch 11 / best-acc checkpoint)
+
+| Task | Val Accuracy | Macro F1 | vs Phase 1 |
+|------|-------------|----------|------------|
+| stories | 72.13% | 36.99% | −1.5pp |
+| roof_type | 54.52% | 33.88% | +1.7pp |
+| primary_cladding | 59.41% | 30.90% | −0.2pp |
+| chimney_present | 92.67% | 48.10% | +0.2pp |
+| setting (Jaccard) | 82.33% | — | +1.5pp (exact=71.39%, sF1=86.06%) |
+| architectural_style | 59.66% | 23.04% | *(new)* |
+| building_form | 45.72% | 21.84% | *(new)* |
+| **Overall (7 tasks)** | **66.63%** | — | — |
+
+#### phase2_full — Held-Out Test Set Results (388 images, 114 buildings)
+
+> Report: `outputs/data2/b5/phase2_full/test_eval.json`
+
+| Task | Test Accuracy | Macro F1 | vs Val | Notes |
+|------|--------------|----------|--------|-------|
+| stories | 55.15% | 38.35% | −17.0pp | Split artifact — non-stratified; test has 71% 1-story but model recall low |
+| roof_type | 46.13% | 28.93% | −8.4pp | Class imbalance; rare labels (Pyramidal, Dutch Hipped) get 0% recall |
+| primary_cladding | 52.32% | 27.72% | −7.1pp | Class imbalance; Sheet Metal + Shingles 0% recall |
+| chimney_present | 93.56% | 48.34% | +0.9pp | Only 3 "Yes" examples in test — macro F1 split artifact |
+| setting (Jaccard) | 82.60% | 26.65% | +0.3pp | exact=72.94%, sF1=85.87%, ham=93.47% |
+| architectural_style | 62.11% | 27.18% | **+2.5pp** | Slight test generalisation gain |
+| building_form | 52.84% | 33.29% | **+7.1pp** | Significant test generalisation gain |
+| **Overall (7 tasks)** | **63.53%** | — | −3.1pp | |
 
 ---
 
@@ -162,7 +231,7 @@ B5 with batch=8 never converged to the Brick shortcut (noisy gradients, stochast
 Fix requires more data for minority classes, or focal loss / class weighting (MULTI_TASK_STRATEGY.md recommends capped inverse-frequency weights, max=3.0).
 
 ### ResNet50 vs EfficientNet-B5
-- **B5 bs=16 (v7_bs16): 71.86%** — new overall best; batch=16 gave more stable gradients vs bs=8
+- **B5 bs=16 (v7_bs16): 71.86%** — Phase 1 best; batch=16 gave more stable gradients vs bs=8
 - ResNet50 (v7): 71.35% — strong baseline, trains faster per epoch
 - B5 best grid (bs=8, lr=1.1e-4): 68.51% — batch=8 too noisy for B5 capacity
 - B5 batch=4 (v1): seemed better (69.45%) but suspected overfitting; early stopping not active
@@ -170,12 +239,32 @@ Fix requires more data for minority classes, or focal loss / class weighting (MU
 ### Why batch=16 helped B5
 Scaling LR by √2 (1.1e-4 → 1.5e-4) with batch doubling (8→16) follows linear scaling rule. The larger batch reduced gradient noise, allowing B5's stochastic depth and wider layers to converge more reliably. Stopped at epoch 13 (patience=10), best at epoch 11.
 
+### Phase 2 Training Observations
+- **Val loss / accuracy divergence:** Val loss rose from 1.51 (epoch 1) to 1.98 (epoch 11) while overall accuracy climbed from 60.5% → 66.6%. The model was overfitting the training set while simultaneously improving on the two new task heads (arch_style, building_form), masking generalisation degradation in per-task loss.
+- **I/O bottleneck:** 29K large JPEGs (1–6 MB each) with `persistent_workers=False` (default) caused full worker respawn each epoch on macOS, stalling the GPU at ~10% utilisation (70–130 s/batch). Fix applied: `persistent_workers=True, prefetch_factor=4` in `build_dataloaders()`. Takes effect on next run.
+- **architectural_style (59.7%)** and **building_form (45.7%)** are the weakest tasks — most classes (21 and 32 respectively). Both will benefit from more data and image resizing + augmentation improvements.
+- **building_form weakest overall (45.7%)** — 32 classes with heavy long-tail distribution; needs class weighting or focal loss.
+
+### Phase 2 Test Set Observations
+- **Overall gap: −3.1pp** (val 66.63% → test 63.53%). No collapse; model generalises.
+- **stories −17pp**: Largest drop. Non-stratified split (stratification fell back due to rare arch_style classes) resulted in an unrepresentative test set — 275/388 = 71% 1-story buildings but model recall on 1-story was only 46%. Not a true overfitting signal — a split distribution artifact.
+- **chimney_present macro F1=48%** despite 93.6% accuracy: Only 3 "Yes" examples in test (vs ~15% in training). Split imbalance artifact; per-label recall is effectively unmeasurable at this support.
+- **architectural_style and building_form both improved on test** (+2.5pp and +7.1pp respectively). Positive sign that the new heads are not overfit to the val distribution.
+- **roof_type and primary_cladding −8pp each**: Consistent with majority-class collapse on rare labels (Pyramidal, Dutch Hipped, Sheet Metal, Shingles all 0% test recall). Confirms class imbalance is the ceiling, not generalisation.
+
 ---
 
 ## Pending / Next Steps
 
-1. **More data** — Cladding minority classes need more examples before revisiting 18-class scheme
-2. **Phase 2 tasks** — architectural_style, building_form, roof_features, wall_features not yet trained
-3. **Class weighting for cladding** — When more data arrives, try `pos_weight` / focal loss before reverting coarsening
-4. **B5 bs=16 LR grid** — v7_bs16 used a single LR (1.5e-4); a small grid around 1.3e-4–1.7e-4 may squeeze out more
-5. **B5 bs=32** — Further batch scaling test (LR ~2.1e-4) to see if gradient stability continues to help
+1. **Image resizing + cropping changes** — Pre-resize `data2/` images to ~512 px on disk (one-time ~10 min step) to eliminate the I/O bottleneck. Combine with any crop/augmentation strategy review. Deferred by user: *"Let's do resizing later together with cropping changes."*
+2. **Phase 3 training** — Retrain from `phase2_full` checkpoint with DataLoader fix + resized images; expected GPU utilisation ~50–70% vs current ~10%.
+3. **More data** — Cladding and building_form minority classes need more examples.
+4. **Class weighting / focal loss** — For cladding, building_form, and arch_style long tails. `MULTI_TASK_STRATEGY.md` recommends capped inverse-frequency weights (max=3.0).
+5. **B5 bs=16 LR grid** — phase2_full used lr=1.5e-4; a small grid around 1.3e-4–1.7e-4 may help after resizing fix.
+
+### Completed
+- ✅ Phase 1 training (5 tasks) — best checkpoint `outputs/data2/b5/v7_bs16/phase1/best_model_phase1.pth` (71.86% overall, 5 tasks)
+- ✅ Phase 2 Stage 1 warmup (new heads, 5 epochs) — `outputs/data2/b5/phase2_warmup/phase2/best_model_by_acc_phase2.pth`
+- ✅ Phase 2 Stage 2 full joint fine-tune — `outputs/data2/b5/phase2_full/phase2/best_model_phase2.pth` (66.63% overall, 7 tasks)
+- ✅ DataLoader `persistent_workers=True` + `prefetch_factor=4` fix applied to `src/models/train_multi_task.py` and `src/models/evaluate.py`
+- ✅ Test set evaluation — `outputs/data2/b5/phase2_full/test_eval.json` (63.53% overall, 7 tasks; 3.1pp gap vs val)

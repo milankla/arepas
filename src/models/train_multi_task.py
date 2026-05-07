@@ -20,7 +20,7 @@ from pathlib import Path
 from tqdm import tqdm
 import json
 
-from src.models.multi_task_classifier import MultiTaskArchitecturalClassifier, MultiTaskLoss
+from src.models.multi_task_classifier import MultiTaskArchitecturalClassifier, MultiTaskLoss, TaskConfig
 from src.models.model_config import ModelConfig
 from src.models.metrics import compute_metrics, format_metrics_table
 from src.loader.architectural_dataset import make_splits
@@ -349,6 +349,7 @@ def build_dataloaders(
     model_config: ModelConfig,
     batch_size: int = 32,
     num_workers: int = 4,
+    prefetch_factor: int = 2,
 ) -> Tuple[DataLoader, DataLoader, DataLoader, Dict[str, int], Dict[str, torch.Tensor]]:
     """Build train / val / test DataLoaders from any CSV + ModelConfig.
 
@@ -362,8 +363,9 @@ def build_dataloaders(
     Args:
         csv_path:     Path to the label-mapping CSV.
         model_config: Backbone configuration (drives image_size + norm stats).
-        batch_size:   Samples per GPU batch.
-        num_workers:  DataLoader worker processes.
+        batch_size:      Samples per GPU batch.
+        num_workers:     DataLoader worker processes.
+        prefetch_factor: Batches to prefetch per worker.
 
     Returns:
         (train_loader, val_loader, test_loader, num_classes, class_weights)
@@ -384,6 +386,8 @@ def build_dataloaders(
     )
 
     pin = torch.cuda.is_available()
+    persistent = num_workers > 0
+    pf = prefetch_factor if num_workers > 0 else None
 
     train_loader = DataLoader(
         train_ds,
@@ -392,6 +396,8 @@ def build_dataloaders(
         num_workers=num_workers,
         pin_memory=pin,
         drop_last=True,
+        persistent_workers=persistent,
+        prefetch_factor=pf,
     )
     val_loader = DataLoader(
         val_ds,
@@ -399,6 +405,8 @@ def build_dataloaders(
         shuffle=False,
         num_workers=num_workers,
         pin_memory=pin,
+        persistent_workers=persistent,
+        prefetch_factor=pf,
     )
     test_loader = DataLoader(
         test_ds,
@@ -406,6 +414,8 @@ def build_dataloaders(
         shuffle=False,
         num_workers=num_workers,
         pin_memory=pin,
+        persistent_workers=persistent,
+        prefetch_factor=pf,
     )
     return train_loader, val_loader, test_loader, train_ds.num_classes, train_ds.class_weights
 
@@ -424,11 +434,14 @@ def progressive_training_pipeline(
     grad_accum_steps: int = 1,
     output_dir: Optional[str] = None,
     num_workers: int = 4,
+    prefetch_factor: int = 4,
     max_batches: Optional[int] = None,
     early_stopping_patience: Optional[int] = None,
     run_name: Optional[str] = None,
     dataset_version: str = "",
     model_config_path: str = "",
+    initial_checkpoint: Optional[str] = None,
+    freeze_phase1_heads: bool = False,
 ) -> None:
     """Dataset- and model-agnostic progressive training pipeline.
 
@@ -469,6 +482,7 @@ def progressive_training_pipeline(
         model_config=model_config,
         batch_size=batch_size,
         num_workers=num_workers,
+        prefetch_factor=prefetch_factor,
     )
 
     # Build a RunConfig to capture all parameters that define this run.
@@ -492,7 +506,9 @@ def progressive_training_pipeline(
     run_cfg.output_dir = output_dir
     logger.info(f"Run: {run_cfg.run_name}  ->  {output_dir}")
 
-    prev_checkpoint: Optional[str] = None
+    # Allow caller to warm-start from an existing checkpoint (e.g. Phase 1 best)
+    # without having to re-run earlier phases in the same process.
+    prev_checkpoint: Optional[str] = initial_checkpoint
 
     for phase in range(start_phase, end_phase + 1):
         print("\n" + "=" * 60)
@@ -531,16 +547,34 @@ def progressive_training_pipeline(
             num_classes=num_classes,   # data-driven head sizes
         )
 
-        # Warm-start: transfer backbone + earlier task heads from previous phase.
+        # Warm-start: transfer backbone + earlier task heads from previous phase
+        # (or from an externally supplied checkpoint via --load-checkpoint).
         if prev_checkpoint is not None and Path(prev_checkpoint).exists():
             ckpt = torch.load(prev_checkpoint, map_location="cpu")
             missing, unexpected = model.load_state_dict(
                 ckpt["model_state_dict"], strict=False
             )
             logger.info(
-                f"Phase {phase} warm-start \u2190 phase {phase - 1} checkpoint "
+                f"Phase {phase} warm-start \u2190 {prev_checkpoint} "
                 f"({len(missing)} missing keys, {len(unexpected)} unexpected)"
             )
+
+            # --freeze-phase1-heads: on the first phase being trained (typically
+            # Phase 2 Stage 1), freeze all Phase 1 task heads so only the new
+            # heads + backbone can update.  Phase 1 head weights are preserved
+            # from the loaded checkpoint.
+            if freeze_phase1_heads and phase == start_phase:
+                phase1_names = set(TaskConfig.EASY_TASKS.keys())
+                frozen_count = 0
+                for task_name, head_module in model.task_heads.items():
+                    if task_name in phase1_names:
+                        for p in head_module.parameters():
+                            p.requires_grad = False
+                        frozen_count += 1
+                logger.info(
+                    f"freeze_phase1_heads: froze {frozen_count} Phase 1 task heads "
+                    f"({sorted(phase1_names & set(model.task_heads.keys()))})"
+                )
 
         with ExperimentLogger(phase_cfg, experiment_name="arepas") as exp_logger:
             trainer = MultiTaskTrainer(
@@ -642,6 +676,10 @@ if __name__ == "__main__":
         help="DataLoader worker processes.",
     )
     parser.add_argument(
+        "--prefetch-factor", type=int, default=4,
+        help="Batches to prefetch per worker (persistent_workers always enabled when num_workers>0).",
+    )
+    parser.add_argument(
         "--max-batches", type=int, default=None,
         help=(
             "Stop each train/val pass after this many batches. "
@@ -653,6 +691,24 @@ if __name__ == "__main__":
         help=(
             "Stop training if val_loss does not improve for this many consecutive "
             "epochs. Omit to disable early stopping."
+        ),
+    )
+    parser.add_argument(
+        "--load-checkpoint", default=None,
+        help=(
+            "Path to an existing .pth checkpoint to warm-start from before the "
+            "first phase. Useful for continuing training from a previous phase "
+            "(e.g. load Phase 1 best checkpoint when running --start-phase 2). "
+            "Weights are loaded non-strictly — new heads initialise from scratch."
+        ),
+    )
+    parser.add_argument(
+        "--freeze-phase1-heads", action="store_true", default=False,
+        help=(
+            "Freeze all Phase 1 task heads after loading --load-checkpoint. "
+            "Use for Stage 1 of two-stage Phase 2 training: new heads adapt to "
+            "existing features without destabilising Phase 1 knowledge. "
+            "Ignored if --load-checkpoint is not provided."
         ),
     )
     args = parser.parse_args()
@@ -671,9 +727,12 @@ if __name__ == "__main__":
         grad_accum_steps=args.grad_accum_steps,
         output_dir=args.output_dir,
         num_workers=args.num_workers,
+        prefetch_factor=args.prefetch_factor,
         max_batches=args.max_batches,
         early_stopping_patience=args.early_stopping_patience,
         run_name=args.run_name,
         dataset_version=args.dataset_version,
         model_config_path=args.model_config,
+        initial_checkpoint=args.load_checkpoint,
+        freeze_phase1_heads=args.freeze_phase1_heads,
     )
