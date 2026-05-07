@@ -1,0 +1,22 @@
+[
+  {
+    "epoch": 1,
+    "train_losses": {
+      "stories": 1.0141604741414387,
+      "roof_type": 0.7096202174822489,
+      "primary_cladding": 1.7746355136235554,
+      "total": 0.41474205255508423
+    },
+    "val_losses": {
+      "stories": 0.663739005724589,
+      "roof_type": 0.6615361173947653,
+      "primary_cladding": 1.2854479153951008,
+      "total": 0.30748998125394184
+    },
+    "val_accuracies": {
+      "stories": 1.0,
+      "roof_type": 0.0,
+      "primary_cladding": 0.875
+    }
+  }
+]

@@ -1,0 +1,19 @@
+{
+  "csv_path": "data2/image_label_mapping_phase1.csv",
+  "dataset_version": "data2",
+  "backbone": "resnet50",
+  "model_config_path": "config/models/resnet50.json",
+  "start_phase": 1,
+  "end_phase": 1,
+  "epochs": 30,
+  "batch_size": 32,
+  "lr": 0.0001,
+  "num_workers": 2,
+  "early_stopping_patience": null,
+  "roof_type_encoding": "single_label_compound",
+  "augmentation_version": "v1",
+  "run_name": "resnet50_data2_ph1-1_lr1e-04_bs32_ep30_ffa23a6",
+  "git_commit": "ffa23a6",
+  "timestamp": "2026-04-19T13:33:29Z",
+  "output_dir": "outputs/data2/v6/phase1"
+}

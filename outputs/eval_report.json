@@ -1,0 +1,21 @@
+{
+  "checkpoint": "outputs/smoke_test2/phase1/best_model_phase1.pth",
+  "csv": "data2/image_label_mapping_phase1.csv",
+  "split": "test",
+  "metrics": {
+    "stories": {
+      "acc": 0.2036082474226804,
+      "f1": 0.07552067344753018
+    },
+    "roof_type": {
+      "exact": 0.0,
+      "hamming": 0.613537710255019,
+      "f1": 0.07281070452282702
+    },
+    "primary_cladding": {
+      "acc": 0.3634020618556701,
+      "f1": 0.04461853558627752
+    },
+    "overall_accuracy": 0.18900343642611683
+  }
+}

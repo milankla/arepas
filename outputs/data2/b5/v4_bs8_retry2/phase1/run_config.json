@@ -1,0 +1,19 @@
+{
+  "csv_path": "data2/image_label_mapping_phase1.csv",
+  "dataset_version": "data2",
+  "backbone": "efficientnet_b5",
+  "model_config_path": "config/models/efficientnet_b5.json",
+  "start_phase": 1,
+  "end_phase": 1,
+  "epochs": 30,
+  "batch_size": 8,
+  "lr": 0.0001,
+  "num_workers": 2,
+  "early_stopping_patience": 10,
+  "roof_type_encoding": "single_label_compound",
+  "augmentation_version": "v1",
+  "run_name": "efficientnet_b5_data2_ph1-1_lr1e-04_bs8_ep30_pat10_a079fb0",
+  "git_commit": "a079fb0",
+  "timestamp": "2026-04-29T14:06:56Z",
+  "output_dir": "outputs/data2/b5/v4_bs8_retry2/phase1"
+}

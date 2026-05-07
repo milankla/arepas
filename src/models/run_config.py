@@ -66,8 +66,15 @@ class RunConfig:
     epochs: int = 30
     batch_size: int = 32
     lr: float = 1e-4
+    weight_decay: float = 0.01
+    grad_accum_steps: int = 1
     num_workers: int = 2
+    prefetch_factor: int = 4
     early_stopping_patience: Optional[int] = None
+
+    # ── Warm-start / transfer learning ────────────────────────────────────────
+    load_checkpoint: Optional[str] = None   # path to checkpoint loaded before phase 1
+    freeze_phase1_heads: bool = False       # Stage 1 of two-stage Phase 2 training
 
     # ── Preprocessing decisions ───────────────────────────────────────────────
     roof_type_encoding: str = "single_label_compound"   # or "multi_label_19"
@@ -95,6 +102,7 @@ class RunConfig:
             f"_{self.dataset_version}"
             f"_ph{self.start_phase}-{self.end_phase}"
             f"_lr{self.lr:.0e}"
+            f"_wd{self.weight_decay}"
             f"_bs{self.batch_size}"
             f"_ep{self.epochs}"
             f"{patience}"
@@ -114,10 +122,19 @@ class RunConfig:
 
     @classmethod
     def load(cls, path: Path | str) -> "RunConfig":
-        """Reconstruct a RunConfig from a saved run_config.json."""
+        """Reconstruct a RunConfig from a saved run_config.json.
+
+        Forward-compatible: unknown keys from future versions are ignored;
+        missing keys from older configs use dataclass defaults.
+        """
         with open(path) as fh:
             data = json.load(fh)
-        return cls(**data)
+        # Drop keys not in the dataclass (future-proofing) and fill missing
+        # keys with defaults (backward-compat with old run_config.json files).
+        import dataclasses
+        known = {f.name for f in dataclasses.fields(cls)}
+        filtered = {k: v for k, v in data.items() if k in known}
+        return cls(**filtered)
 
     def as_flat_dict(self) -> dict:
         """Return a flat str→str/float/int dict suitable for mlflow.log_params."""

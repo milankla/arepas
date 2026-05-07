@@ -1,0 +1,39 @@
+{
+  "checkpoint": "outputs/data2/b5/phase2_full/phase2/best_model_phase2.pth",
+  "csv": "data2/image_label_mapping_phase1.csv",
+  "split": "test",
+  "metrics": {
+    "stories": {
+      "acc": 0.5515463917525774,
+      "f1": 0.38345452967439453
+    },
+    "roof_type": {
+      "acc": 0.46134020618556704,
+      "f1": 0.2893440187257713
+    },
+    "primary_cladding": {
+      "acc": 0.5231958762886598,
+      "f1": 0.2772328691282787
+    },
+    "chimney_present": {
+      "acc": 0.9355670103092784,
+      "f1": 0.4833555259653795
+    },
+    "setting": {
+      "exact": 0.729381443298969,
+      "jaccard": 0.8260309278350515,
+      "hamming": 0.9347079037800687,
+      "f1_sample": 0.8586769759450172,
+      "f1": 0.26647618474162243
+    },
+    "architectural_style": {
+      "acc": 0.6211340206185567,
+      "f1": 0.2717774799508366
+    },
+    "building_form": {
+      "acc": 0.5283505154639175,
+      "f1": 0.3328770050179573
+    },
+    "overall_accuracy": 0.6353092783505155
+  }
+}

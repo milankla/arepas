@@ -218,7 +218,7 @@ $RECYCLE.BIN/
 
 # Project-specific
 *.log
-data2/
+/data2/
 .env
 config.json
 *.api_key
@@ -230,8 +230,11 @@ config.json
 # Model outputs and checkpoints (root-level only — does not affect src/models/)
 /models/
 /checkpoints/
-/outputs/
 /fine_tuned_models/
+
+# outputs/ — large binary files are blocked by the global *.pth and *.log rules above.
+# Small JSON files (run_config.json, training_history.json, *eval*.json) are intentionally
+# tracked so any training run can be reproduced from git alone.
 
 # Experiment tracking (MLflow local store — runs are machine-local)
 mlruns/

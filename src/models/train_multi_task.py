@@ -496,8 +496,13 @@ def progressive_training_pipeline(
         epochs=epochs_per_phase,
         batch_size=batch_size,
         lr=lr,
+        weight_decay=weight_decay,
+        grad_accum_steps=grad_accum_steps,
         num_workers=num_workers,
+        prefetch_factor=prefetch_factor,
         early_stopping_patience=early_stopping_patience,
+        load_checkpoint=initial_checkpoint,
+        freeze_phase1_heads=freeze_phase1_heads,
         run_name=run_name or "",
     )
     # Derive output dir from the auto-slug if not explicitly provided.
@@ -532,8 +537,13 @@ def progressive_training_pipeline(
             epochs=run_cfg.epochs,
             batch_size=run_cfg.batch_size,
             lr=run_cfg.lr,
+            weight_decay=run_cfg.weight_decay,
+            grad_accum_steps=run_cfg.grad_accum_steps,
             num_workers=run_cfg.num_workers,
+            prefetch_factor=run_cfg.prefetch_factor,
             early_stopping_patience=run_cfg.early_stopping_patience,
+            load_checkpoint=run_cfg.load_checkpoint,
+            freeze_phase1_heads=run_cfg.freeze_phase1_heads,
             run_name=_phase_run_name,
             output_dir=str(phase_out),
         )
