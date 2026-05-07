@@ -51,61 +51,9 @@ DATA LOADING SUMMARY
 ============================================================
 ```
 
-## Demo Scripts
+## Scripts
 
-### 1. Demo ConfigurableDataLoader
-
-```bash
-python scripts/demo_configurable_loader.py
-```
-
-**Features**:
-- Configuration loading
-- Individual dataset loading
-- Neighborhood-based loading
-- Summary statistics
-- Schema integration demonstration
-
-### 2. Demo Schema Loader
-
-```bash
-python scripts/demo_schema_loader.py
-```
-
-**Features**:
-- Schema parsing and display
-- Field type exploration
-- Valid options listing
-- Required field identification
-- Multipart field structures
-
-### 3. Demo Dataset Validation
-
-```bash
-python -m scripts.demo_dataset_validation
-```
-
-**Features**:
-- Schema-based validation
-- Threshold validation (≤10 missing = warnings)
-- Top missing field identification
-- Per-dataset validation reports
-
-**Example Output**:
-```
-🔍 Validating datasets against schema...
-
-✅ Validation complete: 27/27 valid records
-✅ Validation complete: 8/8 valid records
-✅ Validation complete: 7/8 valid records (missing: Building Plan, Roof Features, ...)
-
-📊 OVERALL VALIDATION SUMMARY:
-   Total records: 198
-   Valid: 194 (98.0%)
-   Invalid: 4 (2.0%)
-```
-
-### 4. Field Coverage Report
+### Field Coverage Report
 
 ```bash
 python scripts/field_coverage_report.py
@@ -173,10 +121,8 @@ python -m src.loader.configurable_loader config/data.json
 
 ### 2. Schema Validation
 ```bash
-# Run full schema validation
-python -m scripts.demo_dataset_validation
-
-# Check validation rates and missing fields
+# Check field coverage across datasets
+python scripts/field_coverage_report.py
 ```
 
 ### 3. Test New Configuration
@@ -188,15 +134,7 @@ nano config/custom.json
 python -m src.loader.configurable_loader config/custom.json
 ```
 
-### 4. Performance Benchmarking
-```bash
-# Test image matching performance
-python scripts/test_performance.py
-
-# Should show ~1.0ms per building
-```
-
-### 5. Compare Configurations
+### 4. Compare Configurations
 ```bash
 # Generate reports for different configs
 python -m src.loader.configurable_loader config/data.json > report_data.txt
@@ -229,8 +167,6 @@ validator = DatasetValidator(loader.schema)
 |---------|--------|-------------|
 | `python -m src.loader.configurable_loader` | Default (`config/data.json`) | Load with default config |
 | `python -m src.loader.configurable_loader <path>` | Custom path | Load with custom config |
-| `python scripts/demo_configurable_loader.py` | Hardcoded | Run demo script |
-| `python -m scripts.demo_dataset_validation` | Both configs | Validate all datasets |
 
 ## Error Handling
 

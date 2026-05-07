@@ -1,20 +1,14 @@
 """
-Image preprocessing module for building detection and segmentation.
+Image preprocessing module for building detection.
 
 This module provides:
-- Building detection using Faster R-CNN (PyTorch/Torchvision) for precise bounding boxes
-- Building detection using Meta SAM2 (Segment Anything Model 2)
-- Simplified pipeline for cropped image extraction
+- Building detection using GroundingDINO (IDEA-Research/grounding-dino-tiny)
 """
 
 from .detector_base import BaseDetector
-from .mask_rcnn_detector import MaskRCNNDetector
-from .sam2_detector import SAM2Detector
-from .simplified_pipeline import SimplifiedPipeline
+from .grounding_dino_detector import GroundingDINODetector
 
 __all__ = [
     "BaseDetector",
-    "MaskRCNNDetector",
-    "SAM2Detector",
-    "SimplifiedPipeline",
+    "GroundingDINODetector",
 ]

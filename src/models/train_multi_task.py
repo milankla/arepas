@@ -350,6 +350,7 @@ def build_dataloaders(
     batch_size: int = 32,
     num_workers: int = 4,
     prefetch_factor: int = 2,
+    cropped_root: Optional[str] = None,
 ) -> Tuple[DataLoader, DataLoader, DataLoader, Dict[str, int], Dict[str, torch.Tensor]]:
     """Build train / val / test DataLoaders from any CSV + ModelConfig.
 
@@ -375,6 +376,7 @@ def build_dataloaders(
     train_ds, val_ds, test_ds = make_splits(
         csv_path=csv_path,
         model_config=model_config,
+        cropped_root=cropped_root,
     )
     logger.info(
         f"Dataset splits — train: {len(train_ds)}, "
@@ -442,6 +444,7 @@ def progressive_training_pipeline(
     model_config_path: str = "",
     initial_checkpoint: Optional[str] = None,
     freeze_phase1_heads: bool = False,
+    cropped_root: Optional[str] = None,
 ) -> None:
     """Dataset- and model-agnostic progressive training pipeline.
 
@@ -483,6 +486,7 @@ def progressive_training_pipeline(
         batch_size=batch_size,
         num_workers=num_workers,
         prefetch_factor=prefetch_factor,
+        cropped_root=cropped_root,
     )
 
     # Build a RunConfig to capture all parameters that define this run.
@@ -721,6 +725,14 @@ if __name__ == "__main__":
             "Ignored if --load-checkpoint is not provided."
         ),
     )
+    parser.add_argument(
+        "--cropped-root", default=None,
+        help=(
+            "Root directory of pre-cropped images produced by scripts/crop_dataset.py. "
+            "When set, the dataset loader prefers <cropped-root>/<stem>_crop.jpg over "
+            "the original image path.  Omit to train on original images."
+        ),
+    )
     args = parser.parse_args()
 
     cfg = ModelConfig.from_json(args.model_config)
@@ -745,4 +757,5 @@ if __name__ == "__main__":
         model_config_path=args.model_config,
         initial_checkpoint=args.load_checkpoint,
         freeze_phase1_heads=args.freeze_phase1_heads,
+        cropped_root=args.cropped_root,
     )

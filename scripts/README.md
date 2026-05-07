@@ -1,55 +1,39 @@
 # Scripts Directory
 
-Utility scripts for testing, demonstrating, and validating the Arepas data loading and schema validation system.
+Utility scripts for data analysis, model evaluation, and the offline building-crop pipeline.
 
 ## Available Scripts
 
-### 🎯 `demo_configurable_loader.py`
-**Purpose**: Demonstrate the ConfigurableDataLoader with schema integration
+### 📷 `crop_dataset.py`
+**Purpose**: Offline building-crop pipeline — detects the main building in every image using GroundingDINO and saves a 456×456 square crop to `crops/data2/`.
 
 **Usage**:
 ```bash
-python scripts/demo_configurable_loader.py
+python scripts/crop_dataset.py \
+  --csv data2/image_label_mapping_phase1.csv \
+  --out crops/data2 --manifest crops/data2/crop_manifest.csv
 ```
 
-**Features**:
-- Load data from JSON configuration
-- Automatic schema loading and validation
-- Dataset loading (individual and by neighborhood)
-- Summary reporting with statistics
-- Multi-CSV neighborhood merging support
+**Key flags**:
+- `--limit N` — process only first N images (for spot-checks)
+- `--device auto|cpu|mps|cuda` — inference device
+- `--conf-threshold 0.25` — minimum detection confidence before geometric fallback
+- `--target-size 456` — output size in pixels (square)
+- `--dry-run` — print what would be processed without writing files
 
-### 🔍 `demo_schema_loader.py`
-**Purpose**: Demonstrate the Discover Denver Schema loading and querying
+Resumes automatically: images with an existing crop are skipped.
+
+### 👁️ `preview_crops.py`
+**Purpose**: Side-by-side HTML preview of original vs crop, served on localhost.
 
 **Usage**:
 ```bash
-python scripts/demo_schema_loader.py
+python scripts/preview_crops.py \
+  --manifest crops/data2/crop_manifest.csv \
+  --out-root crops/data2 --port 8000
 ```
 
-**Features**:
-- Load and parse schema from text file
-- Display field types, requirements, and valid options
-- Query fields by name
-- Filter by survey level
-- Show multipart field structures
-
-### ✅ `demo_dataset_validation.py`
-**Purpose**: Validate datasets against the Discover Denver Schema
-
-**Usage**:
-```bash
-python -m scripts.demo_dataset_validation
-```
-
-**Features**:
-- Schema-based validation with intelligent thresholds
-- Records with ≤10 missing required fields = valid with warnings
-- Records with >10 missing required fields = invalid
-- Detailed validation reports showing top missing fields
-- Per-dataset validation statistics
-
-### � `field_coverage_report.py`
+### 📊 `field_coverage_report.py`
 **Purpose**: Generate comprehensive field coverage analysis across all datasets
 
 **Usage**:
@@ -63,70 +47,29 @@ python scripts/field_coverage_report.py
 - Missing field identification
 - CSV export of coverage matrix
 
-### 🔬 `test_performance.py`
-**Purpose**: Performance benchmarking and regression testing
-
-**Usage**:
-```bash
-python scripts/test_performance.py
-```
-
-**Features**:
-- Image matching performance metrics
-- Processing time per building (~1.0ms)
-- Validation of 10-15x performance optimizations
-
-### 📋 `verify_github_ready.py`
-**Purpose**: Verify project readiness for publication
-
-**Usage**:
-```bash
-python scripts/verify_github_ready.py
-```
-
-**Checks**:
-- Essential files (README, LICENSE, requirements.txt)
-- Documentation completeness
-- Source code structure
-- Module imports
-- Sensitive file exclusions
-
 ## Quick Reference
 
-| Script | Purpose | Run Time |
-|--------|---------|----------|
-| `demo_configurable_loader.py` | Feature demonstration | ~10s |
-| `demo_schema_loader.py` | Schema exploration | <1s |
-| `demo_dataset_validation.py` | Schema validation | ~5s |
-| `field_coverage_report.py` | Coverage analysis | ~10s |
-| `test_performance.py` | Performance benchmarking | ~5s |
-| `verify_github_ready.py` | Project validation | <1s |
+| Script | Purpose |
+|--------|--------|
+| `crop_dataset.py` | Offline building-crop pipeline (GroundingDINO) |
+| `preview_crops.py` | Side-by-side crop preview server |
+| `field_coverage_report.py` | Field coverage analysis across datasets |
+| `eval_checkpoint.py` | Re-evaluate a saved checkpoint |
+| `plot_training_history.py` | Plot loss / accuracy curves from a training log |
+| `analyze_image_data.py` | Image statistics analysis |
+| `analyze_roof_type.py` | Roof-type label analysis |
+| `analyze_stories_gap.py` | Stories val/test gap analysis |
+| `attribute_dependency_analysis.py` | Cramér's V between attribute pairs |
+| `backfill_mlflow.py` | Back-fill MLflow runs from log files |
+| `build_phase1_label_mapping.py` | Build image_label_mapping_phase1.csv |
+| `generate_gallery.py` | Generate HTML crop gallery |
+| `generate_three_column_gallery.py` | Three-column HTML gallery |
+| `test_roof_type_encoding.py` | Sanity-check roof-type encoding |
 
 ## Notes
 
-- Scripts automatically adjust paths when run from any directory
-- Use `python -m scripts.<script_name>` for module execution
-- All scripts use the schema from `schema/Discover Denver Schema.txt`
-- These scripts serve different purposes than production code and are kept separate
-- Run performance and validation tests after significant changes
-- Demo script is useful for understanding the ConfigurableDataLoader API
-
-## Running from Different Locations
-
-All scripts can be run from the project root or from within the `scripts/` directory:
-
-```bash
-# From project root
-python scripts/demo_configurable_loader.py
-python scripts/test_performance.py
-python scripts/verify_github_ready.py
-
-# From scripts directory
-cd scripts
-python demo_configurable_loader.py
-python test_performance.py
-python verify_github_ready.py
-```
+- All scripts are run from the project root.
+- `crops/` output is excluded from git (see `.gitignore`).
 
 ---
 

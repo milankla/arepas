@@ -3,101 +3,137 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
 
-Arepas is a project for fine-tuning an AI model to categorize historical architectural buildings based on multiple attributes. The project features a high-performance data loading system that processes thousands of buildings with their associated images and architectural attributes.
+Arepas fine-tunes a multi-task image classifier on historical architectural buildings.
+Each building is labelled with up to 9 attributes (stories, roof type, cladding, architectural style, …).
+The model is EfficientNet-B5 trained with per-task loss heads; input images are first cropped to
+456×456 with a GroundingDINO-based building detector.
 
-## Features
-- 📊 **Flexible JSON-based configuration** for different data structures
-- 🔧 **Robust CSV parsing** with error recovery
-- 🔍 **Efficient image matching** with hash-based indexing
-- 📈 **Comprehensive validation** and error handling
-- 🎯 **Type-safe operations** throughout the codebase
-- 📋 **Advanced logging** with configurable levels
+## Pipeline overview
+
+```
+data2/ raw images
+    │
+    ▼
+scripts/crop_dataset.py        ← GroundingDINO detector + 456×456 letterbox crop
+    │
+    ▼  crops/data2/
+    │
+    ▼
+src/models/train_multi_task.py ← EfficientNet-B5, phase 1 → phase 2
+    │
+    ▼  outputs/ checkpoints + MLflow metrics
+```
 
 ## Getting Started
-1. Ensure you have Python 3.8+ installed.
-2. (Recommended) Create a virtual environment:
-   ```sh
-   python3 -m venv .venv
-   source .venv/bin/activate
-   ```
-3. Install dependencies:
-   ```sh
-   pip install -r requirements.txt
-   ```
-4. Run the main data loading pipeline:
-   ```sh
-   python -m src.fine_tune
-   ```
+
+```sh
+python3 -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+```
+
+### 1. Crop images
+
+Run the offline building-crop pipeline (resumes automatically):
+
+```sh
+python scripts/crop_dataset.py \
+  --csv data2/image_label_mapping_phase1.csv \
+  --out crops/data2 \
+  --manifest crops/data2/crop_manifest.csv
+```
+
+Preview results in a browser:
+
+```sh
+python scripts/preview_crops.py \
+  --manifest crops/data2/crop_manifest.csv \
+  --out-root crops/data2 --port 8000
+```
+
+### 2. Train — Phase 1 (Tier 1 tasks, original images)
+
+```sh
+python -m src.models.train_multi_task \
+  --csv data2/image_label_mapping_phase1.csv \
+  --model-config config/models/efficientnet_b5.json \
+  --start-phase 1 --end-phase 1 \
+  --epochs 30 --batch-size 16 --lr 3e-4 \
+  --output-dir outputs/data2/b5/phase1
+```
+
+### 3. Train — Phase 2 (add architectural_style + building_form, cropped images)
+
+```sh
+python -m src.models.train_multi_task \
+  --csv data2/image_label_mapping_phase1.csv \
+  --model-config config/models/efficientnet_b5.json \
+  --start-phase 2 --end-phase 2 \
+  --load-checkpoint outputs/data2/b5/phase1/best_model_phase1.pth \
+  --cropped-root crops/data2 \
+  --epochs 20 --batch-size 16 --lr 1e-4 \
+  --output-dir outputs/data2/b5/cropped_v1
+```
+
+## Building crop pipeline
+
+| Detail | Value |
+|--------|-------|
+| Model | `IDEA-Research/grounding-dino-tiny` (via `transformers`) |
+| Text prompt | `"building. house. facade."` |
+| Box / text threshold | 0.25 / 0.20 |
+| Scoring | `confidence × squareness × centrality` |
+| Output size | 456×456 px (square) |
+| Letterbox fill | `(124, 116, 104)` ImageNet mean |
+| Padding ratio | 5% around detected bbox |
+| Fallback | Geometric centre-crop when no box passes threshold |
+| data2/ results | 2,607 / 2,708 detected (96.3%), 0 errors |
+
+`squareness = min(w,h)/max(w,h)` — penalises elongated full-frame boxes.  
+`centrality = 1 − 2×|cx/W − 0.5|` — prefers horizontally centred buildings.
 
 ## Project Structure
+
 ```
 📦 arepas/
-├── 🎯 src/
-│   ├── loader/                    # Data loading system
-│   │   ├── __init__.py           # Package exports
-│   │   ├── configurable_loader.py # JSON-driven data loader
-│   │   ├── csv_parser.py         # Robust CSV parsing
-│   │   ├── image_index.py        # Image indexing
-│   │   └── load_config.py        # Configuration infrastructure
-│   ├── fine_tune.py              # Main pipeline entry point
-│   ├── log_config.py             # Logging configuration
-│   └── preprocess.py             # Image preprocessing utilities
-├── 🔧 scripts/                   # Utility scripts
-├── 📁 data/                      # Attribute files and images
-├── 📄 docs/                      # Technical documentation
-└── 🎯 requirements.txt           # Python dependencies
-```
-## Quick Usage
-
-### Load Data
-```python
-from src.loader import ConfigurableDataLoader
-
-# Load all datasets from configuration
-loader = ConfigurableDataLoader('config/data.json')
-results = loader.load_all_datasets()
-
-print(f"Loaded {len(results)} datasets")
-
-# Display summary
-loader.print_summary()
+├── src/
+│   ├── image_preprocessing/
+│   │   ├── grounding_dino_detector.py  # GroundingDINO detector + crop logic
+│   │   └── detector_base.py            # BaseDetector ABC
+│   ├── loader/                         # CSV / schema / dataset loading
+│   ├── models/
+│   │   ├── multi_task_classifier.py    # EfficientNet-B5 multi-task model
+│   │   ├── train_multi_task.py         # Training script (phase 1 / 2)
+│   │   └── evaluate.py                 # Checkpoint evaluation
+│   └── fine_tune.py                    # Legacy entry point
+├── scripts/
+│   ├── crop_dataset.py                 # Offline crop pipeline
+│   ├── preview_crops.py                # Side-by-side HTML preview
+│   └── field_coverage_report.py        # Attribute coverage analysis
+├── config/
+│   ├── data.json / data2.json          # Data loader configs
+│   └── models/efficientnet_b5.json     # Model config
+├── data2/                              # Raw images + CLEAN.txt attribute files
+├── crops/                              # Cropped images (git-ignored)
+├── docs/                               # Technical documentation
+└── requirements.txt
 ```
 
-## Development
+## Documentation
 
-### Configuration
-The system uses JSON configuration files for flexible data structure mapping:
-```python
-from src.loader import ConfigurableDataLoader
-
-# Load using custom configuration
-loader = ConfigurableDataLoader('config/custom_config.json')
-
-# Or use predefined configuration
-loader = ConfigurableDataLoader('config/data.json')
-```
+- [docs/MULTI_TASK_STRATEGY.md](docs/MULTI_TASK_STRATEGY.md) — full training strategy and task definitions
+- [docs/PROJECT_STRUCTURE.md](docs/PROJECT_STRUCTURE.md) — detailed architecture
+- [docs/RUNNING_FROM_COMMAND_LINE.md](docs/RUNNING_FROM_COMMAND_LINE.md) — command reference
+- [scripts/README.md](scripts/README.md) — scripts reference
 
 ## Contributing
 
-We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
-
-### Development Setup
-1. Fork the repository
-2. Create a feature branch: `git checkout -b feature/your-feature`
-3. Make your changes and test thoroughly
-4. Submit a pull request
-
-### Reporting Issues
-- Use GitHub Issues for bug reports and feature requests
-- Include detailed reproduction steps and environment info
-- Check existing issues before creating new ones
+See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+MIT — see [LICENSE](LICENSE).
 
 ## Acknowledgments
 
-- Built for processing historical architectural building data
-- Optimized for Denver's architectural survey datasets
-- Designed for OpenAI Vision fine-tuning workflows
+- Built for processing Denver's historical architectural survey datasets (Discover Denver schema)
+- GroundingDINO: [IDEA-Research/GroundingDINO](https://github.com/IDEA-Research/GroundingDINO)

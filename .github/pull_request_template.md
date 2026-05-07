@@ -25,8 +25,6 @@ Brief description of the changes in this pull request.
 - After: Y ms per building
 
 ## Testing
-- [ ] Tested with `scripts/test_performance.py`
-- [ ] Tested with `scripts/demo_enhanced_api.py`
 - [ ] Tested with main pipeline (`python -m src.fine_tune`)
 - [ ] Tested with multiple neighborhoods
 - [ ] Added new tests for new functionality

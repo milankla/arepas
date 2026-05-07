@@ -19,13 +19,13 @@ Arepas is a flexible, schema-aware data loading system for processing historical
 │   │   └── dataset_validator.py     # Schema-based validation with thresholds
 │   ├── fine_tune.py                 # Pipeline entry point
 │   └── preprocess.py                # Image preprocessing
-├── 🔧 scripts/                      # Demo and utility scripts
-│   ├── demo_configurable_loader.py  # Loader demonstration
-│   ├── demo_schema_loader.py        # Schema exploration
-│   ├── demo_dataset_validation.py   # Validation demonstration
+├── 🔧 scripts/                      # Utility scripts
+│   ├── crop_dataset.py              # Offline building-crop pipeline (GroundingDINO)
+│   ├── preview_crops.py             # Side-by-side crop preview server
 │   ├── field_coverage_report.py     # Coverage analysis
-│   ├── test_performance.py          # Performance benchmarking
-│   └── verify_github_ready.py       # Project validation
+│   ├── eval_checkpoint.py           # Re-evaluate a saved checkpoint
+│   ├── plot_training_history.py     # Plot training curves
+│   └── analyze_*.py / generate_*.py # Data analysis and gallery scripts
 ├── 📁 data/                         # Style-based organization
 │   ├── Bungalows/                   # Bungalow architectural style
 │   │   ├── Clayton Data - CLEAN.txt

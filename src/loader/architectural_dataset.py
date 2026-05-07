@@ -330,6 +330,11 @@ class ArchitecturalDataset(Dataset):
                         (currently roof_type) → MultiLabelBinarizer.
         image_root:     Base path; image_path column values are joined to it.
         transform:      torchvision transform applied to each loaded image.
+        cropped_root:   Optional root directory of pre-cropped images produced by
+                        scripts/crop_dataset.py.  When set, __getitem__ attempts
+                        to load ``<cropped_root>/<stem>_crop.jpg`` first and falls
+                        back to the original path if the crop file is absent.
+                        Set to None (default) to use the original images.
     """
 
     def __init__(
@@ -339,12 +344,14 @@ class ArchitecturalDataset(Dataset):
         image_root: str = IMAGE_ROOT_DEFAULT,
         transform: Optional[transforms.Compose] = None,
         image_size: int = IMAGE_SIZE,
+        cropped_root: Optional[str] = None,
     ) -> None:
         self.df            = df.reset_index(drop=True)
         self.label_encoders = label_encoders
         self.image_root    = Path(image_root)
         self.image_size    = image_size
         self.transform     = transform or build_eval_transform(image_size)
+        self.cropped_root  = Path(cropped_root) if cropped_root else None
 
     # ── Dataset protocol ─────────────────────────────────────────────────────
 
@@ -356,6 +363,20 @@ class ArchitecturalDataset(Dataset):
 
         # ── Image ─────────────────────────────────────────────────────────
         img_path = self.image_root / row["image_path"]
+
+        # If a cropped_root is configured, prefer the pre-cropped version.
+        if self.cropped_root is not None:
+            stem    = Path(row["image_path"]).stem
+            img_par = Path(row["image_path"]).parent
+            # Strip the data-root prefix (first path component, e.g. "data2")
+            # so the lookup is <cropped_root>/Cole/x_crop.jpg, not
+            # <cropped_root>/data2/Cole/x_crop.jpg.
+            parts = img_par.parts
+            rel_dir = Path(*parts[1:]) if len(parts) > 1 else img_par
+            crop_candidate = self.cropped_root / rel_dir / f"{stem}_crop.jpg"
+            if crop_candidate.exists():
+                img_path = crop_candidate
+
         try:
             image = Image.open(img_path).convert("RGB")
             image = self.transform(image)
@@ -470,6 +491,7 @@ def make_splits(
     model_config: "ModelConfig | None" = None,
     train_transform: Optional[transforms.Compose] = None,
     eval_transform:  Optional[transforms.Compose] = None,
+    cropped_root: Optional[str] = None,
 ) -> Tuple[ArchitecturalDataset, ArchitecturalDataset, ArchitecturalDataset]:
     """
     Load a label-mapping CSV, fit label encoders from its actual classes, and
@@ -509,6 +531,10 @@ def make_splits(
                          If None, build_train_transform(image_size, norm_mean, norm_std) is used.
         eval_transform:  Override the default eval transform entirely.
                          If None, build_eval_transform(image_size, norm_mean, norm_std) is used.
+        cropped_root:    Optional path to a directory of pre-cropped images produced
+                         by scripts/crop_dataset.py.  When set, __getitem__ tries
+                         ``<cropped_root>/<stem>_crop.jpg`` before falling back to
+                         the original image.  Pass None (default) to use originals.
 
     Returns:
         (train_ds, val_ds, test_ds)
@@ -639,16 +665,19 @@ def make_splits(
         df_train, label_encoders, image_root,
         transform=train_transform or build_train_transform(image_size, norm_mean, norm_std),
         image_size=image_size,
+        cropped_root=cropped_root,
     )
     val_ds = ArchitecturalDataset(
         df_val, label_encoders, image_root,
         transform=eval_transform or build_eval_transform(image_size, norm_mean, norm_std),
         image_size=image_size,
+        cropped_root=cropped_root,
     )
     test_ds = ArchitecturalDataset(
         df_test, label_encoders, image_root,
         transform=eval_transform or build_eval_transform(image_size, norm_mean, norm_std),
         image_size=image_size,
+        cropped_root=cropped_root,
     )
 
     return train_ds, val_ds, test_ds

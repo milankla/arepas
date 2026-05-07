@@ -682,135 +682,51 @@ if __name__ == '__main__':
 
 ---
 
-#### **Track 1: Image Preprocessing Pipeline (Weeks 1-4)**
+#### **Track 1: Image Preprocessing Pipeline — ✅ COMPLETE**
 
-**Week 1: Setup Object Detection**
+**Approach: GroundingDINO** (`IDEA-Research/grounding-dino-tiny` via `transformers`)
 
-1. ⏳ **Install Detectron2 & Mask R-CNN**
-   ```bash
-   pip install detectron2 -f https://dl.fbaipublicfiles.com/detectron2/wheels/cpu/torch1.10/index.html
-   # For GPU, replace 'cpu' with 'cu101', 'cu111', or 'cu113' as needed
-   ```
+Text prompt: `"building. house. facade."` — box threshold 0.25, text threshold 0.20.
 
-2. ⏳ **Test Mask R-CNN on Sample Images**
-   ```bash
-   python scripts/run_preprocessing_comparison.py
-   ```
-   - Verify detection works on architectural photos
-   - Check confidence scores (should be >0.5)
-   - Review generated bounding boxes and segmentation masks
+**Scoring function** per candidate box:
+```
+score = confidence × squareness × centrality
+squareness  = min(w,h) / max(w,h)          # prefer tight, non-elongated boxes
+centrality  = 1 − 2 × |cx/W − 0.5|        # prefer boxes centred horizontally
+```
+`min_area_ratio=0.03`, `max_area_ratio=0.99`, `padding_ratio=0.05`.
 
-3. ⏳ **Build Preprocessing Script**
-   ```python
-   # scripts/preprocess_images.py
-   
-   from src.image_preprocessing import MaskRCNNDetector, PreprocessingPipeline
-   import cv2
-   from pathlib import Path
-   
-   def preprocess_image(image_path, output_dir, detector):
-       # Load image
-       img = cv2.imread(str(image_path))
-       
-       # Detect building
-       results = model(img)
-       buildings = [r for r in results[0].boxes if r.cls == 'building']
-       
-       if len(buildings) > 0:
-           # Get highest confidence building
-           best_box = max(buildings, key=lambda x: x.conf)
-           x1, y1, x2, y2 = best_box.xyxy[0].cpu().numpy()
-           
-           # Add 10% padding
-           h, w = img.shape[:2]
-           pad_x = int((x2 - x1) * 0.1)
-           pad_y = int((y2 - y1) * 0.1)
-           x1, y1 = max(0, x1-pad_x), max(0, y1-pad_y)
-           x2, y2 = min(w, x2+pad_x), min(h, y2+pad_y)
-           
-           # Crop and resize
-           cropped = img[int(y1):int(y2), int(x1):int(x2)]
-           resized = cv2.resize(cropped, (512, 512))
-           
-           # Save
-           output_path = output_dir / image_path.name
-           cv2.imwrite(str(output_path), resized)
-           
-           return {
-               'image_id': image_path.stem,
-               'bbox': [x1, y1, x2, y2],
-               'confidence': float(best_box.conf),
-               'status': 'success'
-           }
-       else:
-           # Fallback: center crop
-           h, w = img.shape[:2]
-           size = min(h, w)
-           y1, x1 = (h-size)//2, (w-size)//2
-           cropped = img[y1:y1+size, x1:x1+size]
-           resized = cv2.resize(cropped, (512, 512))
-           
-           output_path = output_dir / image_path.name
-           cv2.imwrite(str(output_path), resized)
-           
-           return {
-               'image_id': image_path.stem,
-               'bbox': None,
-               'confidence': 0.0,
-               'status': 'fallback_center_crop'
-           }
-   ```
+**Output**: 456×456 square crops with ImageNet-mean letterboxing `(124, 116, 104)` when
+the padded bbox cannot be squared with real pixels alone.
 
-**Week 2-3: Process All Images**
+**Fallback**: geometric centre-crop when no box passes the confidence threshold.
 
-4. ⏳ **Preprocess `/data/` Images with Mask R-CNN**
-   ```bash
-   python scripts/preprocess_images.py \
-     --data-dir data/ \
-     --output-dir data/preprocessed/ \
-     --detector mask-rcnn
-   ```
-   - Process all images in `Bungalows - Photos/` and `Minimal Traditional - Photos/`
-   - Save to `data/preprocessed/`
-   - Generate metadata JSON with detection results
+**Results on `data2/` (2,708 images across 759 buildings)**:
+- Detected: 2,607 / 2,708 (96.3%)
+- Geometric fallback: 1
+- Errors: 0
+- Output manifest: `crops/data2/crop_manifest.csv`
 
-5. ⏳ **Quality Control Review**
-   ```bash
-   python scripts/review_crops.py \
-     --original data/Bungalows\ -\ Photos/ \
-     --cropped data/preprocessed/ \
-     --num-samples 100
-   ```
-   - Manually review 100 random crops (side-by-side with originals)
-   - Flag poor crops (confidence < 0.5 or bad framing)
-   - Calculate success metrics:
-     - Detection rate: % images with building detected
-     - Avg confidence score
-     - Segmentation quality: mask accuracy
+**Run the crop pipeline**:
+```bash
+python scripts/crop_dataset.py \
+  --csv data2/image_label_mapping_phase1.csv \
+  --out crops/data2 \
+  --manifest crops/data2/crop_manifest.csv
+```
 
-**Week 4: Prepare for Phase 2**
+**Preview results**:
+```bash
+python scripts/preview_crops.py \
+  --manifest crops/data2/crop_manifest.csv \
+  --out-root crops/data2 --port 8000
+```
 
-6. ⏳ **Process `/data2/` Images with Mask R-CNN**
-   ```bash
-   python scripts/preprocess_images.py \
-     --data-dir data2/ \
-     --output-dir data2/preprocessed/ \
-     --detector mask-rcnn
-   ```
-   - Apply preprocessing to larger `/data2/` dataset
-   - Generate `data2/preprocessed/` folder
-   - Ready for Phase 2 training
-
-7. ⏳ **Generate Preprocessing Report**
-   ```bash
-   python scripts/preprocessing_report.py \
-     --metadata data/preprocessed/metadata.csv \
-     --output reports/preprocessing_quality.pdf
-   ```
-   - Detection success rate by style category
-   - Confidence score distribution
-   - Example crops (good vs bad)
-   - Recommendations for improvement
+**Key source files**:
+- `src/image_preprocessing/grounding_dino_detector.py` — detector + crop logic
+- `src/image_preprocessing/detector_base.py` — `BaseDetector` ABC
+- `scripts/crop_dataset.py` — CLI driver (resume-safe)
+- `scripts/preview_crops.py` — HTML preview server
 
 ---
 

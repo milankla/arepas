@@ -16,7 +16,7 @@ import argparse
 import json
 import logging
 from pathlib import Path
-from typing import Any, Dict, Tuple
+from typing import Any, Dict, Optional, Tuple
 
 import torch
 import numpy as np
@@ -40,6 +40,7 @@ def evaluate(
     batch_size: int = 32,
     num_workers: int = 4,
     prefetch_factor: int = 4,
+    cropped_root: Optional[str] = None,
 ) -> Tuple[Dict[str, Any], Dict[str, str]]:
     """Run evaluation and return (metrics, per_task_reports).
 
@@ -74,7 +75,11 @@ def evaluate(
     )
 
     # ── Build dataset splits ──────────────────────────────────────────────
-    train_ds, val_ds, test_ds = make_splits(csv_path=csv_path, model_config=model_config)
+    train_ds, val_ds, test_ds = make_splits(
+        csv_path=csv_path,
+        model_config=model_config,
+        cropped_root=cropped_root,
+    )
     ds = {"train": train_ds, "val": val_ds, "test": test_ds}[split]
 
     # Fallback: checkpoints saved before num_classes was added use training-split counts.
@@ -185,6 +190,11 @@ def main() -> None:
         "--prefetch-factor", type=int, default=4,
         help="Batches to prefetch per worker (persistent_workers always enabled when num_workers>0).",
     )
+    parser.add_argument(
+        "--cropped-root", default=None,
+        help="Root directory of pre-cropped images (from scripts/crop_dataset.py). "
+             "When set, crops are preferred over originals. Omit to use original images.",
+    )
     parser.add_argument("--output", default=None, help="Path to save JSON report (optional)")
     args = parser.parse_args()
 
@@ -198,6 +208,7 @@ def main() -> None:
         batch_size=args.batch_size,
         num_workers=args.num_workers,
         prefetch_factor=args.prefetch_factor,
+        cropped_root=args.cropped_root,
     )
 
     # ── Print summary ─────────────────────────────────────────────────────

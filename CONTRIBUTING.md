@@ -24,9 +24,6 @@ We welcome contributions to the Arepas project! This document provides guideline
 
 ### Running Tests
 ```bash
-# Performance testing
-python scripts/test_performance.py
-
 # API demonstration
 python scripts/demo_enhanced_api.py
 
@@ -108,9 +105,7 @@ src/loader/          # Enterprise data loading system
 ### 📊 Performance Considerations
 
 When making changes:
-- **Benchmark** performance impact using `scripts/test_performance.py`
 - **Profile** memory usage for large datasets
-- **Optimize** for the current 1.0ms per building target
 - **Document** any performance trade-offs
 
 ### 🔍 Code Review Criteria

@@ -1,5 +1,4 @@
 # ── Data pipeline ─────────────────────────────────────────────────────────────
-openai
 pandas
 numpy<2               # NumPy 2.0 compatibility fix
 Pillow
@@ -19,6 +18,6 @@ tqdm                  # training progress bars
 # ── Visualisation ─────────────────────────────────────────────────────────────
 matplotlib            # class distribution charts, confusion matrices
 
-# ── Track 1: Building Detection (Faster R-CNN via torchvision) ──────────────────
-# Precise building detection using torchvision's pre-trained Faster R-CNN
-# (torchvision already included in ML training stack above)
+# ── Building detection (GroundingDINO via HuggingFace Transformers) ────────────
+transformers          # GroundingDINO: AutoModelForZeroShotObjectDetection
+accelerate            # optional but recommended for transformers inference

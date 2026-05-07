@@ -173,16 +173,12 @@ if field.subfields:
     print(f"Subfields: {[sf.name for sf in field.subfields]}")
 ```
 
-### Validation Demo
+### Validation
+
+Run field coverage analysis:
 
 ```bash
-# Run validation demo script
-python -m scripts.demo_dataset_validation
-
-# Output shows:
-# ✅ Validation complete: 27/27 valid records
-# ✅ Validation complete: 8/8 valid records  
-# ✅ Validation complete: 7/8 valid records (missing: Building Plan, Roof Features, ...)
+python scripts/field_coverage_report.py
 ```
 
 ## Benefits
@@ -231,14 +227,11 @@ original_use = values['Original Use']
 ## Testing
 
 ```bash
-# Test schema loading
-python scripts/demo_schema_loader.py
-
-# Test validation system
-python -m scripts.demo_dataset_validation
-
 # Test data loading
-python scripts/demo_configurable_loader.py
+python -m src.loader.configurable_loader config/data2.json
+
+# Field coverage
+python scripts/field_coverage_report.py
 ```
 
 ## Summary
