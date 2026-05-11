@@ -50,6 +50,7 @@ class MultiTaskTrainer:
         early_stopping_patience: Optional[int] = None,
         experiment_logger: Optional[ExperimentLogger] = None,
         class_weights: Optional[Dict[str, torch.Tensor]] = None,
+        backbone_lr_scale: Optional[float] = None,
     ):
         self.model = model.to(device)
         self.train_loader = train_loader
@@ -68,11 +69,29 @@ class MultiTaskTrainer:
         self.weight_decay = weight_decay
         
         # Optimizer and loss
-        self.optimizer = optim.AdamW(
-            model.parameters(),
-            lr=learning_rate,
-            weight_decay=weight_decay
-        )
+        # If backbone_lr_scale is set, use differential learning rates:
+        # backbone gets lr * backbone_lr_scale (slower), heads get lr (faster).
+        # This prevents the backbone from shifting representations too fast
+        # when Phase 2 new heads are still adapting.
+        if backbone_lr_scale is not None:
+            backbone_lr = learning_rate * backbone_lr_scale
+            self.optimizer = optim.AdamW(
+                [
+                    {"params": model.backbone.parameters(), "lr": backbone_lr},
+                    {"params": model.task_heads.parameters(), "lr": learning_rate},
+                ],
+                weight_decay=weight_decay,
+            )
+            logger.info(
+                f"Differential LR: backbone={backbone_lr:.2e}  "
+                f"(scale={backbone_lr_scale}x),  heads={learning_rate:.2e}"
+            )
+        else:
+            self.optimizer = optim.AdamW(
+                model.parameters(),
+                lr=learning_rate,
+                weight_decay=weight_decay,
+            )
         self.criterion = MultiTaskLoss(
             active_phase=model.active_phase,
             class_weights=class_weights,
@@ -262,6 +281,11 @@ class MultiTaskTrainer:
                     f"Best val_loss: {self.best_val_loss:.4f}"
                 )
                 break
+
+            # Free cached MPS memory between epochs to prevent fragmentation
+            # stalling on Apple Silicon (no-op on CUDA/CPU).
+            if self.device == "mps":
+                torch.mps.empty_cache()
     
     def _log_epoch_results(
         self,
@@ -445,6 +469,7 @@ def progressive_training_pipeline(
     initial_checkpoint: Optional[str] = None,
     freeze_phase1_heads: bool = False,
     cropped_root: Optional[str] = None,
+    backbone_lr_scale: Optional[float] = None,
 ) -> None:
     """Dataset- and model-agnostic progressive training pipeline.
 
@@ -604,6 +629,7 @@ def progressive_training_pipeline(
                 early_stopping_patience=early_stopping_patience,
                 experiment_logger=exp_logger,
                 class_weights=class_weights,
+                backbone_lr_scale=backbone_lr_scale,
             )
             trainer.train(num_epochs=epochs_per_phase)
 
@@ -726,6 +752,15 @@ if __name__ == "__main__":
         ),
     )
     parser.add_argument(
+        "--backbone-lr-scale", type=float, default=None,
+        help=(
+            "When set, uses differential learning rates: backbone LR = lr * backbone_lr_scale, "
+            "task heads LR = lr.  Recommended value: 0.1 to 0.33.  "
+            "Prevents the backbone from shifting representations too fast when "
+            "Phase 2 new heads are still adapting, without freezing Phase 1 heads."
+        ),
+    )
+    parser.add_argument(
         "--cropped-root", default=None,
         help=(
             "Root directory of pre-cropped images produced by scripts/crop_dataset.py. "
@@ -758,4 +793,5 @@ if __name__ == "__main__":
         initial_checkpoint=args.load_checkpoint,
         freeze_phase1_heads=args.freeze_phase1_heads,
         cropped_root=args.cropped_root,
+        backbone_lr_scale=args.backbone_lr_scale,
     )

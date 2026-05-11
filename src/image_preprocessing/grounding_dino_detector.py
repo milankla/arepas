@@ -227,26 +227,12 @@ class GroundingDINODetector(BaseDetector):
 
         if target_size is not None:
             cw, ch = crop.size
-            if cw == ch:
-                # Perfect square — simple resize.
-                crop = crop.resize((target_size, target_size), Image.LANCZOS)
-            else:
-                # Couldn't form a true square from image pixels (building
-                # fills the frame).  Letterbox: resize to fit, then pad.
-                scale = target_size / max(cw, ch)
-                new_w = round(cw * scale)
-                new_h = round(ch * scale)
-                resized = crop.resize((new_w, new_h), Image.LANCZOS)
-                # ImageNet mean colour as neutral fill
-                fill = (124, 116, 104)
-                canvas = Image.new("RGB", (target_size, target_size), fill)
-                paste_x = (target_size - new_w) // 2
-                paste_y = (target_size - new_h) // 2
-                canvas.paste(resized, (paste_x, paste_y))
-                crop = canvas
-                logger.debug(
-                    f"Letterboxed {cw}×{ch} → {new_w}×{new_h} "
-                    f"(pad {paste_x}px left/right, {paste_y}px top/bottom)"
-                )
+            # Always stretch to square — consistent with how non-cropped images
+            # are resized in the dataloader (Resize((size, size)) distorts
+            # proportions uniformly).  Letterboxing was abandoned because it
+            # introduces variable-sized fill bands that confuse the model.
+            if cw != ch:
+                logger.debug(f"Stretching non-square crop {cw}×{ch} → {target_size}×{target_size}")
+            crop = crop.resize((target_size, target_size), Image.LANCZOS)
 
         return crop

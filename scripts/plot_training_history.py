@@ -75,6 +75,14 @@ RUNS = [
     ("B5 v7_bs16 (bs=16, lr=1.5e-4) ★",
      "outputs/data2/b5/v7_bs16/train_phase1.log",
      "#F50057", "-", "o", True),
+
+    # ── Cropped dataset runs ─────────────────────────────────────────────
+    ("B5 cropped_v1 (interrupted ep1)",
+     "outputs/data2/b5/cropped_v1/train_phase1.log",
+     "#00BCD4", ":", "x", True),
+    ("B5 cropped_v2 (bs=16, lr=1e-4) ✦",
+     "outputs/data2/b5/cropped_v2/train_phase1.log",
+     "#00E676", "-", "D", True),
 ]
 
 # Bar chart — all completed runs with a known peak accuracy
@@ -103,12 +111,22 @@ BAR_RUNS = [
     ("Grid lr=1.2e-4 wd=0.009", 67.73, "b5_grid"),
     ("Grid lr=1.2e-4 wd=0.010", 67.32, "b5_grid"),
     ("B5 v7_bs16 ★★", 71.86, "b5_best"),
+    # Cropped runs
+    ("B5 cropped_v1 (ep1 only)", 49.54, "b5_crop"),
+    ("B5 cropped_v2 ✦", 70.91, "b5_crop"),
 ]
 
 # Per-task breakdown
-TASK_LABELS = ["stories", "roof_type", "cladding", "chimney", "setting"]
-RESNET_V7   = [73.11, 52.32, 55.50, 93.64, 81.30]
-B5_V7_BS16  = [73.59, 52.81, 59.66, 92.42, 80.81]
+TASK_LABELS  = ["stories", "roof_type", "cladding", "chimney", "setting", "arch_style", "bldg_form"]
+RESNET_V7    = [73.11, 52.32, 55.50, 93.64, 81.30]
+B5_V7_BS16   = [73.59, 52.81, 59.66, 92.42, 80.81]
+B5_CROPPED_V2 = [75.31, 53.06, 54.03, 91.44, 80.73]
+
+# Phase 2 per-task data (7 tasks)
+PH2_TASK_LABELS = ["stories", "roof_type", "cladding", "chimney", "setting", "arch_style", "bldg_form"]
+PH2_FULL        = [72.13, 54.52, 59.41, 92.67, 82.33, 59.66, 45.72]  # phase2_full (pre-crop)
+PH2_CROP_V2     = [63.57, 54.28, 28.36, 89.00, 81.60, 58.68, 47.92]  # cropped_v2 ph2 (frozen heads)
+PH2_CROP_V3     = [70.90, 46.21, 54.03, 91.93, 80.26, 57.46, 45.23]  # cropped_v3_phase2 (diff LR)
 
 # ---------------------------------------------------------------------------
 # Build figure
@@ -167,11 +185,13 @@ for label, rel_path, color, ls, marker, include in RUNS:
 # Reference lines
 ax1.axhline(71.86, color="#F50057", linewidth=0.8, linestyle="--", alpha=0.4, zorder=1)
 ax1.axhline(71.35, color="#2196F3", linewidth=0.8, linestyle="--", alpha=0.4, zorder=1)
+ax1.axhline(70.91, color="#00E676", linewidth=0.8, linestyle="--", alpha=0.4, zorder=1)
 ax1.text(0.5, 71.86 + 0.3, "B5 v7_bs16 best: 71.86%",
          color="#F50057", fontsize=7.5, alpha=0.8)
 ax1.text(0.5, 71.35 - 1.0, "ResNet50 v7 best: 71.35%",
          color="#2196F3", fontsize=7.5, alpha=0.8)
-
+ax1.text(0.5, 70.91 - 2.2, "B5 cropped_v2 best: 70.91%",
+         color="#00E676", fontsize=7.5, alpha=0.8)
 ax1.set_ylim(30, 85)
 leg = ax1.legend(loc="lower right", fontsize=7.5, framealpha=0.15,
                  labelcolor=TEXT_COL, facecolor=PANEL_BG, edgecolor=GRID_COL,
@@ -183,10 +203,11 @@ ax2.set_title("Best Overall Accuracy — All Completed Runs",
 ax2.set_ylabel("Best Val Accuracy (%)", color=TEXT_COL, fontsize=9)
 
 COLOR_MAP = {
-    "resnet":  "#2196F3",
-    "b5":      "#9C27B0",
-    "b5_grid": "#4CAF50",
-    "b5_best": "#F50057",
+    "resnet":   "#2196F3",
+    "b5":       "#9C27B0",
+    "b5_grid":  "#4CAF50",
+    "b5_best":  "#F50057",
+    "b5_crop":  "#00E676",
 }
 
 labels_bar = [r[0] for r in BAR_RUNS]
@@ -217,50 +238,64 @@ ax2.annotate("⚠ Brick shortcut\n(F1 ~13%)", xy=(1, 77.54), xytext=(2.5, 79.5),
              color="#FFD54F", lw=0.8))
 
 # Legend
-patch_resnet = mpatches.Patch(color=COLOR_MAP["resnet"],  label="ResNet50")
-patch_b5     = mpatches.Patch(color=COLOR_MAP["b5"],      label="B5 main runs")
-patch_grid   = mpatches.Patch(color=COLOR_MAP["b5_grid"], label="B5 grid search")
-patch_best   = mpatches.Patch(color=COLOR_MAP["b5_best"], label="B5 best (v7_bs16)")
-ax2.legend(handles=[patch_resnet, patch_b5, patch_grid, patch_best],
+patch_resnet = mpatches.Patch(color=COLOR_MAP["resnet"],   label="ResNet50")
+patch_b5     = mpatches.Patch(color=COLOR_MAP["b5"],       label="B5 main runs")
+patch_grid   = mpatches.Patch(color=COLOR_MAP["b5_grid"],  label="B5 grid search")
+patch_best   = mpatches.Patch(color=COLOR_MAP["b5_best"],  label="B5 best (v7_bs16)")
+patch_crop   = mpatches.Patch(color=COLOR_MAP["b5_crop"],  label="B5 cropped dataset")
+ax2.legend(handles=[patch_resnet, patch_b5, patch_grid, patch_best, patch_crop],
            fontsize=8, framealpha=0.15, labelcolor=TEXT_COL,
            facecolor=PANEL_BG, edgecolor=GRID_COL, loc="lower right")
 
-# ── Panel 3: Per-task comparison ──────────────────────────────────────────
-ax3.set_title("Per-Task Accuracy — Best ResNet50 v7 vs B5 v7_bs16",
-              color=TITLE_COL, fontsize=12, fontweight="bold", pad=8)
+# ── Panel 3: Phase 2 per-task comparison ─────────────────────────────────
+ax3.set_title(
+    "Phase 2 Per-Task Accuracy — pre-crop vs frozen-heads vs diff-LR (7 tasks)",
+    color=TITLE_COL, fontsize=12, fontweight="bold", pad=8)
 ax3.set_ylabel("Accuracy / Jaccard (%)", color=TEXT_COL, fontsize=9)
 
-xp = np.arange(len(TASK_LABELS))
-w = 0.35
-b_resnet = ax3.bar(xp - w/2, RESNET_V7, width=w, label="ResNet50 v7 (71.35%)",
-                    color="#2196F3", alpha=0.85, edgecolor=GRID_COL, linewidth=0.5)
-b_b5     = ax3.bar(xp + w/2, B5_V7_BS16, width=w, label="B5 v7_bs16 (71.86%) ★",
-                    color="#F50057", alpha=0.85, edgecolor=GRID_COL, linewidth=0.5)
+xp = np.arange(len(PH2_TASK_LABELS))
+w = 0.26
+b_full = ax3.bar(xp - w, PH2_FULL,    width=w,
+                  label="phase2_full (pre-crop, 66.63%) ★",
+                  color="#F50057", alpha=0.85, edgecolor=GRID_COL, linewidth=0.5)
+b_cv2  = ax3.bar(xp,     PH2_CROP_V2, width=w,
+                  label="cropped_v2 ph2 (frozen heads, 60.49%)",
+                  color="#FF9800", alpha=0.75, edgecolor=GRID_COL, linewidth=0.5)
+b_cv3  = ax3.bar(xp + w, PH2_CROP_V3, width=w,
+                  label="cropped_v3_phase2 (diff LR, 63.72%) ✦",
+                  color="#00E676", alpha=0.85, edgecolor=GRID_COL, linewidth=0.5)
 
-for bars_group in (b_resnet, b_b5):
+for bars_group in (b_full, b_cv2, b_cv3):
     for bar in bars_group:
         ax3.text(bar.get_x() + bar.get_width() / 2, bar.get_height() + 0.5,
                  f"{bar.get_height():.1f}%", ha="center", va="bottom",
-                 color=TEXT_COL, fontsize=8)
+                 color=TEXT_COL, fontsize=6.5, rotation=90)
 
 ax3.set_xticks(xp)
-ax3.set_xticklabels(TASK_LABELS, fontsize=10)
-ax3.set_ylim(30, 105)
+ax3.set_xticklabels(PH2_TASK_LABELS, fontsize=10)
+ax3.set_ylim(15, 120)
 
-# Delta annotations
-for i, (rv, bv) in enumerate(zip(RESNET_V7, B5_V7_BS16)):
-    delta = bv - rv
+# Delta annotations: v3 vs v2 (frozen)
+for i, (v2, v3) in enumerate(zip(PH2_CROP_V2, PH2_CROP_V3)):
+    delta = v3 - v2
     col = "#4CAF50" if delta >= 0 else "#FF5722"
     sign = "+" if delta >= 0 else ""
-    ax3.text(i, max(rv, bv) + 4.5, f"{sign}{delta:.1f}pp",
+    ax3.text(i + w / 2, max(v2, v3) + 8.0, f"{sign}{delta:.1f}pp",
              ha="center", color=col, fontsize=8, fontweight="bold")
 
-leg3 = ax3.legend(fontsize=9, framealpha=0.15, labelcolor=TEXT_COL,
+# Annotate the cladding fix
+ax3.annotate("Collapse\nfixed!",
+             xy=(2 + w / 2, PH2_CROP_V3[2] + 8),
+             xytext=(2 + w / 2 + 0.1, PH2_CROP_V3[2] + 26),
+             color="#00E676", fontsize=8, ha="center", fontweight="bold",
+             arrowprops=dict(arrowstyle="->", color="#00E676", lw=1.0))
+
+leg3 = ax3.legend(fontsize=8.5, framealpha=0.15, labelcolor=TEXT_COL,
                   facecolor=PANEL_BG, edgecolor=GRID_COL)
 
 # ── Figure title ─────────────────────────────────────────────────────────
 fig.suptitle(
-    "Arepas — B5 Recovery & Comparison  |  data2/ Phase 1  |  May 2026",
+    "Arepas — B5 Training History & Phase 2 Results  |  data2/  |  May 2026",
     color=TITLE_COL, fontsize=14, fontweight="bold", y=0.975
 )
 

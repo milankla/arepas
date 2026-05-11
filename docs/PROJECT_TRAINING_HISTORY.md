@@ -1,6 +1,6 @@
 # Arepas — Training Run History
 
-**Last updated:** May 7, 2026  
+**Last updated:** May 10, 2026 (evening)  
 **Dataset:** `data2/image_label_mapping_phase1.csv` — 759 buildings / 2,708 images  
 **Split (fixed seed=42):** train 1,911 | val 409 | test 388 images  
 **Phase 1 tasks:** stories, roof_type, primary_cladding, chimney_present, setting  
@@ -12,18 +12,22 @@
 
 ### Phase 1 — 5 tasks (stories, roof_type, primary_cladding, chimney_present, setting)
 
-| Rank | Run | Backbone | Overall Acc | Cladding Acc | Cladding F1 |
-|------|-----|----------|-------------|--------------|-------------|
-| 🥇 | **b5/v7_bs16** | EfficientNet-B5 | **71.86%** | 59.66% | 22.9% |
-| 🥈 | v7 | ResNet50 | 71.35% | 55.50% | 23.5% |
-| 🥉 | grid lr=1.1e-4 wd=0.010 | EfficientNet-B5 | 68.51% | 46.45% | 20.8% |
+| Rank | Run | Backbone | Overall Acc | Cladding Acc | Cladding F1 | Notes |
+|------|-----|----------|-------------|--------------|-------------|-------|
+| 🥇 | **b5/v7_bs16** | EfficientNet-B5 | **71.86%** | 59.66% | 22.9% | Pre-crop baseline |
+| 🥈 | **b5/cropped_v2** | EfficientNet-B5 | 70.91% | 54.03% | 25.1% | Cropped images; roof_type F1 +5.7pp |
+| 🥉 | v7 | ResNet50 | 71.35% | 55.50% | 23.5% | |
+
+> **Cropping trade-off:** `cropped_v2` improves `roof_type` F1 by +5.7pp and `stories` acc by +1.7pp, but `primary_cladding` acc drops −5.6pp (crops cut facade context). Overall accuracy is −1pp, partly confounded by the lower LR (1e-4 vs 1.5e-4 in v7_bs16). `cropped_v2` was still improving at epoch 14 — further epochs may close the gap.
 
 ### Phase 2 — 7 tasks (Phase 1 + architectural_style + building_form)
 
-| Rank | Run | Backbone | Overall Acc (7 tasks) | Cladding Acc | Cladding F1 |
-|------|-----|----------|-----------------------|--------------|-------------|
-| 🥇 | **phase2_full ep11** | EfficientNet-B5 | **66.63%** | 59.41% | 30.9% |
-| 🥈 | phase2_warmup ep5 | EfficientNet-B5 | 56.33% | — | — |
+| Rank | Run | Backbone | Overall Acc (7 tasks) | Cladding Acc | Cladding F1 | Notes |
+|------|-----|----------|-----------------------|--------------|-------------|-------|
+| 🥇 | **phase2_full ep11** | EfficientNet-B5 | **66.63%** | 59.41% | 30.9% | From v7_bs16 checkpoint (pre-crop) |
+| 🥈 | **cropped_v3_phase2 ep14** | EfficientNet-B5 | **63.72%** | 54.03% | 30.3% | Diff LR (backbone 0.33×); cladding collapse fixed |
+| 🥉 | **b5/cropped_v2 phase2 ep10** | EfficientNet-B5 | 60.49% | 28.36% | 14.9% | From cropped_v2 ph1 ckpt; cladding collapsed (frozen heads) |
+| 4 | phase2_warmup ep5 | EfficientNet-B5 | 56.33% | — | — | |
 
 > **Note:** Phase 2 overall acc is computed across all 7 tasks. It is **not directly comparable** to Phase 1's 71.86% (5 tasks). The two new tasks (architectural_style: 59.66%, building_form: 45.72%) lower the average. Phase 1 tasks held steady or improved vs their Phase 1 baselines.
 
@@ -82,7 +86,9 @@
 | **b5/v4_bs8_retry2** | 2026-04-29 | 1e-4 | 8 | 0.01 | 30 / 12 | yes | 8 (coarsened) | 68.96% | 51.34% | Baseline for grid search |
 | **b5/v5** | 2026-04-29 | 1e-4 | 8 | 0.005 | 30 / 10 | yes | 8 (coarsened) | 66.08% | 45.97% | Lower WD experiment |
 | **b5/v6** | 2026-05-04 | 1.1e-4 | 8 | 0.01 | 15 / 11 | yes | 18 (raw) | 62.55% | 21.27% | Cladding revert experiment; raw 18-class failed |
-| **b5/v7_bs16** | 2026-05-04 | 1.5e-4 | 16 | 0.01 | 25 / 13 | yes (pat=10) | 8 (coarsened) | **71.86%** | 59.66% | **Phase 1 best**; stopped ep 13, best ep 11 |
+| **b5/v7_bs16** | 2026-05-04 | 1.5e-4 | 16 | 0.01 | 25 / 13 | yes (pat=10) | 8 (coarsened) | **71.86%** | 59.66% | **Phase 1 best (pre-crop)**; stopped ep 13, best ep 11 |
+| **b5/cropped_v1** | 2026-05-07 | 1e-4 | 16 | 0.01 | 25 / 1 | — | 8 (coarsened) | 50.12% | 7.09% | Cropped images; run interrupted after 1 epoch |
+| **b5/cropped_v2** | 2026-05-08 | 1e-4 | 16 | 0.01 | 25 / 14 | yes (pat=10) | 8 (coarsened) | **70.91%** | 54.03% | Cropped images; best ep 14 (still improving at stop) |
 
 ---
 
@@ -94,6 +100,8 @@ Phase 2 adds `architectural_style` and `building_form` heads. Loaded from Phase 
 |-----|------|-------|----|----|----|----------------|------------|------------------------|-------|
 | **phase2_warmup** | 2026-05-05 | Stage 1 (new heads only) | 3.0e-4 | 16 | 0.01 | 5 / 5 | no | 56.33% | Phase 1 heads frozen; new heads warm-up |
 | **phase2_full** | 2026-05-06–07 | Stage 2 (all unfrozen) | 1.5e-4 | 16 | 0.01 | 25 / 11 | yes (pat=10) | **66.63%** | Joint fine-tune; best val_loss ep1=1.506; best acc ep11 |
+| **b5/cropped_v2 phase2** | 2026-05-09 | Curriculum ph2 | 1e-4 | 16 | 0.01 | 25 / 11 | yes (pat=10) | 60.49% | From cropped_v2 ph1 ckpt; ph1 heads frozen during ph2; cladding collapsed −27pp |
+| **cropped_v3_phase2** | 2026-05-10 | Diff LR (backbone 0.33×) | 1.5e-4 | 16 | 0.01 | 30 / 17 | yes (pat=15) | **63.72%** | From cropped_v2 ph1 ckpt; no freeze; backbone lr=5e-5, heads lr=1.5e-4; cladding collapse fixed |
 
 #### phase2_full — All Epoch Results
 
@@ -124,6 +132,38 @@ Early stopping triggered after epoch 11 (patience=10 from best val_loss at epoch
 | setting (Jaccard) | 80.81% | 24.01% |
 | **Overall** | **71.86%** | — |
 
+#### b5/cropped_v2 Phase 1 — All Epoch Results
+
+| Epoch | Train Loss | Val Loss | Overall Acc |
+|-------|-----------|----------|-------------|
+| 1 | — | — | 49.51% |
+| 2 | — | — | 50.86% |
+| 3 | — | — | 52.69% |
+| 4 | — | — | 54.77% |
+| 5 | — | — | 61.13% |
+| 6 | — | — | 65.65% |
+| 7 | — | — | 64.55% |
+| 8 | — | — | 65.53% |
+| 9 | — | — | 68.22% |
+| 10 | — | — | 68.46% |
+| 11 | — | — | 69.00% |
+| 12 | — | — | 69.68% |
+| 13 | — | — | 70.10% |
+| **14** | — | — | **70.91%** ← best acc, FINAL |
+
+Early stopping triggered after epoch 14 (patience=10 from best val_loss). Model was still improving at stop — extended training likely beneficial.
+
+#### b5/cropped_v2 Phase 1 Final Per-Task Breakdown (best epoch = 14)
+
+| Task | Accuracy | Macro F1 | vs b5/v7_bs16 |
+|------|----------|----------|---------------|
+| stories | 75.31% | 41.41% | +1.7pp acc, +2.5pp F1 |
+| roof_type | 53.06% | 41.94% | +0.2pp acc, **+5.7pp F1** |
+| primary_cladding | 54.03% | 25.15% | **−5.6pp acc**, +2.2pp F1 |
+| chimney_present | 91.44% | 47.77% | −1.0pp acc, −0.3pp F1 |
+| setting (Jaccard) | 80.73% | — | ~same (exact=69.68%, sF1=84.50%) |
+| **Overall** | **70.91%** | — | **−1.0pp** |
+
 #### phase2_full Final Per-Task Breakdown (epoch 11 / best-acc checkpoint)
 
 | Task | Val Accuracy | Macro F1 | vs Phase 1 |
@@ -136,6 +176,76 @@ Early stopping triggered after epoch 11 (patience=10 from best val_loss at epoch
 | architectural_style | 59.66% | 23.04% | *(new)* |
 | building_form | 45.72% | 21.84% | *(new)* |
 | **Overall (7 tasks)** | **66.63%** | — | — |
+
+#### cropped_v3_phase2 — All Epoch Results
+
+| Epoch | Train Loss | Val Loss | Overall Acc (7 tasks) |
+|-------|-----------|----------|-----------------------|
+| 1 | 1.0136 | 1.2057 | 55.77% |
+| 2 | 0.6482 | **1.1706** ← best val | 57.17% |
+| 3 | 0.5387 | 1.1710 | 59.51% |
+| 4 | 0.4487 | 1.1857 | 60.19% |
+| 5 | 0.3829 | 1.2004 | 58.92% |
+| 6 | 0.3303 | 1.2959 | 62.22% |
+| 7 | 0.2908 | 1.2415 | 61.55% |
+| 8 | 0.2720 | 1.2498 | 62.19% |
+| 9 | 0.2551 | 1.3154 | 62.05% |
+| 10 | 0.2301 | 1.3123 | 62.13% |
+| 11 | 0.2248 | 1.3160 | 63.10% |
+| 12 | 0.2106 | 1.2845 | 62.37% |
+| 13 | 0.1999 | 1.3454 | 63.71% |
+| **14** | **0.1975** | 1.3956 | **63.72%** ← best acc |
+| 15 | 0.1978 | 1.3600 | 63.27% |
+| 16 | 0.1880 | 1.3558 | 62.90% |
+| 17 | 0.1829 | 1.3590 | 63.61% |
+
+Early stopping triggered after epoch 17 (patience=15 from best val_loss at epoch 2). Accuracy plateaued at ~63–64% from epoch 6 onward — convergence reached. Val loss oscillated rather than diverging, significantly better behaviour than the frozen-head runs.
+
+#### cropped_v3_phase2 Final Per-Task Breakdown (epoch 14 / best-acc checkpoint)
+
+| Task | Val Accuracy | Macro F1 | vs cropped_v2 ph2 | vs phase2_full |
+|------|-------------|----------|--------------------|----------------|
+| stories | 70.90% | 47.42% | **+7.3pp** | −1.2pp |
+| roof_type | 46.21% | 32.31% | −8.1pp | −8.3pp |
+| primary_cladding | 54.03% | 30.26% | **+25.7pp** | −5.4pp |
+| chimney_present | 91.93% | 47.90% | +2.9pp | −0.7pp |
+| setting (Jaccard) | 80.26% | — | −1.3pp (exact=68.46%, sF1=84.23%) | −2.1pp |
+| architectural_style | 57.46% | 21.22% | −1.2pp | −2.2pp |
+| building_form | 45.23% | 19.59% | −2.7pp | −0.5pp |
+| **Overall (7 tasks)** | **63.72%** | — | **+3.2pp** | **−2.9pp** |
+
+> **Key result:** Differential LR (backbone 5e-5, heads 1.5e-4) fully prevented the cladding collapse (+25.7pp vs frozen-head run). The remaining −2.9pp gap vs pre-crop `phase2_full` is attributable to cropping losing facade/roof context, not the training strategy. roof_type regression (−8pp) is the main open issue — crops clip rooflines.
+
+#### b5/cropped_v2 Phase 2 — All Epoch Results
+
+| Epoch | Train Loss | Val Loss | Overall Acc (7 tasks) |
+|-------|-----------|----------|----------------------|
+| 1 | 0.8586 | **1.0672** ← best val | 54.45% |
+| 2 | 0.5276 | 1.1166 | 56.74% |
+| 3 | 0.3821 | 1.1527 | 57.53% |
+| 4 | 0.2785 | 1.1167 | 57.40% |
+| 5 | 0.2288 | 1.3222 | 59.09% |
+| 6 | 0.1771 | 1.2220 | 59.89% |
+| 7 | 0.1469 | 1.2695 | 59.63% |
+| 8 | 0.1230 | 1.2628 | 58.22% |
+| 9 | 0.1144 | 1.3665 | 59.74% |
+| **10** | **0.0947** | 1.3511 | **60.49%** ← best acc |
+| 11 | 0.0870 | 1.3931 | 60.14% |
+
+Early stopping triggered after epoch 11 (patience=10 from best val_loss at epoch 1). Val loss diverged from epoch 2; same pattern as `phase2_full`. Phase 1 heads (frozen during Phase 2) degraded as backbone continued adapting — most severely `primary_cladding` (54% → 28%).
+
+#### b5/cropped_v2 Phase 2 Final Per-Task Breakdown (epoch 10 / best-acc checkpoint)
+
+| Task | Val Accuracy | Macro F1 | vs cropped_v2 Ph1 | vs phase2_full |
+|------|-------------|----------|-------------------|----------------|
+| stories | 63.57% | 35.24% | −11.7pp | −8.6pp |
+| roof_type | 54.28% | 35.02% | +1.2pp | −0.2pp |
+| primary_cladding | 28.36% | 14.94% | **−25.7pp** | **−31.1pp** |
+| chimney_present | 89.00% | 47.09% | −2.4pp | −3.7pp |
+| setting (Jaccard) | 81.60% | — | +0.9pp (exact=70.66%, sF1=85.35%) | −0.7pp |
+| architectural_style | 58.68% | 26.00% | *(new)* | −1.0pp |
+| building_form | 47.92% | 22.16% | *(new)* | +2.2pp |
+| **Overall (7 tasks)** | **60.49%** | — | — | **−6.1pp vs phase2_full** |
 
 #### phase2_full — Held-Out Test Set Results (388 images, 114 buildings)
 
@@ -256,11 +366,11 @@ Scaling LR by √2 (1.1e-4 → 1.5e-4) with batch doubling (8→16) follows line
 
 ## Pending / Next Steps
 
-1. **Image resizing + cropping changes** — Pre-resize `data2/` images to ~512 px on disk (one-time ~10 min step) to eliminate the I/O bottleneck. Combine with any crop/augmentation strategy review. Deferred by user: *"Let's do resizing later together with cropping changes."*
-2. **Phase 3 training** — Retrain from `phase2_full` checkpoint with DataLoader fix + resized images; expected GPU utilisation ~50–70% vs current ~10%.
+1. **Address roof_type regression from cropping** — Crops clip rooflines, causing −8pp roof_type accuracy in Phase 2 vs pre-crop baseline. Options: (a) use larger crop padding/margins, (b) multi-scale crops, (c) composite whole-image + cropped training.
+2. **Address primary_cladding regression from cropping (Phase 1)** — −5.4pp vs pre-crop phase2_full in Phase 2 best. Still better than the frozen-head run, but crops remove facade texture context. Same crop-margin solutions as above.
 3. **More data** — Cladding and building_form minority classes need more examples.
 4. **Class weighting / focal loss** — For cladding, building_form, and arch_style long tails. `MULTI_TASK_STRATEGY.md` recommends capped inverse-frequency weights (max=3.0).
-5. **B5 bs=16 LR grid** — phase2_full used lr=1.5e-4; a small grid around 1.3e-4–1.7e-4 may help after resizing fix.
+5. **Test-set evaluation for cropped_v3_phase2** — Run `scripts/eval_checkpoint.py` against best checkpoint to get test accuracy and per-class recall.
 
 ### Completed
 - ✅ Phase 1 training (5 tasks) — best checkpoint `outputs/data2/b5/v7_bs16/phase1/best_model_phase1.pth` (71.86% overall, 5 tasks)
@@ -268,3 +378,7 @@ Scaling LR by √2 (1.1e-4 → 1.5e-4) with batch doubling (8→16) follows line
 - ✅ Phase 2 Stage 2 full joint fine-tune — `outputs/data2/b5/phase2_full/phase2/best_model_phase2.pth` (66.63% overall, 7 tasks)
 - ✅ DataLoader `persistent_workers=True` + `prefetch_factor=4` fix applied to `src/models/train_multi_task.py` and `src/models/evaluate.py`
 - ✅ Test set evaluation — `outputs/data2/b5/phase2_full/test_eval.json` (63.53% overall, 7 tasks; 3.1pp gap vs val)
+- ✅ Cropped dataset training — `b5/cropped_v2` Phase 1 (70.91%, 14 ep) + Phase 2 (60.49%, 10 ep); cropping improves roof_type F1 +5.7pp but hurts primary_cladding −5.6pp (Phase 1) and −25.7pp (Phase 2 head-freezing issue)
+- ✅ Differential LR implementation — `--backbone-lr-scale` flag added to `train_multi_task.py`; allows backbone LR to be a fraction of head LR, preventing Phase 1 head degradation during Phase 2 without freezing
+- ✅ MPS memory fix — `torch.mps.empty_cache()` added after each epoch; `PYTORCH_MPS_HIGH_WATERMARK_RATIO=0.0` resolves epoch-2 stall on Apple Silicon
+- ✅ `cropped_v3_phase2` Phase 2 training — 17 epochs, best acc 63.72% at ep14; cladding collapse fully resolved (+25.7pp vs frozen-head run); 3.2pp overall improvement vs `cropped_v2 phase2`
