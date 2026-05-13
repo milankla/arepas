@@ -95,13 +95,11 @@ class RobustCSVParser:
         """
         config = {
             'delimiter': '\t',
-            'engine': 'python'
+            'engine': 'python',
+            'quoting': csv.QUOTE_MINIMAL,
         }
         if strict:
-            config.update({
-                'on_bad_lines': 'skip',
-                'quoting': csv.QUOTE_MINIMAL
-            })
+            config['on_bad_lines'] = 'skip'
         return config
     
     def _parse_with_pandas(self, lines: List[str], strict: bool = True) -> pd.DataFrame:

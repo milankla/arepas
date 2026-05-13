@@ -22,6 +22,7 @@ Usage
 Output columns
 ──────────────
   building_id          DIS identifier (quotes stripped)
+  address              street address from source TSV (e.g. "455 S HIGH ST")
   dataset              e.g. "Clayton-Bungalows"
   neighborhood         from config metadata
   style                from config metadata
@@ -197,10 +198,15 @@ def main(
                         skipped_missing_labels[col] += 1
                 continue
 
+            # Extract address — raw value from the TSV; strip whitespace only.
+            raw_addr = bdata["attributes"].get("address", {}).get("value", "")
+            address = str(raw_addr).strip() if raw_addr and not str(raw_addr) == "nan" else ""
+
             for img_path in images:
                 rows.append(
                     {
                         "building_id":  bid,
+                        "address":      address,
                         "dataset":      dataset_name,
                         "neighborhood": nbhd,
                         "style":        style,
@@ -215,6 +221,20 @@ def main(
     output = Path(output_path)
     output.parent.mkdir(parents=True, exist_ok=True)
     df.to_csv(output, index=False)
+
+    # 3a. Sanity-check building IDs — all must match DIS.\d+
+    #     A mismatch here indicates a quote-stripping regression in the loader.
+    import re as _re
+    _bad_ids = [bid for bid in df["building_id"].unique()
+                if not _re.fullmatch(r"DIS\.\d+", str(bid))]
+    if _bad_ids:
+        logger.error(
+            f"❌ {len(_bad_ids)} building ID(s) do not match DIS.\\d+ — "
+            "possible quote-stripping regression in the loader."
+        )
+        for _bid in _bad_ids[:10]:
+            logger.error(f"   bad id: {_bid!r}")
+        raise SystemExit(1)
 
     # 4. Report
     logger.info("")

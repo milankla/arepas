@@ -321,13 +321,9 @@ class ConfigurableDataLoader:
                               columns: pd.Index) -> Optional[Dict[str, Any]]:
         """Process a single building row."""
         building_id = str(row[id_column])
-        # Strip surrounding straight double-quotes only if actually present.
-        # After _clean_line() normalises curly quotes to straight ones, pandas
-        # QUOTE_MINIMAL already strips them during parsing — so by the time we
-        # reach here the value is usually bare (e.g. "DIS.3554").  An
-        # unconditional [1:-1] would silently corrupt those bare values.
-        if len(building_id) >= 2 and building_id[0] == '"' and building_id[-1] == '"':
-            building_id = building_id[1:-1]
+        # Strip any residual ASCII or Unicode quote characters that may survive
+        # parsing (e.g. when the fallback path is taken for malformed files).
+        building_id = building_id.strip('"\u201c\u201d\u201e')
         smithsonian = str(row.get('smithsonianNumber', '')).strip()
         
         # Find images for this building
