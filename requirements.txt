@@ -21,3 +21,7 @@ matplotlib            # class distribution charts, confusion matrices
 # ── Building detection (GroundingDINO via HuggingFace Transformers) ────────────
 transformers          # GroundingDINO: AutoModelForZeroShotObjectDetection
 accelerate            # optional but recommended for transformers inference
+
+# ── API server (Arepas UI backend) ────────────────────────────────────────────
+fastapi
+uvicorn[standard]     # ASGI server with auto-reload support

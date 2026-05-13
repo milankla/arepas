@@ -259,6 +259,12 @@ scripts/crop_preview.html
 sessions/
 data/preprocessed/cropped_old/
 
+# Node / frontend (src/ui/)
+src/ui/node_modules/
+src/ui/dist/
+src/ui/.vite/
+src/ui/coverage/
+
 # Temporary files
 tmp/
 temp/

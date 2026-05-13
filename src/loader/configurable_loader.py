@@ -321,11 +321,12 @@ class ConfigurableDataLoader:
                               columns: pd.Index) -> Optional[Dict[str, Any]]:
         """Process a single building row."""
         building_id = str(row[id_column])
-        # Strip the first and last characters to remove surrounding quotes.
-        # The source TSV files enclose values in quotes that may be mixed
-        # types (e.g. U+201D + ASCII 0x22), so slicing is more reliable
-        # than str.strip() which requires knowing the exact characters.
-        if len(building_id) >= 2:
+        # Strip surrounding straight double-quotes only if actually present.
+        # After _clean_line() normalises curly quotes to straight ones, pandas
+        # QUOTE_MINIMAL already strips them during parsing — so by the time we
+        # reach here the value is usually bare (e.g. "DIS.3554").  An
+        # unconditional [1:-1] would silently corrupt those bare values.
+        if len(building_id) >= 2 and building_id[0] == '"' and building_id[-1] == '"':
             building_id = building_id[1:-1]
         smithsonian = str(row.get('smithsonianNumber', '')).strip()
         
