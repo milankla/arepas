@@ -1,0 +1,14 @@
+artifact_uri: /Users/milanklanjsek/workspace/arepas/mlruns/310607781332450309/f428311c74b248cc959b55c3a40ce167/artifacts
+end_time: 1775606186765
+entry_point_name: ''
+experiment_id: '310607781332450309'
+lifecycle_stage: active
+run_id: f428311c74b248cc959b55c3a40ce167
+run_name: resnet50_data_ph1-1_lr1e-04_bs16_ep20_legacy
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1775606186715
+status: 3
+tags: []
+user_id: milanklanjsek
