@@ -1,19 +1,20 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Box, Typography } from "@mui/material";
 import { AppShell } from "@/components/layout/AppShell";
 import { DatasetTree } from "@/components/explore/DatasetTree";
 import { NeighborhoodPanel } from "@/components/explore/NeighborhoodPanel";
 import { BuildingPanel } from "@/components/explore/BuildingPanel";
 import { useDataset } from "@/context/DatasetContext";
+import { useSearch } from "@/context/SearchContext";
 import type {
   NeighborhoodStats,
   TreeSelection,
 } from "@/types";
 import { api } from "@/api/client";
-import { useEffect } from "react";
 
 export default function ExploreDataPage() {
   const { activeDataset } = useDataset();
+  const { selectedBuilding, selectBuilding } = useSearch();
   const [selection, setSelection] = useState<TreeSelection | null>(null);
   const [neighborhoodStats, setNeighborhoodStats] = useState<NeighborhoodStats | null>(null);
 
@@ -22,6 +23,18 @@ export default function ExploreDataPage() {
     setSelection(null);
     setNeighborhoodStats(null);
   }, [activeDataset]);
+
+  // When a building is selected via the TopBar search, apply it
+  useEffect(() => {
+    if (!selectedBuilding) return;
+    setSelection({
+      type: "building",
+      dataset: activeDataset,
+      neighborhood: selectedBuilding.neighborhood,
+      building_id: selectedBuilding.building_id,
+    });
+    selectBuilding(null); // consume
+  }, [selectedBuilding, activeDataset, selectBuilding]);
 
   // When a neighbourhood is selected, fetch its stats (already cached by backend)
   useEffect(() => {
@@ -76,7 +89,7 @@ export default function ExploreDataPage() {
   return (
     <AppShell
       sidebar={
-        <DatasetTree dataset={activeDataset} onSelect={handleSelect} />
+        <DatasetTree dataset={activeDataset} onSelect={handleSelect} selection={selection} />
       }
       detail={renderDetail()}
     />

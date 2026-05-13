@@ -1,6 +1,6 @@
-import { Box, Toolbar } from "@mui/material";
+import { Box } from "@mui/material";
 
-const SIDEBAR_WIDTH = 300;
+const SIDEBAR_WIDTH = 252;
 
 interface AppShellProps {
   sidebar: React.ReactNode;
@@ -10,8 +10,6 @@ interface AppShellProps {
 export function AppShell({ sidebar, detail }: AppShellProps) {
   return (
     <Box sx={{ display: "flex", height: "100vh" }}>
-      {/* Offset for fixed AppBar */}
-      <Toolbar />
 
       {/* Sidebar */}
       <Box
@@ -24,6 +22,7 @@ export function AppShell({ sidebar, detail }: AppShellProps) {
           overflowY: "auto",
           pt: 8, // below AppBar
           pb: 2,
+          pl: 1,
         }}
       >
         {sidebar}
@@ -37,7 +36,8 @@ export function AppShell({ sidebar, detail }: AppShellProps) {
           overflowY: "auto",
           pt: 8, // below AppBar
           pb: 2,
-          px: 3,
+          pl: 2,
+          pr: 3,
         }}
       >
         {detail}

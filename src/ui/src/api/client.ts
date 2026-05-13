@@ -2,7 +2,9 @@ import type {
   BuildingDetail,
   BuildingSummary,
   DatasetInfo,
+  EpochRecord,
   NeighborhoodStats,
+  RunInfo,
 } from "@/types";
 
 const BASE = "/api";
@@ -29,7 +31,19 @@ export const api = {
     return get(`/datasets/${dataset}/neighborhoods/${neighborhood}/buildings`);
   },
 
+  searchBuildings(dataset: string, q: string, limit = 10): Promise<BuildingSummary[]> {
+    return get(`/datasets/${dataset}/buildings/search?q=${encodeURIComponent(q)}&limit=${limit}`);
+  },
+
   getBuilding(dataset: string, buildingId: string): Promise<BuildingDetail> {
     return get(`/datasets/${dataset}/buildings/${encodeURIComponent(buildingId)}`);
+  },
+
+  listRuns(): Promise<RunInfo[]> {
+    return get("/runs");
+  },
+
+  getRunHistory(runId: string): Promise<EpochRecord[]> {
+    return get(`/runs/${runId}/history`);
   },
 };

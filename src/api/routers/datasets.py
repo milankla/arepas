@@ -5,6 +5,7 @@ GET /api/datasets
 GET /api/datasets/{dataset}/neighborhoods
 GET /api/datasets/{dataset}/neighborhoods/{neighborhood}/buildings
 GET /api/datasets/{dataset}/buildings/{building_id}
+GET /api/datasets/{dataset}/buildings/search?q=&limit=
 """
 
 from __future__ import annotations
@@ -74,6 +75,11 @@ ATTRIBUTE_COLUMNS = [
     "setting",
     "chimney_present",
 ]
+
+# Columns that are never building attributes (system/identity columns)
+_NON_ATTRIBUTE_COLS = frozenset(
+    ["building_id", "address", "dataset", "neighborhood", "image_path"]
+)
 
 # ---------------------------------------------------------------------------
 # DataFrame cache — load once per dataset
@@ -238,6 +244,36 @@ def list_buildings(dataset: str, neighborhood: str) -> list[BuildingSummary]:
     return sorted(result, key=lambda b: b.building_id)
 
 
+@router.get("/datasets/{dataset}/buildings/search", response_model=list[BuildingSummary])
+def search_buildings(
+    dataset: str,
+    q: str = "",
+    limit: int = 10,
+) -> list[BuildingSummary]:
+    """Search buildings by address or building_id substring (case-insensitive)."""
+    _get_dataset_meta(dataset)
+    if not q or len(q) < 2:
+        return []
+    df = _load_df(dataset)
+    q_lower = q.lower()
+    # Match against building_id or address
+    mask = df["building_id"].str.lower().str.contains(q_lower, regex=False)
+    if "address" in df.columns:
+        mask = mask | df["address"].fillna("").str.lower().str.contains(q_lower, regex=False)
+    matched = df[mask].drop_duplicates(subset="building_id").head(limit)
+    results = []
+    for _, row in matched.iterrows():
+        addr = row.get("address", None)
+        results.append(BuildingSummary(
+            building_id=str(row["building_id"]),
+            address=str(addr) if addr and str(addr) != "nan" else None,
+            neighborhood=str(row["neighborhood"]),
+            image_count=int((df["building_id"] == row["building_id"]).sum()),
+            thumbnail_url=_image_url(dataset, row["image_path"]),
+        ))
+    return results
+
+
 @router.get("/datasets/{dataset}/buildings/{building_id}", response_model=BuildingDetail)
 def get_building(dataset: str, building_id: str) -> BuildingDetail:
     _get_dataset_meta(dataset)
@@ -250,7 +286,10 @@ def get_building(dataset: str, building_id: str) -> BuildingDetail:
 
     row = building_df.iloc[0]
     addr = row.get("address", None)
-    attributes = {col: row[col] for col in ATTRIBUTE_COLUMNS if col in row.index}
+    # Return all columns except system ones, with known columns first
+    known = [col for col in ATTRIBUTE_COLUMNS if col in row.index]
+    extra = [col for col in row.index if col not in _NON_ATTRIBUTE_COLS and col not in ATTRIBUTE_COLUMNS]
+    attributes = {col: row[col] for col in known + extra}
 
     # Build crop lookup: image_path → cropped_path
     crop_lookup: dict[str, str] = {}

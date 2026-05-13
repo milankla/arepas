@@ -58,6 +58,7 @@ export interface NeighborhoodSelection {
 export interface BuildingSelection {
   type: "building";
   dataset: string;
+  neighborhood: string;
   building_id: string;
 }
 
@@ -72,3 +73,39 @@ export type TreeSelection =
   | NeighborhoodSelection
   | BuildingSelection
   | ImageSelection;
+
+// ---------------------------------------------------------------------------
+// Training runs
+// ---------------------------------------------------------------------------
+
+export interface RunNotes {
+  summary: string;
+  learnings: string[];
+  next_steps: string[];
+}
+
+export interface RunInfo {
+  run_id: string;
+  backbone: string;
+  phase: number;
+  epochs_completed: number;
+  best_val_loss: number;
+  best_overall_acc: number;
+  batch_size: number;
+  lr: number;
+  weight_decay: number;
+  dataset_version: string;
+  timestamp: string;
+  run_name: string;
+  notes?: RunNotes | null;
+}
+
+export interface EpochRecord {
+  epoch: number;
+  train_loss_total: number;
+  val_loss_total: number;
+  overall_accuracy: number;
+  train_losses: Record<string, number>;
+  val_losses: Record<string, number>;
+  val_metrics: Record<string, Record<string, number> | number>;
+}

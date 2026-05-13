@@ -9,7 +9,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
-from src.api.routers import datasets
+from src.api.routers import datasets, runs
 from src.api.routers.datasets import DATASETS
 
 app = FastAPI(title="Arepas API", version="0.1.0")
@@ -45,3 +45,4 @@ for ds_name, ds_meta in DATASETS.items():
 # Routers
 # ---------------------------------------------------------------------------
 app.include_router(datasets.router, prefix="/api")
+app.include_router(runs.router, prefix="/api")

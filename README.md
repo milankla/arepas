@@ -1,5 +1,9 @@
 # Arepas
 
+<p align="center">
+  <img src="src/ui/public/logo.png" alt="Arepas logo" width="160" />
+</p>
+
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
 
@@ -30,6 +34,33 @@ src/models/train_multi_task.py ← EfficientNet-B5, phase 1 → phase 2
 python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 ```
+
+### Run the UI
+
+The UI is a React + Vite app backed by a FastAPI server.
+
+**1. Start the API** (port 8000):
+
+```sh
+source .venv/bin/activate
+uvicorn src.api.main:app --reload --port 8000
+```
+
+The API serves building data from `data2/image_label_mapping_phase1.csv` and images from `data2/`. Hot-reloads on Python file changes. If you regenerate the CSV, restart the server to flush the cache.
+
+**2. Start the frontend** (port 5173):
+
+```sh
+cd src/ui
+npm install   # first time only
+npm run dev
+```
+
+Open [http://localhost:5173](http://localhost:5173) in your browser.
+
+> The frontend proxies `/api` to `http://localhost:8000`, so both processes must be running.
+
+---
 
 ### 1. Crop images
 

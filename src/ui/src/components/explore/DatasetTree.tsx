@@ -17,10 +17,12 @@ const MAX_CONTAINER_HEIGHT = MAX_VISIBLE_ROWS * ITEM_HEIGHT; // 640px
 interface VirtualBuildingListProps {
   buildings: BuildingSummary[];
   dataset: string;
+  neighborhood: string;
+  selectedBuildingId?: string;
   onSelect: (selection: TreeSelection) => void;
 }
 
-function VirtualBuildingList({ buildings, dataset, onSelect }: VirtualBuildingListProps) {
+function VirtualBuildingList({ buildings, dataset, neighborhood, selectedBuildingId, onSelect }: VirtualBuildingListProps) {
   const parentRef = useRef<HTMLDivElement>(null);
 
   const virtualizer = useVirtualizer({
@@ -31,6 +33,12 @@ function VirtualBuildingList({ buildings, dataset, onSelect }: VirtualBuildingLi
   });
 
   const containerHeight = Math.min(buildings.length * ITEM_HEIGHT, MAX_CONTAINER_HEIGHT);
+
+  useEffect(() => {
+    if (!selectedBuildingId) return;
+    const idx = buildings.findIndex((b) => b.building_id === selectedBuildingId);
+    if (idx !== -1) virtualizer.scrollToIndex(idx, { align: "center" });
+  }, [selectedBuildingId, buildings, virtualizer]);
 
   return (
     <Box sx={{ pl: 1 }}>
@@ -44,7 +52,7 @@ function VirtualBuildingList({ buildings, dataset, onSelect }: VirtualBuildingLi
             return (
               <Box
                 key={building.building_id}
-                onClick={() => onSelect({ type: "building", dataset, building_id: building.building_id })}
+                onClick={() => onSelect({ type: "building", dataset, neighborhood, building_id: building.building_id })}
                 sx={{
                   position: "absolute",
                   top: 0,
@@ -58,7 +66,8 @@ function VirtualBuildingList({ buildings, dataset, onSelect }: VirtualBuildingLi
                   px: 1,
                   cursor: "pointer",
                   borderRadius: 1,
-                  "&:hover": { bgcolor: "action.hover" },
+                  bgcolor: building.building_id === selectedBuildingId ? "action.selected" : undefined,
+                  "&:hover": { bgcolor: building.building_id === selectedBuildingId ? "action.selected" : "action.hover" },
                 }}
               >
                 <ApartmentOutlined fontSize="small" color="action" sx={{ flexShrink: 0 }} />
@@ -80,9 +89,10 @@ function VirtualBuildingList({ buildings, dataset, onSelect }: VirtualBuildingLi
 interface DatasetTreeProps {
   dataset: string;
   onSelect: (selection: TreeSelection) => void;
+  selection?: TreeSelection | null;
 }
 
-export function DatasetTree({ dataset, onSelect }: DatasetTreeProps) {
+export function DatasetTree({ dataset, onSelect, selection }: DatasetTreeProps) {
   const [neighborhoods, setNeighborhoods] = useState<NeighborhoodStats[]>([]);
   const [buildings, setBuildings] = useState<Record<string, BuildingSummary[]>>({});
   const [loadingHoods, setLoadingHoods] = useState(true);
@@ -100,6 +110,31 @@ export function DatasetTree({ dataset, onSelect }: DatasetTreeProps) {
       .catch(console.error)
       .finally(() => setLoadingHoods(false));
   }, [dataset]);
+
+  // Auto-expand neighbourhood and load buildings when selection arrives from search
+  useEffect(() => {
+    if (selection?.type !== "building") return;
+    const { neighborhood } = selection;
+    const hoodKey = `hood:${neighborhood}`;
+    setExpandedHoods((prev) => {
+      if (prev.has(hoodKey)) return prev;
+      return new Set([...prev, hoodKey]);
+    });
+    if (!buildings[neighborhood]) {
+      setLoadingBuildings((prev) => new Set(prev).add(neighborhood));
+      api
+        .listBuildings(dataset, neighborhood)
+        .then((data) => setBuildings((prev) => ({ ...prev, [neighborhood]: data })))
+        .catch(console.error)
+        .finally(() =>
+          setLoadingBuildings((prev) => {
+            const next = new Set(prev);
+            next.delete(neighborhood);
+            return next;
+          })
+        );
+    }
+  }, [selection, dataset]);
 
   function handleExpandedChange(_event: React.SyntheticEvent | null, nodeIds: string[]) {
     const newlyExpanded = nodeIds.filter((id) => !expandedHoods.has(id));
@@ -137,7 +172,11 @@ export function DatasetTree({ dataset, onSelect }: DatasetTreeProps) {
   }
 
   return (
-    <SimpleTreeView onExpandedItemsChange={handleExpandedChange} sx={{ p: 1 }}>
+    <SimpleTreeView
+      expandedItems={[...expandedHoods]}
+      onExpandedItemsChange={handleExpandedChange}
+      sx={{ pt: 1, pr: 1, pb: 1 }}
+    >
       {neighborhoods.map((hood) => (
         <TreeItem
           key={`hood:${hood.neighborhood}`}
@@ -176,6 +215,12 @@ export function DatasetTree({ dataset, onSelect }: DatasetTreeProps) {
             <VirtualBuildingList
               buildings={buildings[hood.neighborhood]}
               dataset={dataset}
+              neighborhood={hood.neighborhood}
+              selectedBuildingId={
+                selection?.type === "building" && selection.neighborhood === hood.neighborhood
+                  ? selection.building_id
+                  : undefined
+              }
               onSelect={onSelect}
             />
           )}
