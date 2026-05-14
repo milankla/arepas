@@ -244,7 +244,7 @@ class MultiTaskTrainer:
                 logger.info(f"✓ New best model saved (val_loss: {self.best_val_loss:.4f})")
                 if self.experiment_logger is not None:
                     _best_ckpt = str(
-                        self.output_dir / f"best_model_phase{self.model.active_phase}.pth"
+                        self.output_dir / f"best_model_by_loss_phase{self.model.active_phase}.pth"
                     )
                     self.experiment_logger.log_best_checkpoint(
                         epoch, val_losses, val_metrics, _best_ckpt
@@ -335,11 +335,11 @@ class MultiTaskTrainer:
         
         # Save best model
         if is_best:
-            path = self.output_dir / f'best_model_phase{self.model.active_phase}.pth'
+            path = self.output_dir / f'best_model_by_loss_phase{self.model.active_phase}.pth'
             torch.save(checkpoint, path)
 
         if best_by_acc:
-            path = self.output_dir / f'best_model_by_acc_phase{self.model.active_phase}.pth'
+            path = self.output_dir / f'best_model_phase{self.model.active_phase}.pth'
             torch.save(checkpoint, path)
         
         # Save latest
@@ -350,10 +350,12 @@ class MultiTaskTrainer:
         self._save_training_history()
 
     def _save_training_history(self) -> None:
-        """Persist training history to disk."""
+        """Persist training history to disk (atomic write to avoid partial reads)."""
         history_path = self.output_dir / 'training_history.json'
-        with open(history_path, 'w') as f:
+        tmp_path = history_path.with_suffix('.json.tmp')
+        with open(tmp_path, 'w') as f:
             json.dump(self.training_history, f, indent=2)
+        tmp_path.replace(history_path)
 
 
 # ── Phase metadata ───────────────────────────────────────────────────────────
@@ -470,6 +472,7 @@ def progressive_training_pipeline(
     freeze_phase1_heads: bool = False,
     cropped_root: Optional[str] = None,
     backbone_lr_scale: Optional[float] = None,
+    force_overwrite: bool = False,
 ) -> None:
     """Dataset- and model-agnostic progressive training pipeline.
 
@@ -550,6 +553,14 @@ def progressive_training_pipeline(
         print("=" * 60)
 
         phase_out = Path(output_dir) / f"phase{phase}"
+
+        # Guard: refuse to overwrite an existing run unless explicitly requested.
+        if not force_overwrite and (phase_out / "training_history.json").exists():
+            raise FileExistsError(
+                f"Output directory already contains a completed run:\n"
+                f"  {phase_out / 'training_history.json'}\n"
+                f"Use --force-overwrite to overwrite it."
+            )
 
         # Per-phase RunConfig snapshot — written to phase_out/run_config.json.
         _phase_run_name = (
@@ -768,6 +779,14 @@ if __name__ == "__main__":
             "the original image path.  Omit to train on original images."
         ),
     )
+    parser.add_argument(
+        "--force-overwrite", action="store_true", default=False,
+        help=(
+            "Allow writing into an output directory that already contains a "
+            "training_history.json. Without this flag the script aborts to "
+            "prevent accidentally destroying a previous run."
+        ),
+    )
     args = parser.parse_args()
 
     cfg = ModelConfig.from_json(args.model_config)
@@ -794,4 +813,5 @@ if __name__ == "__main__":
         freeze_phase1_heads=args.freeze_phase1_heads,
         cropped_root=args.cropped_root,
         backbone_lr_scale=args.backbone_lr_scale,
+        force_overwrite=args.force_overwrite,
     )

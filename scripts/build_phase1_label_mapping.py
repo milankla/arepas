@@ -91,6 +91,35 @@ LABEL_COLUMNS = [f.lower().replace(" ", "_") for f in PHASE1_FIELDS]
 # never fails the has_all_labels() check.
 LABEL_COLUMNS = LABEL_COLUMNS + ["chimney_present"]
 
+# Extra schema attributes written to CSV but NOT used for row filtering.
+# Organised by training tier so the column order in the CSV reflects the
+# progressive training roadmap.
+#
+# Each entry is (Schema field name as it appears in CLEAN txt, csv_col_name).
+EXTRA_COLUMNS: list[tuple[str, str]] = [
+    # ── Tier 1 (multipart text — deferred from label-level training) ─────────
+    ("Window",                          "window"),
+    ("Entrance",                        "entrance"),
+    # ── Tier 2 (deferred or not yet in model) ────────────────────────────────
+    ("Roof Features",                   "roof_features"),
+    ("Roof Materials",                  "roof_materials"),
+    ("Additional Cladding",             "additional_cladding"),
+    ("Wall Features",                   "wall_features"),
+    ("Landscape Features",              "landscape_features"),
+    ("Associated Building and Objects", "associated_buildings"),
+    # ── Tier 3 ────────────────────────────────────────────────────────────────
+    ("Building Plan",                   "building_plan"),
+    ("Building Category",               "building_category"),
+    ("Current Use",                     "current_use"),
+    ("Original Use",                    "original_use"),
+    # ── Tier 4 (alteration_level already in LABEL_COLUMNS above) ─────────────
+    ("Alterations-Additions",           "alterations_additions"),
+    ("Alterations-Entrances",           "alterations_entrances"),
+    ("Alterations-Roof",                "alterations_roof"),
+    ("Alterations-Cladding",            "alterations_cladding"),
+    ("Alterations-Windows",             "alterations_windows"),
+]
+
 
 # ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -202,6 +231,12 @@ def main(
             raw_addr = bdata["attributes"].get("address", {}).get("value", "")
             address = str(raw_addr).strip() if raw_addr and not str(raw_addr) == "nan" else ""
 
+            # Extract extra tier columns (no filtering applied).
+            extras: dict[str, str] = {}
+            for field_name, col_name in EXTRA_COLUMNS:
+                raw = bdata["attributes"].get(field_name, {}).get("value", None)
+                extras[col_name] = normalize_value(raw) or ""
+
             for img_path in images:
                 rows.append(
                     {
@@ -212,6 +247,7 @@ def main(
                         "style":        style,
                         "image_path":   img_path,
                         **labels,
+                        **extras,
                     }
                 )
 

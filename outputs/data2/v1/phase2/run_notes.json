@@ -1,0 +1,19 @@
+{
+  "summary": "Phase 2 re-run on 7,135-building dataset. Loaded phase1 checkpoint, added architectural_style (14 coarsened classes) and building_form tasks. Trained with lr=1e-4, backbone-lr-scale=0.33 (effective backbone lr≈3.3e-5), bs=32, 30 epochs. Best overall accuracy 69.80% at epoch 23. Gate A passed: architectural_style 70.76% ≥ 70% threshold. No meaningful improvement over the previous phase2 run (lr=5e-5, 70.13%) — the two runs are within noise of each other.",
+  "learnings": [
+    "backbone-lr-scale=0.33 with lr=1e-4 (effective backbone lr≈3.3e-5) produced the same outcome as the prior run with lr=5e-5 — suggests the learning rate split is not the key lever at this scale.",
+    "architectural_style 70.76%: coarsening to 14 classes is confirmed working. F1 (0.382) remains low, indicating minority class confusion persists at 224px with ResNet50.",
+    "building_form 62.28%: essentially unchanged vs prior run (63.3%). High Cramér's V with architectural_style means further gains require better representation, not tuning.",
+    "primary_cladding 58.08%: marginally higher than prior run (57.9%) — within noise. Brick class dominance continues to cap per-class F1.",
+    "chimney_present 93.60%: at practical ceiling; no architecture change will move this further.",
+    "setting exact match 74.34%: stable across both phase2 runs — multi-label head is robust to fine-tuning perturbations.",
+    "Overwrite incident: this run wrote to the same output-dir as the prior phase2 run and destroyed its training_history.json and best checkpoints. --force-overwrite guard added to prevent recurrence."
+  ],
+  "next_steps": [
+    "Run b5_v1 Phase 1: EfficientNet-B5 (456px, bs=16, lr=1.5e-4, 30 epochs) — backbone upgrade is the most likely lever for meaningful accuracy gains.",
+    "Run b5_v1 Phase 2: load B5 phase1 best checkpoint, add architectural_style + building_form, lr=1.5e-4, backbone-lr-scale=0.33.",
+    "Consider running B5 with crops (crops/data2/ at 456px) after the uncropped B5 baseline is established.",
+    "Incorporate data3 into the dataset pipeline — new building photos may expand coverage of underrepresented classes (roof_type tail, minority cladding types).",
+    "Gate A still passed — Phase 3 (building_plan, building_category, original_use, current_use) is unblocked once B5 confirms stable improvement."
+  ]
+}

@@ -166,6 +166,61 @@ def normalize_stories_label(value: str) -> str:
     return value
 
 
+# Viable architectural_style classes (≥100 image-level examples ≈ 27+ buildings).
+# All other raw values are collapsed into "Other Style".
+ARCH_STYLE_KEEP: frozenset = frozenset({
+    "No Clear Architectural Style",
+    "Craftsman",
+    "Ranch",
+    "Victorian Cottage",
+    "Edwardian",
+    "English Norman Cottage",
+    "Modern Movement",
+    "Classical Revival",
+    "Mixed Style",
+    "Queen Anne",
+    "Dutch Colonial Revival",
+    "Contemporary",
+    "Mission",
+})
+
+
+def normalize_arch_style_label(value: str) -> str:
+    """Coarsen 37 raw architectural_style classes into 13 viable + 'Other Style'.
+
+    Raw class distribution in data2/ (26 160 images):
+        No Clear Architectural Style : 12 774  (48.8%)
+        Craftsman                    :  5 061  (19.4%)
+        Ranch                        :  2 763  (10.6%)
+        Victorian Cottage            :  1 240   (4.7%)
+        Edwardian                    :  1 163   (4.4%)
+        English Norman Cottage       :    762   (2.9%)
+        Modern Movement              :    573   (2.2%)
+        Classical Revival            :    291   (1.1%)
+        Mixed Style                  :    265   (1.0%)
+        Queen Anne                   :    252   (1.0%)
+        Dutch Colonial Revival       :    195   (0.7%)
+        Contemporary                 :    157   (0.6%)
+        Mission                      :    114   (0.4%)
+        24 further classes with < 100 samples each → "Other Style"
+
+    Threshold: keep classes with ≥ 100 image-level examples (≈ 27 buildings at
+    the dataset average of ~3.7 images/building).  Below that, there are too few
+    training samples for reliable recall even with class weighting.
+
+    The existing raw value "Other Style" (23 examples) is absorbed into the
+    merged bucket, so the output label set is unambiguous.
+
+    Examples::
+
+        normalize_arch_style_label("Craftsman")        # → "Craftsman"
+        normalize_arch_style_label("Googie")           # → "Other Style"
+        normalize_arch_style_label("Other Style")      # → "Other Style"
+        normalize_arch_style_label("Tudor Revival")    # → "Other Style"
+    """
+    return value if value in ARCH_STYLE_KEEP else "Other Style"
+
+
 # Mapping used by normalize_cladding_label — defined at module level so it can
 # be inspected / extended without touching the function body.
 CLADDING_COARSEN_MAP: Dict[str, str] = {
@@ -264,13 +319,15 @@ MULTILABEL_COLS: List[str] = list(MULTILABEL_ATOMICS.keys())
 # per-sample encoding in __getitem__.  Use for fields that need bespoke
 # string → canonical-string mapping beyond the generic normalize_value().
 #
-# roof_type:         collapse multi-type compound roofs → "Compound"
-# stories:           coarsen rare high-storey classes   → "2+" / "3+"
-# primary_cladding:  coarsen 18 raw classes             → 8 meaningful groups
+# roof_type:            collapse multi-type compound roofs → "Compound"
+# stories:              coarsen rare high-storey classes   → "2+" / "3+"
+# primary_cladding:     coarsen 18 raw classes             → 8 meaningful groups
+# architectural_style:  coarsen 37 raw classes             → 13 + "Other Style"
 PRE_ENCODE_TRANSFORMS: Dict[str, Callable[[str], str]] = {
-    "roof_type":        normalize_roof_type_label,
-    "stories":          normalize_stories_label,
-    "primary_cladding": normalize_cladding_label,
+    "roof_type":           normalize_roof_type_label,
+    "stories":             normalize_stories_label,
+    "primary_cladding":    normalize_cladding_label,
+    "architectural_style": normalize_arch_style_label,
 }
 
 

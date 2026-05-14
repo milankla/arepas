@@ -1,0 +1,17 @@
+{
+  "summary": "First valid baseline on the corrected 7,135-building dataset (ResNet50/224px, bs=32, lr=1e-4, 30 epochs, no early stopping). Best overall accuracy 72.14% at epoch 27. All prior runs in mlruns_archived/ trained on the broken 12%-subset and are not comparable.",
+  "learnings": [
+    "chimney_present at practical ceiling (94.8%) — binary task, no further gains expected from architecture changes.",
+    "setting (exact match 75.1%) is strong given it is multi-label; Jaccard and Hamming are higher.",
+    "stories is limited by ambiguous half-storey counts in single front-facing photos (1-1/2 vs 2 is hard to distinguish visually). 62.2% is close to the expected ceiling without multi-view aggregation.",
+    "roof_type 57.5%: compound-roof tail classes (raw '; '-delimited labels) are now coarsened to 'Compound' via PRE_ENCODE_TRANSFORMS, which helped versus earlier runs.",
+    "primary_cladding 61.3%: Brick dominates (~68% of images). Class-weighted loss (cap=3×) is already applied; gains require more non-Brick samples, not a different loss function.",
+    "No crops used — full uncropped 224px images. Street context and sky are included in the input."
+  ],
+  "next_steps": [
+    "Phase 2: add architectural_style (14 coarsened classes) and building_form — load this checkpoint and fine-tune with lr=5e-5.",
+    "Apply architectural_style coarsening (37→14 classes via normalize_arch_style_label) before Phase 2 training — already implemented in PRE_ENCODE_TRANSFORMS.",
+    "Regenerate crop manifest (crops/data2/crop_manifest.csv is stale — covers only 762/7,135 buildings from the pre-bugfix era).",
+    "Evaluate B5/456px backbone as v2b to test whether higher resolution helps cladding and roof_type discrimination."
+  ]
+}

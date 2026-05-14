@@ -57,23 +57,32 @@ export default function TrainingEvaluationPage() {
     });
   }, [visibleRuns]);
 
-  // Load run list on mount (once)
+  // Load run list on mount, then poll every 30 s for new/updated runs
   useEffect(() => {
-    api
-      .listRuns()
-      .then((data) => setRuns(data))
-      .finally(() => setLoadingRuns(false));
+    let cancelled = false;
+    const load = () =>
+      api
+        .listRuns()
+        .then((data) => { if (!cancelled) setRuns(data); })
+        .finally(() => { if (!cancelled) setLoadingRuns(false); });
+    load();
+    const timer = setInterval(load, 30_000);
+    return () => { cancelled = true; clearInterval(timer); };
   }, []);
 
-  // Fetch history for newly selected runs
+  // Fetch history for newly selected runs; re-fetch selected runs every 30 s
   useEffect(() => {
-    for (const runId of selectedIds) {
-      if (!histories[runId]) {
+    let cancelled = false;
+    const refresh = () => {
+      for (const runId of selectedIds) {
         api.getRunHistory(runId).then((h) => {
-          setHistories((prev) => ({ ...prev, [runId]: h }));
+          if (!cancelled) setHistories((prev) => ({ ...prev, [runId]: h }));
         });
       }
-    }
+    };
+    refresh();
+    const timer = setInterval(refresh, 30_000);
+    return () => { cancelled = true; clearInterval(timer); };
   }, [selectedIds]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const toggleRun = (runId: string) => {

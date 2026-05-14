@@ -3,15 +3,17 @@
 Frequency counts are computed **per building** (not per image). All percentages are out of total buildings in the dataset.  
 Multi-label fields (e.g. `setting`) count each tag independently, so percentages can exceed 100%.
 
+> **⚠ Updated May 13, 2026:** Phase 1 `data2` counts were recomputed from the corrected `data2/image_label_mapping_phase1.csv` (7,135 buildings) after the building ID truncation bug fix. The prior document used the broken 759-building sample.
+
 ---
 
 ## Overview
 
 | | `data` | `data2` |
 |---|---|---|
-| **Total buildings** | 197 | 759 |
-| **Total images** | 701 | 2,708 |
-| **Avg images / building** | 3.56 | 3.57 |
+| **Total buildings** | 197 | 7,135 |
+| **Total images** | 701 | 26,160 |
+| **Avg images / building** | 3.56 | 3.67 |
 | **Neighborhoods** | 10 | 6 |
 | **Source styles** | Bungalow, Minimal Traditional | Mixed (residential + commercial) |
 
@@ -34,16 +36,16 @@ Multi-label fields (e.g. `setting`) count each tag independently, so percentages
 | Barnum | 4 | 2.0% |
 | Valverde | 3 | 1.5% |
 
-### `data2` — 759 buildings
+### `data2` — 7,135 buildings
 
 | Neighborhood | Buildings | % |
 |---|---|---|
-| Sunnyside | 289 | 38.1% |
-| Regis | 144 | 19.0% |
-| Cole | 129 | 17.0% |
-| Skyland | 126 | 16.6% |
-| South City Park | 44 | 5.8% |
-| Streetcar Commercial | 27 | 3.6% |
+| Sunnyside | 2,843 | 39.8% |
+| Regis | 1,367 | 19.2% |
+| Cole | 1,137 | 15.9% |
+| Skyland | 1,122 | 15.7% |
+| South City Park | 444 | 6.2% |
+| Streetcar Commercial | 222 | 3.1% |
 
 ---
 
@@ -51,33 +53,37 @@ Multi-label fields (e.g. `setting`) count each tag independently, so percentages
 
 ### `architectural_style`
 
-Phase 1 task. 6 classes in `data`, 21 classes in `data2`.
+Phase 1 task. 6 classes in `data`, 37 classes in `data2`.
 
-| Style | `data` (197) | % | `data2` (759) | % |
+| Style | `data` (197) | % | `data2` (7,135) | % |
 |---|---|---|---|---|
-| No Clear Architectural Style | 101 | 51.3% | 419 | 55.2% |
-| Craftsman | 69 | 35.0% | 120 | 15.8% |
-| Ranch | 18 | 9.1% | 77 | 10.1% |
-| Victorian Cottage | — | — | 41 | 5.4% |
-| Edwardian | — | — | 27 | 3.6% |
-| Modern Movement | — | — | 18 | 2.4% |
-| English Norman Cottage | 5 | 2.5% | 14 | 1.8% |
-| Classical Revival | 2 | 1.0% | 10 | 1.3% |
-| Contemporary | — | — | 7 | 0.9% |
-| Mixed Style | 2 | 1.0% | 5 | 0.7% |
-| Queen Anne | — | — | 5 | 0.7% |
-| Mission | — | — | 3 | 0.4% |
-| Dutch Colonial Revival | — | — | 3 | 0.4% |
-| Swiss Chalet | — | — | 2 | 0.3% |
-| Tudor Revival | — | — | 2 | 0.3% |
-| Neo-Victorian | — | — | 1 | 0.1% |
-| Colonial Revival | — | — | 1 | 0.1% |
-| Jacobean Elizabethan | — | — | 1 | 0.1% |
-| Moderne | — | — | 1 | 0.1% |
-| Italianate | — | — | 1 | 0.1% |
-| Mediterranean Revival | — | — | 1 | 0.1% |
+| No Clear Architectural Style | 101 | 51.3% | 3,565 | 50.0% |
+| Craftsman | 69 | 35.0% | 1,361 | 19.1% |
+| Ranch | 18 | 9.1% | 745 | 10.4% |
+| Victorian Cottage | — | — | 369 | 5.2% |
+| Edwardian | — | — | 323 | 4.5% |
+| English Norman Cottage | 5 | 2.5% | 196 | 2.7% |
+| Modern Movement | — | — | 138 | 1.9% |
+| Classical Revival | 2 | 1.0% | 81 | 1.1% |
+| Mixed Style | 2 | 1.0% | 65 | 0.9% |
+| Queen Anne | — | — | 62 | 0.9% |
+| Dutch Colonial Revival | — | — | 51 | 0.7% |
+| Contemporary | — | — | 34 | 0.5% |
+| Mission | — | — | 29 | 0.4% |
+| Italianate | — | — | 24 | 0.3% |
+| Tudor Revival | — | — | 16 | 0.2% |
+| Mediterranean Revival | — | — | 10 | 0.1% |
+| Colonial Revival | — | — | 9 | 0.1% |
+| Other Style | — | — | 7 | 0.1% |
+| International Style | — | — | 5 | 0.1% |
+| Pueblo Revival | — | — | 5 | 0.1% |
+| Art Deco | — | — | 5 | 0.1% |
+| Rustic | — | — | 4 | 0.1% |
+| Moderne | — | — | 4 | 0.1% |
+| Swiss Chalet | — | — | 4 | 0.1% |
+| *(13 classes with 1–3 buildings)* | — | — | 22 | 0.3% |
 
-> **Note:** "No Clear Architectural Style" is the majority class (~51–55%) in both datasets. Classes with <3 buildings are extremely difficult to learn.
+> **Note:** "No Clear Architectural Style" is the majority class (~50–51%) in both datasets. With 7,135 buildings the picture has improved significantly: Victorian Cottage (369), Edwardian (323), English Norman Cottage (196) are now viable as standalone classes. Classes with <10 buildings should still be grouped into "Other Style" or dropped.
 
 ---
 
@@ -92,44 +98,45 @@ Phase 2 task. 2 classes in `data` (by design — only two styles were surveyed),
 | Minimal Traditional | 120 | 60.9% |
 | Bungalow | 77 | 39.1% |
 
-#### `data2` (759 buildings)
+#### `data2` (7,135 buildings)
 
 | Form | Count | % |
 |---|---|---|
-| Bungalow | 141 | 18.6% |
-| Minimal Traditional | 139 | 18.3% |
-| Gable Front | 93 | 12.3% |
-| Classic Cottage | 57 | 7.5% |
-| Terrace Type | 50 | 6.6% |
-| Ranch | 45 | 5.9% |
-| Central Block with Projecting Bays | 35 | 4.6% |
-| Duplex | 31 | 4.1% |
-| Other | 24 | 3.2% |
-| Foursquare | 19 | 2.5% |
-| One-Part Commercial Block | 19 | 2.5% |
-| Hipped-Roof Box | 16 | 2.1% |
-| Apartment - Block | 14 | 1.8% |
-| Commercial/Industrial Block | 12 | 1.6% |
-| Transitional Ranch | 12 | 1.6% |
-| Gabled Ell | 8 | 1.1% |
-| Bi-Level | 8 | 1.1% |
-| Shotgun | 5 | 0.7% |
-| Split Level | 5 | 0.7% |
-| Hall and Parlor | 3 | 0.4% |
-| Apartment - Complex | 3 | 0.4% |
-| Service Bay Business | 3 | 0.4% |
-| Apartment - Garden Court | 3 | 0.4% |
-| Two-Part Commercial Block | 3 | 0.4% |
-| Commercial - Other | 2 | 0.3% |
-| Neo-Mansard | 2 | 0.3% |
-| Strip Mall or Shopping Center | 2 | 0.3% |
-| Central Passage Double-Pile | 1 | 0.1% |
-| Rowhouse | 1 | 0.1% |
-| High-Rise | 1 | 0.1% |
-| Apartment - Dingbat | 1 | 0.1% |
-| Cape Cod | 1 | 0.1% |
+| Bungalow | 1,542 | 21.6% |
+| Minimal Traditional | 1,333 | 18.7% |
+| Gable Front | 909 | 12.7% |
+| Classic Cottage | 491 | 6.9% |
+| Ranch | 405 | 5.7% |
+| Central Block with Projecting Bays | 346 | 4.8% |
+| Terrace Type | 312 | 4.4% |
+| Duplex | 288 | 4.0% |
+| Other | 240 | 3.4% |
+| Apartment - Block | 154 | 2.2% |
+| Foursquare | 145 | 2.0% |
+| Hipped-Roof Box | 142 | 2.0% |
+| Transitional Ranch | 131 | 1.8% |
+| One-Part Commercial Block | 110 | 1.5% |
+| Commercial/Industrial Block | 105 | 1.5% |
+| Gabled Ell | 94 | 1.3% |
+| Bi-Level | 93 | 1.3% |
+| Commercial - Other | 43 | 0.6% |
+| Apartment - Garden Court | 41 | 0.6% |
+| Split Level | 34 | 0.5% |
+| Two-Part Commercial Block | 28 | 0.4% |
+| Central Passage Double-Pile | 28 | 0.4% |
+| Hall and Parlor | 21 | 0.3% |
+| Shotgun | 20 | 0.3% |
+| Service Bay Business | 16 | 0.2% |
+| House with Commercial Addition | 12 | 0.2% |
+| Apartment - Complex | 9 | 0.1% |
+| Strip Mall or Shopping Center | 9 | 0.1% |
+| Apartment - Courtyard | 7 | 0.1% |
+| Neo-Mansard | 6 | 0.1% |
+| Cape Cod | 6 | 0.1% |
+| I-House | 4 | 0.1% |
+| *(7 classes with 1–3 buildings)* | 7 | 0.1% |
 
-> **Note:** 32 classes in `data2` with severe long-tail. Many forms have 1–3 buildings — needs grouping before training.
+> **Note:** 39 classes in `data2`. With 7,135 buildings, the top 17 classes all have ≥94 buildings and can be trained standalone. Forms with <10 buildings (Gas Station variants, Quonset, Rowhouse, High-Rise, Apartment - Dingbat) should be merged into "Other" or dropped.
 
 ---
 
@@ -153,30 +160,33 @@ Phase 1 task. 19 classes in `data`, 40 classes in `data2` (raw). Multi-roof comp
 | Front Gable; Hipped | 2 | 1.0% |
 | *(10 rare compound types, 1 each)* | 9 | 4.6% |
 
-#### `data2` (759 buildings)
+#### `data2` (7,135 buildings)
 
 | Roof Type | Count | % |
 |---|---|---|
-| Hipped | 215 | 28.3% |
-| Front Gable | 137 | 18.1% |
-| Cross Gable | 103 | 13.6% |
-| Flat | 99 | 13.0% |
-| Side Gable | 90 | 11.9% |
-| Hip-on-Gable | 19 | 2.5% |
-| Hipped; Front Gable | 16 | 2.1% |
-| Cross Hip-on-Gable | 13 | 1.7% |
-| Front Gable; Hipped | 10 | 1.3% |
-| Compound Roof; Hipped; Front Gable | 6 | 0.8% |
-| Compound Roof | 5 | 0.7% |
-| Compound Roof; Front Gable; Hipped | 4 | 0.5% |
-| Pyramidal | 3 | 0.4% |
-| Mansard | 3 | 0.4% |
-| Compound Roof; Hipped; Side Gable | 3 | 0.4% |
-| Gambrel | 3 | 0.4% |
-| Side Gable; Flat | 3 | 0.4% |
-| *(23 rare types, 1–2 each)* | 27 | 3.6% |
+| Hipped | 2,067 | 29.0% |
+| Front Gable | 1,257 | 17.6% |
+| Cross Gable | 1,030 | 14.4% |
+| Side Gable | 880 | 12.3% |
+| Flat | 658 | 9.2% |
+| Hip-on-Gable | 204 | 2.9% |
+| Hipped; Front Gable | 180 | 2.5% |
+| Cross Hip-on-Gable | 144 | 2.0% |
+| Compound Roof | 126 | 1.8% |
+| Front Gable; Hipped | 83 | 1.2% |
+| Gambrel | 52 | 0.7% |
+| Compound Roof; Front Gable; Hipped | 31 | 0.4% |
+| Compound Roof; Hipped; Front Gable | 28 | 0.4% |
+| Cross Gable; Hipped | 23 | 0.3% |
+| Pyramidal | 19 | 0.3% |
+| Mansard | 14 | 0.2% |
+| Hipped; Pyramidal | 14 | 0.2% |
+| Hipped; Cross Gable | 14 | 0.2% |
+| Dutch Hipped | 12 | 0.2% |
+| Front Gable; Shed | 12 | 0.2% |
+| *(~80 rare compound types, 1–13 each)* | 282 | 3.9% |
 
-> **Note:** `data` lacks Flat roofs entirely (residential only). `data2` adds Flat (13%) from commercial/mixed-use buildings. Compound multi-roof labels are treated as a single class string during training.
+> **Note:** `data` lacks Flat roofs entirely (residential only). `data2` Flat (9.2%) comes from commercial buildings. Top 5 simple types now have 658–2,067 buildings each — well-trained standalone. Gambrel (52) is newly viable. The long compound tail (~80 types) should be merged into a "Compound" bucket for all types with <20 buildings.
 
 ---
 
@@ -199,28 +209,31 @@ Phase 1 task. Raw values vs. 8-class coarsened scheme used in training.
 | Stone - Rusticated | 1 | 0.5% |
 | Shingles - Plain | 1 | 0.5% |
 
-#### Raw values — `data2` (759 buildings)
+#### Raw values — `data2` (7,135 buildings)
 
 | Cladding | Count | % |
 |---|---|---|
-| Brick | 521 | 68.6% |
-| Siding - Vinyl | 63 | 8.3% |
-| Stucco - Modern | 48 | 6.3% |
-| Stucco - Historic | 36 | 4.7% |
-| Siding - Horizontal, Unknown Material | 17 | 2.2% |
-| Siding - Aluminum | 14 | 1.8% |
-| Siding - Horizontal, Wood | 14 | 1.8% |
-| Shingles - Asbestos | 12 | 1.6% |
-| Stone - Faux | 7 | 0.9% |
-| Siding - Vertical, Unknown Material | 6 | 0.8% |
-| Concrete - Block | 6 | 0.8% |
-| Sheet Metal | 5 | 0.7% |
-| Other Cladding | 3 | 0.4% |
-| Concrete - Modular/Precast | 2 | 0.3% |
-| Shingles - Plain | 2 | 0.3% |
-| Siding - Vertical, Wood | 1 | 0.1% |
-| Stone - Smooth | 1 | 0.1% |
-| Shingles - Asphalt | 1 | 0.1% |
+| Brick | 4,976 | 69.7% |
+| Siding - Vinyl | 544 | 7.6% |
+| Stucco - Modern | 441 | 6.2% |
+| Stucco - Historic | 386 | 5.4% |
+| Siding - Horizontal, Unknown Material | 156 | 2.2% |
+| Siding - Horizontal, Wood | 155 | 2.2% |
+| Siding - Aluminum | 129 | 1.8% |
+| Shingles - Asbestos | 95 | 1.3% |
+| Concrete - Block | 58 | 0.8% |
+| Stone - Faux | 36 | 0.5% |
+| Siding - Vertical, Unknown Material | 33 | 0.5% |
+| Sheet Metal | 28 | 0.4% |
+| Shingles - Plain | 23 | 0.3% |
+| Concrete - Modular/Precast | 14 | 0.2% |
+| Other Cladding | 14 | 0.2% |
+| Siding - Vertical, Wood | 15 | 0.2% |
+| Stone - Rusticated | 8 | 0.1% |
+| Siding - Board and Batten | 7 | 0.1% |
+| Unknown Cladding | 6 | 0.1% |
+| Shingles - Asphalt | 5 | 0.1% |
+| *(5 rare types, 1–2 each)* | 5 | 0.1% |
 
 #### Coarsened (8-class) — training scheme
 
@@ -228,16 +241,16 @@ The `CLADDING_COARSEN_MAP` in `src/loader/architectural_dataset.py` groups raw v
 
 | Coarse Class | `data` | % | `data2` | % |
 |---|---|---|---|---|
-| Brick | 142 | 72.1% | 521 | 68.6% |
-| Stucco | 11 | 5.6% | 84 | 11.1% |
-| Siding - Vinyl | 0 | 0.0% | 63 | 8.3% |
-| Siding - Other | 16 | 8.1% | 52 | 6.9% |
-| Shingles | 19 | 9.6% | 15 | 2.0% |
-| Concrete / Stone | 8 | 4.1% | 16 | 2.1% |
-| Sheet Metal | 0 | 0.0% | 5 | 0.7% |
-| Other Cladding | 1 | 0.5% | 3 | 0.4% |
+| Brick | 142 | 72.1% | 4,976 | 69.7% |
+| Stucco | 11 | 5.6% | 827 | 11.6% |
+| Siding - Vinyl | 0 | 0.0% | 544 | 7.6% |
+| Siding - Other | 16 | 8.1% | 488 | 6.8% |
+| Shingles | 19 | 9.6% | 123 | 1.7% |
+| Concrete / Stone | 8 | 4.1% | 109 | 1.5% |
+| Sheet Metal | 0 | 0.0% | 28 | 0.4% |
+| Other Cladding | 1 | 0.5% | 40 | 0.6% |
 
-> **Key imbalance:** Brick accounts for ~68–72% of all buildings across both datasets. This is the primary driver of poor cladding macro-F1 (~20%) in all trained models — the model learns the Brick majority shortcut. No architectural intervention will fully resolve this without more data or targeted oversampling.
+> **Key imbalance:** Brick accounts for ~70–72% of all buildings across both datasets. This remains the primary driver of poor cladding macro-F1. However, with 7,135 buildings, Stucco (827), Siding-Vinyl (544), and Siding-Other (488) all have enough examples for meaningful learning — weighted loss or oversampling should now significantly improve minority-class F1.
 
 ---
 
@@ -245,16 +258,18 @@ The `CLADDING_COARSEN_MAP` in `src/loader/architectural_dataset.py` groups raw v
 
 Phase 1 task. `data` is heavily 1-story (91.9%); `data2` is more varied.
 
-| Stories | `data` (197) | % | `data2` (759) | % |
+| Stories | `data` (197) | % | `data2` (7,135) | % |
 |---|---|---|---|---|
-| 1 | 181 | 91.9% | 526 | 69.3% |
-| 1-1/2 | 15 | 7.6% | 154 | 20.3% |
-| 2 | 1 | 0.5% | 70 | 9.2% |
-| 2-1/2 | — | — | 3 | 0.4% |
-| 3 | — | — | 2 | 0.3% |
-| 4 | — | — | 1 | 0.1% |
-| 5–9 | — | — | 2 | 0.3% |
-| 10–19 | — | — | 1 | 0.1% |
+| 1 | 181 | 91.9% | 4,921 | 69.0% |
+| 1-1/2 | 15 | 7.6% | 1,483 | 20.8% |
+| 2 | 1 | 0.5% | 633 | 8.9% |
+| 2-1/2 | — | — | 58 | 0.8% |
+| 3 | — | — | 18 | 0.3% |
+| 1/2 | — | — | 4 | 0.1% |
+| 4 | — | — | 8 | 0.1% |
+| 5–9 | — | — | 7 | 0.1% |
+| 3-1/2 | — | — | 2 | 0.0% |
+| 10–19 | — | — | 1 | 0.0% |
 
 > **Note:** `data` is essentially a 2-class problem (1 vs. 1-1/2). `data2` includes taller commercial buildings up to 10–19 stories.
 
@@ -264,13 +279,13 @@ Phase 1 task. `data` is heavily 1-story (91.9%); `data2` is more varied.
 
 Phase 1 task (secondary). `data` is almost entirely unaltered (99%). `data2` has a realistic distribution.
 
-| Alteration Level | `data` (197) | % | `data2` (759) | % |
+| Alteration Level | `data` (197) | % | `data2` (7,135) | % |
 |---|---|---|---|---|
-| 1 - Completely Altered | — | — | 1 | 0.1% |
-| 2 - Major Alterations | — | — | 32 | 4.2% |
-| 3 - Moderate Alterations | — | — | 245 | 32.3% |
-| 4 - Minor Alterations | 2 | 1.0% | 426 | 56.1% |
-| 5 - Not Altered | 195 | 99.0% | 55 | 7.2% |
+| 1 - Completely Altered | — | — | 5 | 0.1% |
+| 2 - Major Alterations | — | — | 322 | 4.5% |
+| 3 - Moderate Alterations | — | — | 2,270 | 31.8% |
+| 4 - Minor Alterations | 2 | 1.0% | 4,127 | 57.8% |
+| 5 - Not Altered | 195 | 99.0% | 411 | 5.8% |
 
 > **Note:** `data` was sourced from "Basic Survey" records which are pre-filtered for well-preserved examples — explaining the near-100% "Not Altered" distribution. `data2` reflects the full survey spectrum. The model trained on `data` would not generalize alteration detection at all.
 
@@ -280,14 +295,14 @@ Phase 1 task (secondary). `data` is almost entirely unaltered (99%). `data2` has
 
 Phase 1 task. Multi-label field; each building can have multiple tags.
 
-| Setting Tag | `data` (197) | % | `data2` (759) | % |
+| Setting Tag | `data` (197) | % | `data2` (7,135) | % |
 |---|---|---|---|---|
-| Set Back from Sidewalk | 197 | 100.0% | 710 | 93.5% |
-| Corner | 36 | 18.3% | 118 | 15.5% |
-| Flush at Sidewalk | — | — | 26 | 3.4% |
-| Set at Back of Lot | — | — | 24 | 3.2% |
-| Attached on 1 Side | — | — | 8 | 1.1% |
-| Attached on 2 Sides | — | — | 3 | 0.4% |
+| Set Back from Sidewalk | 197 | 100.0% | 6,737 | 94.4% |
+| Corner | 36 | 18.3% | 1,315 | 18.4% |
+| Flush at Sidewalk | — | — | 217 | 3.0% |
+| Set at Back of Lot | — | — | 168 | 2.4% |
+| Attached on 1 Side | — | — | 59 | 0.8% |
+| Attached on 2 Sides | — | — | 26 | 0.4% |
 
 > **Note:** `data` has only 2 setting tags (100% Set Back, 18% Corner). `data2` includes "Flush at Sidewalk" and attached-building categories absent from `data` — these are characteristic of the Streetcar Commercial neighborhood.
 
@@ -297,12 +312,12 @@ Phase 1 task. Multi-label field; each building can have multiple tags.
 
 Phase 1 task. Binary label derived from chimney documentation in survey records.
 
-| Chimney | `data` (197) | % | `data2` (759) | % |
+| Chimney | `data` (197) | % | `data2` (7,135) | % |
 |---|---|---|---|---|
-| No | 186 | 94.4% | 741 | 97.6% |
-| Yes | 11 | 5.6% | 18 | 2.4% |
+| No | 186 | 94.4% | 6,914 | 96.9% |
+| Yes | 11 | 5.6% | 221 | 3.1% |
 
-> **Note:** Extremely imbalanced in both datasets. The "Yes" class is even rarer in `data2`. Chimney detection is likely limited by label quality (chimneys documented only when explicitly noted in survey text), not actual building frequency.
+> **Note:** Still heavily imbalanced, but "Yes" grows from 18 to 221 buildings in the corrected dataset — enough for focal loss or weighted BCE to make a meaningful attempt. Label quality remains the likely ceiling: chimneys are documented only when explicitly noted in survey text.
 
 ---
 
@@ -310,21 +325,21 @@ Phase 1 task. Binary label derived from chimney documentation in survey records.
 
 | Task | Phase | `data` majority class | `data2` majority class | Concern |
 |---|---|---|---|---|
-| `architectural_style` | 1 | No Clear Style (51%) | No Clear Style (55%) | Long tail, 21 classes in data2 |
-| `building_form` | 2 | Minimal Traditional (61%) | Bungalow (19%) | 32 classes in data2, severe long tail |
-| `roof_type` | 1 | Hipped (38%) | Hipped (28%) | Compound labels, 40 raw types in data2 |
-| `primary_cladding` | 1 | Brick (72%) | Brick (69%) | Extreme Brick imbalance across both |
-| `stories` | 1 | 1 story (92%) | 1 story (69%) | data is near-trivial (2 classes) |
-| `alteration_level` | 1 | 5-Not Altered (99%) | 4-Minor Alt. (56%) | data useless for alteration; data2 viable |
+| `architectural_style` | 1 | No Clear Style (51%) | No Clear Style (50%) | 37 classes; top 11 viable standalone (≥29 bldgs) |
+| `building_form` | 2 | Minimal Traditional (61%) | Bungalow (22%) | 39 classes; top 17 viable standalone (≥94 bldgs) |
+| `roof_type` | 1 | Hipped (38%) | Hipped (29%) | Compound tail; merge types with <20 into "Compound" |
+| `primary_cladding` | 1 | Brick (72%) | Brick (70%) | Brick dominates; minority classes now large enough for weighted loss |
+| `stories` | 1 | 1 story (92%) | 1 story (69%) | data is near-trivial (2 classes); data2 has 10 |
+| `alteration_level` | 1 | 5-Not Altered (99%) | 4-Minor Alt. (58%) | data useless for alteration; data2 viable |
 | `setting` | 1 | Set Back (100%) | Set Back (94%) | data has only 2 tags; data2 has 6 |
-| `chimney_present` | 1 | No (94%) | No (98%) | Highly imbalanced; label quality concern |
+| `chimney_present` | 1 | No (94%) | No (97%) | Yes class: 221 bldgs — feasible with focal loss |
 
 ---
 
 ## Notes on Dataset Differences
 
 - **`data`** contains only Bungalows and Minimal Traditionals from residential neighborhoods. All buildings are "Basic Survey" quality, nearly unaltered. It is a clean but narrow slice.
-- **`data2`** is the primary training dataset — 759 buildings across residential + commercial neighborhoods, covering the full alteration spectrum and architectural variety.
+- **`data2`** is the primary training dataset — 7,135 buildings across residential + commercial neighborhoods, covering the full alteration spectrum and architectural variety.
 - **Overlap:** Sunnyside, Regis, Cole, Skyland, and South City Park appear in both. The same building IDs may appear if neighborhoods were resurveyed — deduplicate if ever merging.
 - **Cladding imbalance** (Brick ~68–72%) is a fundamental data property, not a preprocessing artifact. It will persist regardless of coarsening strategy.
 - **`building_form` and `architectural_style`** in `data2` have many classes with <5 buildings — Phase 2 training will require grouping or exclusion of rare classes before fine-tuning.
@@ -340,10 +355,10 @@ Phase 1 task. Binary label derived from chimney documentation in survey records.
 > | | `data` | `data2` |
 > |---|---|---|
 > | Buildings in raw CLEAN.txt files | 196 | **8,208** |
-> | Buildings in training CSV (with images) | 197 | **759** |
-> | Coverage ratio | ~100% | **~9%** |
+> | Buildings in training CSV (with images) | 197 | **7,135** |
+> | Coverage ratio | ~100% | **~87%** |
 >
-> All percentages in the Phase 2/3 tables use the raw building count (196 / 8,208) as the denominator. To estimate how many positive examples would actually be available during training, multiply any percentage by 759 (for `data2`) or 197 (for `data`). For example, `wall_features` Foundation-Not Visible at 32.5% in the raw data implies roughly **246 buildings** in the training CSV — still learnable. But `roof_features` Eaves-Boxed at 1.1% implies only **~8 training buildings** — not learnable.
+> All percentages in the Phase 2/3 tables use the raw building count (196 / 8,208) as the denominator. To estimate how many positive examples would actually be available during training, multiply any percentage by 7,135 (for `data2`) or 197 (for `data`). For example, `wall_features` Foundation-Not Visible at 32.5% in the raw data implies roughly **2,319 buildings** in the training CSV — solidly learnable. But `roof_features` Eaves-Boxed at 1.1% implies only **~79 training buildings** — still not learnable.
 >
 > Additionally, Phase 2/3 fields are **not currently extracted** into the training CSV. Any task listed here would require updating the data pipeline before training.
 

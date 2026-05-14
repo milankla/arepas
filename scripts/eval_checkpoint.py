@@ -1,6 +1,7 @@
 """Re-evaluate a saved checkpoint with the current metrics."""
 import argparse
 import torch
+from tqdm import tqdm
 from src.models.multi_task_classifier import MultiTaskArchitecturalClassifier
 from src.models.metrics import compute_metrics, format_metrics_table
 from src.models.train_multi_task import build_dataloaders
@@ -16,8 +17,16 @@ def main():
     parser.add_argument("--phase", type=int, default=1)
     args = parser.parse_args()
 
+    if torch.backends.mps.is_available():
+        device = torch.device("mps")
+    elif torch.cuda.is_available():
+        device = torch.device("cuda")
+    else:
+        device = torch.device("cpu")
+    print(f"Device: {device}")
+
     cfg = ModelConfig.from_json(args.model_config)
-    _, val_loader, _, num_classes = build_dataloaders(
+    _, val_loader, _, num_classes, _ = build_dataloaders(
         csv_path=args.csv,
         model_config=cfg,
         batch_size=args.batch_size,
@@ -33,14 +42,16 @@ def main():
     )
     ckpt = torch.load(args.checkpoint, map_location="cpu")
     model.load_state_dict(ckpt["model_state_dict"])
+    model.to(device)
     model.eval()
 
     all_preds, all_tgts = {}, {}
     with torch.no_grad():
-        for images, targets in val_loader:
+        for images, targets in tqdm(val_loader, desc="Evaluating"):
+            images = images.to(device)
             preds = model(images)
             for k, v in preds.items():
-                all_preds.setdefault(k, []).append(v)
+                all_preds.setdefault(k, []).append(v.cpu())
             for k, v in targets.items():
                 all_tgts.setdefault(k, []).append(v)
 

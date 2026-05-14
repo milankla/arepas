@@ -1301,16 +1301,96 @@ Multi-view aggregation (Option B: ensemble across 3–8 photos per building) is 
 
 ---
 
-### Current State (July 2026)
+### ~~Current State (July 2026)~~ — SUPERSEDED
 
-**Phase 2 complete** on `data2/` (7 tasks). Best: **EfficientNet-B5 bs=16 → 66.63% overall** (phase2_full, ep11).
+> **⚠️ The results below were produced on a corrupted dataset (building ID truncation bug, commit a0d8cc2). They trained on ~759/7,135 buildings (12% of actual data). Accuracy figures are inflated by the tiny validation set. These runs are archived in `mlruns_archived/` and are not valid baselines.**
 
-| What we confirmed | What we revised |
-|---|---|
-| B5 > ResNet50 at cladding texture discrimination | Phase 2 accuracy projections were too optimistic by 10–25 pp |
-| bs=16 is the B5 sweet spot; LR √2 scaling works | Val loss diverged (1.51→1.98) while accuracy improved — overfitting pattern expected at this dataset size |
-| 8-class cladding coarsening is correct for now | arch_style=59.66% → Gate B; image crop needed before Phase 3 |
-| Two-stage training (warmup → joint fine-tune) works | roof_features not trainable with current data (10% coverage) |
-| Early stopping essential; best epoch 11/25 | wall_features deferred alongside roof_features until next data drop |
+~~**Phase 2 complete** on `data2/` (7 tasks). Best: **EfficientNet-B5 bs=16 → 66.63% overall** (phase2_full, ep11).~~
 
-**Next: image preprocessing (building detection + crop at 456×456) → re-run Phase 2 → re-evaluate Gate A/B → Phase 3 if arch_style ≥70%.** See `## 🗺️ Training Path Forward` above.
+---
+
+## 🔄 Post-Bugfix Strategy Reset — May 2026
+
+### The Bug (commit a0d8cc2)
+
+`build_phase1_label_mapping.py` applied a `[1:-1]` slice to building IDs when stripping quotes, corrupting `DIS.3554` → `IS.355`. This caused most cross-neighborhood joins to fail silently, yielding only 759 of 7,135 buildings.
+
+**All runs in `mlruns_archived/` (ResNet50 v1–v7, B5 v1–v7_bs16) trained on 12% of the dataset. Their accuracy/F1 figures cannot be compared to post-fix runs.**
+
+### First Valid Baselines (ResNet50, data2 corrected)
+
+Both runs use `data2/image_label_mapping_phase1.csv` (7,135 buildings, 26,160 images) with ResNet50/224px, bs=32, lr as noted. Checkpoints in `outputs/data2/v1/`.
+
+| Run | Tasks | Epochs | Best acc | Best epoch | Notes |
+|-----|-------|--------|----------|------------|-------|
+| v1/phase1 | 5 (stories, roof_type, primary_cladding, chimney_present, setting) | 30 | **72.14%** | 27 | No early stopping |
+| v1/phase2 | 7 (+architectural_style, building_form) | 30 | **70.13%** | 29 | Loaded phase1 checkpoint, lr=5e-5 |
+
+**Phase 2 per-task breakdown:**
+
+| Task | Accuracy | Notes |
+|------|----------|-------|
+| chimney_present | 94.3% | ✅ At ceiling |
+| setting (exact) | 75.1% | ✅ Strong |
+| stories | 64.5% | Harder than expected |
+| architectural_style | **71.5%** | ✅ **Gate A passed** (≥70%) |
+| building_form | 63.3% | High Cramér's V with arch_style |
+| primary_cladding | 57.9% | Class imbalance floor |
+| roof_type | 54.9% | Multi-compound tail |
+
+**Gate A outcome:** `architectural_style` = 71.5% ≥ 70% threshold. Phase 3 is unblocked. However, the relatively low per-task F1 on minority classes means targeted improvements are worthwhile before advancing.
+
+---
+
+### What Changed With 9.4× More Data
+
+The bug fix revealed that prior strategy assumptions were wrong:
+
+| Assumption (pre-fix, 759 buildings) | Reality (7,135 buildings) |
+|--------------------------------------|--------------------------|
+| `architectural_style` unlearnable — top class ≤40 buildings | Victorian Cottage 369, Edwardian 323 — clearly viable |
+| `chimney_present`: Yes=18 — focal loss not justified | Yes=221 — focal loss feasible |
+| Crop manifest (2,708 crops / 762 buildings) = full coverage | Crops cover only 10.4% of corrected dataset |
+| `architectural_style` 37-class head is untrainable | 37 raw classes but 24 have <100 images → need coarsening |
+| B5 batch size findings assumed stable gradient variance | Needs re-validation on 9.4× more data per epoch |
+
+---
+
+### Strategy Changes Applied (May 2026)
+
+#### 1. `architectural_style` Coarsening (implemented in `src/loader/architectural_dataset.py`)
+
+Added `normalize_arch_style_label()` to `PRE_ENCODE_TRANSFORMS`. Threshold: keep classes with ≥100 image-level examples; merge the rest into `"Other Style"`.
+
+**Result: 37 raw classes → 14 coarsened classes.**
+
+| Kept classes (≥100 images) | Merged into "Other Style" (<100 images) |
+|------|------|
+| No Clear Architectural Style (12,774), Craftsman (5,061), Ranch (2,763), Victorian Cottage (1,240), Edwardian (1,163), English Norman Cottage (762), Modern Movement (573), Classical Revival (291), Mixed Style (265), Queen Anne (252), Dutch Colonial Revival (195), Contemporary (157), Mission (114) | Tudor Revival (83), Mediterranean Revival (44), Art Deco (37), Colonial Revival (34), International Style (24), Other Style (23), Exotic Revival (22), Pueblo Revival (22), Rustic (19), Moderne (18), Romanesque Revival (16), Gothic Revival (16), Swiss Chalet (15), and 10 more → **"Other Style" (550 total)** |
+
+#### 2. Crop Regeneration Required
+
+The `crops/data2/crop_manifest.csv` was built from the broken loader and covers 762/7,135 buildings (10.4%). Must be rebuilt with:
+
+```bash
+python scripts/crop_dataset.py \
+  --csv data2/image_label_mapping_phase1.csv \
+  --out crops/data2 \
+  --image-root . \
+  --target-size 456 \
+  --device mps
+```
+
+Crops output at 456×456 — native to EfficientNet-B5. This is a prerequisite for any crop-based training run.
+
+---
+
+### Planned v2 Training Runs
+
+| Run | Backbone | Images | Changes vs v1 | Goal |
+|-----|----------|--------|---------------|------|
+| **v2a** | ResNet50/224px | Full (26,160) | + arch_style coarsening | Establish coarsening benefit vs v1 |
+| **v2b** | EfficientNet-B5/456px | Full (26,160) | + coarsening, bs=16, lr=1.5e-4 | Backbone upgrade benefit |
+| **v2c** | EfficientNet-B5/456px | Crops (after regen) | + coarsening, bs=16 | Crops + B5 combined |
+
+Run v2a and v2b can start immediately (no crops needed). v2c requires the crop regeneration job to complete first.

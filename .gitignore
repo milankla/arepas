@@ -219,6 +219,7 @@ $RECYCLE.BIN/
 # Project-specific
 *.log
 /data2/
+/data3/
 .env
 config.json
 *.api_key
