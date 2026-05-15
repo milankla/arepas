@@ -51,6 +51,8 @@ class MultiTaskTrainer:
         experiment_logger: Optional[ExperimentLogger] = None,
         class_weights: Optional[Dict[str, torch.Tensor]] = None,
         backbone_lr_scale: Optional[float] = None,
+        resume_from_epoch: int = 0,
+        resume_checkpoint_path: Optional[str] = None,
     ):
         self.model = model.to(device)
         self.train_loader = train_loader
@@ -67,6 +69,7 @@ class MultiTaskTrainer:
         self.experiment_logger = experiment_logger
         self.grad_accum_steps = max(1, int(grad_accum_steps))
         self.weight_decay = weight_decay
+        self.resume_from_epoch = resume_from_epoch
         
         # Optimizer and loss
         # If backbone_lr_scale is set, use differential learning rates:
@@ -105,10 +108,46 @@ class MultiTaskTrainer:
             patience=3,
         )
         
-        # Tracking
+        # Tracking — pre-populated when resuming from a crashed run.
         self.best_val_loss = float('inf')
         self.best_overall_acc = float('-inf')
-        self.training_history = []
+        self.training_history: list = []
+        if resume_from_epoch > 0:
+            history_path = self.output_dir / 'training_history.json'
+            if history_path.exists():
+                with open(history_path) as _f:
+                    self.training_history = json.load(_f)
+                # Restore best-so-far so early-stopping and checkpoint logic work correctly.
+                for _rec in self.training_history:
+                    _loss = _rec.get('val_losses', {}).get('total', float('inf'))
+                    _acc  = _rec.get('val_metrics', {}).get('overall_accuracy', float('-inf'))
+                    if _loss < self.best_val_loss:
+                        self.best_val_loss = _loss
+                    if _acc > self.best_overall_acc:
+                        self.best_overall_acc = _acc
+                logger.info(
+                    f"Resuming from epoch {resume_from_epoch}: "
+                    f"loaded {len(self.training_history)} history records, "
+                    f"best_loss={self.best_val_loss:.4f}, best_acc={self.best_overall_acc:.4f}"
+                )
+
+        # Restore optimizer + scheduler state for true continuity when resuming.
+        # Only done when a same-phase checkpoint is provided (not cross-phase warm-starts).
+        if resume_from_epoch > 0 and resume_checkpoint_path is not None:
+            _ckpt_path = Path(resume_checkpoint_path)
+            if _ckpt_path.exists():
+                _ckpt = torch.load(_ckpt_path, map_location="cpu")
+                if "optimizer_state_dict" in _ckpt:
+                    self.optimizer.load_state_dict(_ckpt["optimizer_state_dict"])
+                    # Move optimizer tensors to the training device.
+                    for _state in self.optimizer.state.values():
+                        for _k, _v in _state.items():
+                            if isinstance(_v, torch.Tensor):
+                                _state[_k] = _v.to(device)
+                    logger.info(f"Restored optimizer state from {_ckpt_path.name}")
+                if "scheduler_state_dict" in _ckpt:
+                    self.scheduler.load_state_dict(_ckpt["scheduler_state_dict"])
+                    logger.info(f"Restored scheduler state from {_ckpt_path.name}")
     
     def train_epoch(self, epoch: int) -> Dict[str, float]:
         """Train for one epoch"""
@@ -227,8 +266,12 @@ class MultiTaskTrainer:
         logger.info(f"Starting training for {num_epochs} epochs")
         logger.info(f"Model phase: {self.model.active_phase}")
         logger.info(f"Active tasks: {list(self.model.task_heads.keys())}")
-        
+        if self.resume_from_epoch > 0:
+            logger.info(f"Skipping epochs 1-{self.resume_from_epoch} (already complete)")
+
         for epoch in range(1, num_epochs + 1):
+            if epoch <= self.resume_from_epoch:
+                continue
             train_losses = self.train_epoch(epoch)
             val_losses, val_metrics = self.validate(epoch)
 
@@ -473,6 +516,7 @@ def progressive_training_pipeline(
     cropped_root: Optional[str] = None,
     backbone_lr_scale: Optional[float] = None,
     force_overwrite: bool = False,
+    resume_from_epoch: int = 0,
 ) -> None:
     """Dataset- and model-agnostic progressive training pipeline.
 
@@ -554,8 +598,10 @@ def progressive_training_pipeline(
 
         phase_out = Path(output_dir) / f"phase{phase}"
 
-        # Guard: refuse to overwrite an existing run unless explicitly requested.
-        if not force_overwrite and (phase_out / "training_history.json").exists():
+        # Guard: refuse to overwrite an existing run unless explicitly requested
+        # or we are resuming a crashed run.
+        resuming = resume_from_epoch > 0 and (phase_out / "training_history.json").exists()
+        if not force_overwrite and not resuming and (phase_out / "training_history.json").exists():
             raise FileExistsError(
                 f"Output directory already contains a completed run:\n"
                 f"  {phase_out / 'training_history.json'}\n"
@@ -641,6 +687,8 @@ def progressive_training_pipeline(
                 experiment_logger=exp_logger,
                 class_weights=class_weights,
                 backbone_lr_scale=backbone_lr_scale,
+                resume_from_epoch=resume_from_epoch,
+                resume_checkpoint_path=str(prev_checkpoint) if resuming else None,
             )
             trainer.train(num_epochs=epochs_per_phase)
 
@@ -787,9 +835,38 @@ if __name__ == "__main__":
             "prevent accidentally destroying a previous run."
         ),
     )
+    parser.add_argument(
+        "--resume-from", type=int, default=0, metavar="EPOCH",
+        help=(
+            "Resume a crashed run starting after this epoch. "
+            "The checkpoint at <output-dir>/phase<N>/checkpoint_epoch<EPOCH>.pth "
+            "is loaded and existing training_history.json is preserved and appended to. "
+            "Example: --resume-from 12 (resumes from epoch 13 onward)."
+        ),
+    )
     args = parser.parse_args()
 
     cfg = ModelConfig.from_json(args.model_config)
+
+    # When resuming, auto-resolve the checkpoint for the crashed epoch unless
+    # the caller already supplied --load-checkpoint.
+    initial_checkpoint = args.load_checkpoint
+    if args.resume_from > 0 and initial_checkpoint is None and args.output_dir:
+        # Try the per-epoch checkpoint first, fall back to best_model.
+        phase = args.start_phase
+        candidate = Path(args.output_dir) / f"phase{phase}" / f"checkpoint_epoch{args.resume_from}.pth"
+        fallback  = Path(args.output_dir) / f"phase{phase}" / f"best_model_phase{phase}.pth"
+        if candidate.exists() and candidate.stat().st_size > 300_000_000:
+            initial_checkpoint = str(candidate)
+            logger.info(f"--resume-from: using checkpoint {candidate}")
+        elif fallback.exists():
+            initial_checkpoint = str(fallback)
+            logger.info(f"--resume-from: epoch checkpoint missing/truncated, using {fallback}")
+        else:
+            raise FileNotFoundError(
+                f"Cannot resume: no usable checkpoint found at\n"
+                f"  {candidate}\n  {fallback}"
+            )
 
     progressive_training_pipeline(
         csv_path=args.csv,
@@ -809,9 +886,10 @@ if __name__ == "__main__":
         run_name=args.run_name,
         dataset_version=args.dataset_version,
         model_config_path=args.model_config,
-        initial_checkpoint=args.load_checkpoint,
+        initial_checkpoint=initial_checkpoint,
         freeze_phase1_heads=args.freeze_phase1_heads,
         cropped_root=args.cropped_root,
         backbone_lr_scale=args.backbone_lr_scale,
         force_overwrite=args.force_overwrite,
+        resume_from_epoch=args.resume_from,
     )

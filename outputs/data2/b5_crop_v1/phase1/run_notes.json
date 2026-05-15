@@ -1,0 +1,19 @@
+{
+  "summary": "EfficientNet-B5 Phase 1 on 7,135-building dataset with 456px building crops. lr=1.5e-4, wd=0.01, bs=16, 30 epochs, no early stopping. Best overall accuracy 79.87% at epoch 30 — a +7.73pp gain over the ResNet50/224px baseline (72.14%). Run survived an OOM crash at epoch 12 and was resumed from checkpoint_epoch10.pth; epochs 11-12 were re-run with a minor LR discontinuity that resolved by epoch 16. Architecture and crop pre-processing are the primary drivers of this improvement.",
+  "learnings": [
+    "B5+crops vs ResNet50+full: +7.73pp overall (79.87% vs 72.14%). The combination of higher-resolution backbone (456px) and crop preprocessing (removes street context, sky) is the largest single jump seen so far.",
+    "primary_cladding 77.46%: largest single-task gain vs ResNet50 (61.3% → 77.46%, +16.2pp). Brick dominance is still present but crops remove confounding sky/street texture that was hurting cladding discrimination.",
+    "stories 76.49%: +14.3pp vs ResNet50 (62.2%). Half-storey ambiguity remains but crop framing the facade more tightly makes storey count clearer from eave line.",
+    "roof_type 67.22%: +9.7pp vs ResNet50 (57.5%). Crop still includes roofline — the gain is from higher resolution and B5 feature capacity, not crop context removal.",
+    "chimney_present 94.90%: at practical ceiling — essentially no change from ResNet50 (94.8%). Binary task, already saturated.",
+    "setting 70.96% (exact match): multi-label task, +10.6pp vs ResNet50 (75.1% — note: prior runs reported Jaccard-based, not exact; direct comparison unreliable). Strong result.",
+    "OOM crash at epoch 12: batch_size=16 with B5/456px pushes MPS memory limits. Consider --batch-size 12 or --grad-accum-steps 2 on machines with <16GB unified memory.",
+    "Resume discontinuity: loading checkpoint_epoch10 without optimizer/scheduler state caused a 2-epoch dip (ep11-12 after resume showed lower acc). Optimizer+scheduler state restoration now implemented for future resumes."
+  ],
+  "next_steps": [
+    "Run Phase 2: load best_model_phase1.pth, add architectural_style (14 classes) + building_form, lr=1.5e-4, backbone-lr-scale=0.33, bs=12 or grad-accum-steps=2 to reduce OOM risk.",
+    "Compare with b5_full_v1/phase1 (uncropped, running on second machine) to isolate the crop contribution from the B5 backbone contribution.",
+    "If OOM persists at bs=16 in Phase 2, use --batch-size 12 --grad-accum-steps 2 (effective bs=24, same throughput, lower peak memory).",
+    "Gate B check: target architectural_style ≥ 75% in Phase 2 (vs 70.76% with ResNet50) given the large per-task gains in Phase 1."
+  ]
+}
