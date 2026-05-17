@@ -45,6 +45,7 @@ import argparse
 import sys
 from collections import Counter, defaultdict
 from pathlib import Path
+from typing import Optional
 
 import pandas as pd
 from loguru import logger
@@ -163,7 +164,7 @@ def has_all_labels(labels: dict) -> bool:
 
 def main(
     config_path: str = DEFAULT_CONFIG_PATH,
-    output_path: str | None = None,
+    output_path: Optional[str] = None,
     schema_path: str = DEFAULT_SCHEMA_PATH,
 ) -> pd.DataFrame:
     """
