@@ -1,0 +1,54 @@
+{
+  "summary": "EfficientNet-B5 Phase 2 on crops dataset. lr=1.5e-4, backbone-lr-scale=0.33, wd=0.01, bs=12, grad-accum-steps=2, 30 epochs. Loaded phase1 checkpoint. Best overall accuracy 74.50% at epoch 1 — the model peaked immediately and then oscillated with no meaningful improvement through all 30 epochs. val_loss climbed monotonically from 0.886 to 1.281, indicating severe calibration divergence. The plateau pattern suggests the learning rate was too high for fine-tuning a phase1-optimized backbone with two new random-init heads.",
+  "hyperparams": {
+    "backbone": "efficientnet_b5",
+    "image_size": 456,
+    "dataset": "crops/data2 (456px building crops)",
+    "lr": 1.5e-4,
+    "backbone_lr": 5e-5,
+    "backbone_lr_scale": 0.33,
+    "weight_decay": 0.01,
+    "batch_size": 12,
+    "grad_accum_steps": 2,
+    "effective_batch_size": 24,
+    "epochs": 30,
+    "load_checkpoint": "outputs/data2/b5_crop_v1/phase1/best_model_phase1.pth",
+    "freeze_phase1_heads": false
+  },
+  "results": {
+    "best_epoch": 1,
+    "best_overall_acc": 0.7450,
+    "per_task_at_best": {
+      "architectural_style": 0.7296,
+      "building_form": 0.6540,
+      "stories": 0.7106,
+      "roof_type": 0.6190,
+      "primary_cladding": 0.7262,
+      "chimney_present": 0.9480,
+      "setting_exact": 0.7042
+    },
+    "last_epoch": 30,
+    "last_overall_acc": 0.7413,
+    "train_loss_ep1": 0.5781,
+    "val_loss_ep1": 0.8856,
+    "val_loss_ep30": 1.281
+  },
+  "comparison": {
+    "vs_b5_crop_v1_phase1": "-5.37pp overall (79.87% → 74.50%). Expected: adding 2 hard new tasks (arch_style, building_form) to the 5-task average must lower it. arch_style 72.96% and building_form 65.40% are reasonable for new tasks with no prior fine-tuning.",
+    "phase1_task_regression": "roof_type dropped 67.22% → 61.90% (-5.32pp), primary_cladding 77.46% → 72.62% (-4.84pp), stories 76.49% → 71.06% (-5.43pp). This is interference: new random-init heads pull the backbone toward arch_style/building_form representations, partially forgetting phase1 features.",
+    "vs_resnet50_phase2": "arch_style 72.96% vs 70.76% with ResNet50 — a +2.20pp gain, confirming B5+crops adds value even in phase 2 despite the calibration issues."
+  },
+  "learnings": [
+    "Best @ ep1 is a red flag: the phase1 checkpoint had train_loss ~0.001 (fully converged). Phase2 immediately benefits from residual phase1 knowledge but cannot improve further — the optimizer is not finding a productive gradient direction.",
+    "lr=1.5e-4 with backbone_lr_scale=0.33 gives effective backbone lr ~5e-5. While this matches the ResNet50 phase2 setting numerically, the B5 backbone was already more deeply optimized in phase1. A lower lr (2.5e-5 to 5e-5 total) may be needed.",
+    "val_loss monotonically climbing (0.886 → 1.281) while accuracy is flat = the model is becoming more confident on incorrect predictions. This is a calibration failure, not a capacity failure.",
+    "freeze_phase1_heads=False: allowing all heads to update simultaneously may amplify interference. A warm-up stage (freeze phase1 heads for 5 epochs, then unfreeze) could let new heads converge without destabilizing existing ones.",
+    "No OOM with bs=12 + grad_accum_steps=2. Effective batch size 24. This was the right setting for MPS."
+  ],
+  "next_steps": [
+    "b5_crop_v2/phase2: reduce lr to 5e-5 (backbone ~1.65e-5) — test whether a lower lr can preserve phase1 task accuracy while still training new heads.",
+    "Alternative: b5_crop_v3/phase2 with freeze_phase1_heads=True for first 5 epochs, then joint fine-tuning. Let new heads warm up before pulling the backbone.",
+    "Wait for b5_full_v1/phase2 results to determine whether full images help phase2 arch_style accuracy (setting context available to backbone).",
+    "Consider separate per-task LR groups: new heads at lr=1.5e-4, phase1 heads at 1e-5, backbone at 5e-6."
+  ]
+}

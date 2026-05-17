@@ -1,0 +1,51 @@
+{
+  "summary": "EfficientNet-B5 Phase 1 on full (uncropped) images at 456px. lr=1.5e-4, wd=0.01, bs=16, 30 epochs. Run completed cleanly on a second machine (no OOM). Best overall accuracy 78.65% at epoch 29. This is the control run against b5_crop_v1/phase1 (79.87% @ ep30) — isolates the contribution of crop preprocessing vs. the B5 backbone alone. Crops add +1.22pp overall but the picture is nuanced per-task: crops help facade-dependent tasks but hurt setting detection which relies on street context.",
+  "hyperparams": {
+    "backbone": "efficientnet_b5",
+    "image_size": 456,
+    "dataset": "data2 (full images, no cropping)",
+    "lr": 1.5e-4,
+    "weight_decay": 0.01,
+    "batch_size": 16,
+    "grad_accum_steps": 1,
+    "epochs": 30,
+    "load_checkpoint": null
+  },
+  "results": {
+    "best_epoch": 29,
+    "best_overall_acc": 0.7865,
+    "per_task_at_best": {
+      "stories": 0.7255,
+      "roof_type": 0.6530,
+      "primary_cladding": 0.7370,
+      "chimney_present": 0.9496,
+      "setting_exact": 0.7754
+    },
+    "last_epoch": 30,
+    "last_overall_acc": 0.7845
+  },
+  "comparison": {
+    "vs_b5_crop_v1_phase1": {
+      "overall": "-1.22pp (78.65% vs 79.87%). Crops give a modest but consistent overall improvement.",
+      "stories": "-3.94pp (72.55% vs 76.49%). Crops help by framing the facade tightly — eave line and storey count become clearer.",
+      "roof_type": "-1.92pp (65.30% vs 67.22%). Crops include the roofline so the gain is from resolution/capacity, not context removal.",
+      "primary_cladding": "-3.76pp (73.70% vs 77.46%). Crops remove confounding sky and street texture that was hurting cladding classification.",
+      "chimney_present": "+0.06pp (94.96% vs 94.90%). Binary saturated task — no meaningful difference.",
+      "setting_exact": "+6.58pp (77.54% vs 70.96%). Full images are meaningfully better for setting. Setting (corner, mid-block, setback) depends on street context and lot geometry — both of which crops discard."
+    },
+    "vs_resnet50_v1_phase1": "+6.51pp overall (78.65% vs 72.14%). B5 backbone at 456px on full images already dominates ResNet50/224px even without crops.",
+    "crop_vs_full_conclusion": "Crops are beneficial overall but introduce a tradeoff: +3-4pp on facade tasks, -6.6pp on setting. If setting accuracy matters, a two-branch or multi-scale approach may be needed. For the primary objective (architectural style, stories, cladding), crops win."
+  },
+  "learnings": [
+    "B5/full vs B5/crops: crops are a net positive (+1.22pp) but the setting regression (-6.58pp) is large enough to matter if setting is a primary target.",
+    "Setting is uniquely sensitive to context: it is the only task where full images outperform crops. This is expected — corner vs. mid-block vs. setback is determined by the building's relationship to the street, not its facade texture.",
+    "No OOM at bs=16 on this machine (likely ≥16GB unified memory). The MPS OOM seen in b5_crop_v1 was machine-specific.",
+    "Gradual val_loss divergence: train_loss reached ~0.002 (fully overfit) while val_loss climbed to ~0.35+. Same pattern as b5_crop_v1 — this is inherent to the dataset size (~7,135 buildings) vs. B5 capacity. Early stopping would not have helped materially given the accuracy plateau in later epochs.",
+    "Best at ep29, not ep30 — minor noise at the tail, no meaningful difference. The model essentially plateaued from ep25 onward."
+  ],
+  "next_steps": [
+    "Run b5_full_v1/phase2 to compare phase2 arch_style accuracy on full images vs. crops (crops may hurt arch_style if street context is informative).",
+    "Consider a hybrid: use crops for stories/cladding heads, full images for setting head — requires architectural change (two encoders or multi-scale input).",
+    "Given setting is better with full images, any production model should either use full images or add a secondary branch for setting."
+  ]
+}
