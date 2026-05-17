@@ -1,0 +1,53 @@
+{
+  "summary": "EfficientNet-B5 Phase 2 on crops dataset, second attempt. lr=5e-5 (down from 1.5e-4 in b5_crop_v1/phase2), backbone-lr-scale=0.33, wd=0.01, bs=12, grad-accum-steps=2, 30 epochs. Loaded phase1 checkpoint. Best overall accuracy 75.51% at epoch 3 — +1.01pp vs b5_crop_v1/phase2 (74.50%). Same plateau pattern: peaked at ep3, oscillated 74.7-75.5% for remaining 27 epochs with no further improvement. val_loss climbed from 0.882 to 1.039 (slower than v1's 0.886→1.281, but same direction). Lower lr reduced calibration damage but did not resolve the fundamental plateau.",
+  "hyperparams": {
+    "backbone": "efficientnet_b5",
+    "image_size": 456,
+    "dataset": "crops/data2 (456px building crops)",
+    "lr": 5e-5,
+    "backbone_lr": 1.65e-5,
+    "backbone_lr_scale": 0.33,
+    "weight_decay": 0.01,
+    "batch_size": 12,
+    "grad_accum_steps": 2,
+    "effective_batch_size": 24,
+    "epochs": 30,
+    "load_checkpoint": "outputs/data2/b5_crop_v1/phase1/best_model_phase1.pth",
+    "freeze_phase1_heads": false
+  },
+  "results": {
+    "best_epoch": 3,
+    "best_overall_acc": 0.7551,
+    "per_task_at_best": {
+      "architectural_style": 0.7362,
+      "building_form": 0.6597,
+      "stories": 0.7352,
+      "roof_type": 0.6361,
+      "primary_cladding": 0.7462,
+      "chimney_present": 0.9434,
+      "setting_exact": 0.7050
+    },
+    "last_epoch": 30,
+    "last_overall_acc": 0.7484,
+    "train_loss_ep3": 0.4266,
+    "val_loss_ep3": 0.8825,
+    "val_loss_ep30": 1.0386
+  },
+  "comparison": {
+    "vs_b5_crop_v1_phase2": "+1.01pp overall (75.51% vs 74.50%). Lower lr modestly improved all per-task results and significantly reduced val_loss divergence (1.039 vs 1.281 at ep30). But the plateau pattern is identical — peaked early, no improvement after.",
+    "vs_b5_crop_v1_phase1": "Phase 1 task regression persists: stories 76.49%→73.52% (-2.97pp), roof_type 67.22%→63.61% (-3.61pp), primary_cladding 77.46%→74.62% (-2.84pp). Less severe than v1/phase2 but still real. Backbone interference is still happening.",
+    "vs_resnet50_phase2": "arch_style 73.62% vs 70.76% ResNet50 (+2.86pp). B5+crops still wins on the new phase2 tasks despite the plateau."
+  },
+  "learnings": [
+    "Lower lr (5e-5 vs 1.5e-4) is better — less val_loss divergence, slightly higher peak accuracy — but does not fix the root cause.",
+    "Root cause confirmed: the plateau is not an lr problem. The backbone is simultaneously being pulled by 7 task heads from two phases with conflicting gradient signals. New heads (arch_style, building_form) are at random init while phase1 heads are fully converged — the optimizer cannot satisfy both simultaneously.",
+    "Two lr experiments (1.5e-4 and 5e-5) both peaked at ep1-3 and plateaued. Further lr reduction is unlikely to help — the gradient conflict is structural.",
+    "Next required experiment: --freeze-phase1-heads. This locks phase1 head weights so only the backbone and new heads receive updates. Expected outcome: phase1 task accuracy holds at phase1 levels (frozen heads = no regression), new heads converge properly over 10-15 epochs.",
+    "After freeze warmup (e.g. 15 epochs), optionally unfreeze all heads with a very low lr (1e-5) for joint fine-tuning."
+  ],
+  "next_steps": [
+    "b5_crop_v3/phase2: --freeze-phase1-heads, lr=1e-4 (new heads need reasonable lr to converge from random init), backbone-lr-scale=0.1 (backbone at 1e-5, very conservative).",
+    "Success criterion: phase1 tasks (stories, cladding, roof_type) should hold within 1pp of phase1 baseline. arch_style should reach ≥75% by ep15.",
+    "If freeze run succeeds, consider a second stage: resume from b5_crop_v3 best checkpoint, unfreeze all heads, lr=1e-5 across the board for final joint polish."
+  ]
+}

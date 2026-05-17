@@ -50,6 +50,7 @@ from __future__ import annotations
 
 from pathlib import Path
 from typing import Callable, Dict, List, Optional, Tuple, Union
+from urllib.parse import unquote
 
 import pandas as pd
 import torch
@@ -419,12 +420,13 @@ class ArchitecturalDataset(Dataset):
         row = self.df.iloc[idx]
 
         # ── Image ─────────────────────────────────────────────────────────
-        img_path = self.image_root / row["image_path"]
+        raw_image_path = unquote(row["image_path"])
+        img_path = self.image_root / raw_image_path
 
         # If a cropped_root is configured, prefer the pre-cropped version.
         if self.cropped_root is not None:
-            stem    = Path(row["image_path"]).stem
-            img_par = Path(row["image_path"]).parent
+            stem    = Path(raw_image_path).stem
+            img_par = Path(raw_image_path).parent
             # Strip the data-root prefix (first path component, e.g. "data2")
             # so the lookup is <cropped_root>/Cole/x_crop.jpg, not
             # <cropped_root>/data2/Cole/x_crop.jpg.
