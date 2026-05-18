@@ -75,6 +75,7 @@ class RunConfig:
     # ── Warm-start / transfer learning ────────────────────────────────────────
     load_checkpoint: Optional[str] = None   # path to checkpoint loaded before phase 1
     freeze_phase1_heads: bool = False       # Stage 1 of two-stage Phase 2 training
+    freeze_backbone: bool = False           # Freeze backbone entirely; only heads are updated
 
     # ── Preprocessing decisions ───────────────────────────────────────────────
     roof_type_encoding: str = "single_label_compound"   # or "multi_label_19"

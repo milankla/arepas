@@ -513,6 +513,7 @@ def progressive_training_pipeline(
     model_config_path: str = "",
     initial_checkpoint: Optional[str] = None,
     freeze_phase1_heads: bool = False,
+    freeze_backbone: bool = False,
     cropped_root: Optional[str] = None,
     backbone_lr_scale: Optional[float] = None,
     force_overwrite: bool = False,
@@ -579,6 +580,7 @@ def progressive_training_pipeline(
         early_stopping_patience=early_stopping_patience,
         load_checkpoint=initial_checkpoint,
         freeze_phase1_heads=freeze_phase1_heads,
+        freeze_backbone=freeze_backbone,
         run_name=run_name or "",
     )
     # Derive output dir from the auto-slug if not explicitly provided.
@@ -639,7 +641,7 @@ def progressive_training_pipeline(
             backbone=model_config.backbone,
             weights="DEFAULT",
             active_phase=phase,
-            freeze_backbone=False,
+            freeze_backbone=run_cfg.freeze_backbone,
             num_classes=num_classes,   # data-driven head sizes
         )
 
@@ -811,6 +813,14 @@ if __name__ == "__main__":
         ),
     )
     parser.add_argument(
+        "--freeze-backbone", action="store_true", default=False,
+        help=(
+            "Freeze all backbone weights for the entire training run. "
+            "Only task heads are updated. Useful for testing whether phase2 "
+            "plateaus are caused by backbone drift or head capacity limits."
+        ),
+    )
+    parser.add_argument(
         "--backbone-lr-scale", type=float, default=None,
         help=(
             "When set, uses differential learning rates: backbone LR = lr * backbone_lr_scale, "
@@ -888,6 +898,7 @@ if __name__ == "__main__":
         model_config_path=args.model_config,
         initial_checkpoint=initial_checkpoint,
         freeze_phase1_heads=args.freeze_phase1_heads,
+        freeze_backbone=args.freeze_backbone,
         cropped_root=args.cropped_root,
         backbone_lr_scale=args.backbone_lr_scale,
         force_overwrite=args.force_overwrite,
