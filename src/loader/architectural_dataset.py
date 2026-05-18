@@ -50,7 +50,7 @@ from __future__ import annotations
 
 from pathlib import Path
 from typing import Callable, Dict, List, Optional, Tuple, Union
-from urllib.parse import unquote
+from urllib.parse import quote, unquote
 
 import pandas as pd
 import torch
@@ -420,8 +420,16 @@ class ArchitecturalDataset(Dataset):
         row = self.df.iloc[idx]
 
         # ── Image ─────────────────────────────────────────────────────────
+        # Normalise to decoded form (literal chars) as the canonical path.
+        # Fall back to URL-encoded form for machines that store files with
+        # percent-encoded names (e.g. %26 for &, %27 for ', %2C for ,).
         raw_image_path = unquote(row["image_path"])
         img_path = self.image_root / raw_image_path
+        if not img_path.exists():
+            encoded = quote(raw_image_path, safe="/._-~")
+            alt = self.image_root / encoded
+            if alt.exists():
+                img_path = alt
 
         # If a cropped_root is configured, prefer the pre-cropped version.
         if self.cropped_root is not None:

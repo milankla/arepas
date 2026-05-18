@@ -1,0 +1,39 @@
+{
+  "summary": "EfficientNet-B5 Phase 2 (frozen phase1 heads) on crops dataset. lr=1e-4, backbone-lr-scale=0.1, wd=0.01, bs=12, grad-accum-steps=2, 30 epochs. Loaded phase1 checkpoint. Phase1 heads frozen for all epochs. Best overall accuracy 75.87% at epoch 3. New tasks (arch_style, building_form) converged quickly but plateaued at lower accuracy than hoped. Phase1 tasks regressed despite frozen heads, confirming backbone drift is the limiting factor.",
+  "hyperparams": {
+    "backbone": "efficientnet_b5",
+    "image_size": 456,
+    "dataset": "crops/data2 (456px building crops)",
+    "lr": 1e-4,
+    "backbone_lr": 1e-5,
+    "backbone_lr_scale": 0.1,
+    "weight_decay": 0.01,
+    "batch_size": 12,
+    "grad_accum_steps": 2,
+    "effective_batch_size": 24,
+    "epochs": 30,
+    "load_checkpoint": "outputs/data2/b5_crop_v1/phase1/best_model_phase1.pth",
+    "freeze_phase1_heads": true
+  },
+  "results": {
+    "best_epoch": 3,
+    "best_overall_acc": 0.7587,
+    "per_task_at_best": {
+      "architectural_style": 0.7198,
+      "building_form": 0.6538,
+      "stories": 0.7572,
+      "roof_type": 0.6369,
+      "primary_cladding": 0.7649
+    }
+  },
+  "comparison": {
+    "vs_b5_crop_v2_phase2": "+0.34pp overall (75.87% vs 75.51%). Freezing phase1 heads did not prevent regression on phase1 tasks — backbone drift is the limiting factor.",
+    "vs_b5_full_v2_phase2": "Crops: overall 75.87%, arch_style 71.98%. Full: overall 74.41%, arch_style 73.03%. Crops win on stories (+3.7pp) and cladding (+4.5pp), full images win on arch_style (+1.1pp)."
+  },
+  "learnings": [
+    "Freezing phase1 heads does not prevent regression on phase1 tasks — the backbone is still being pulled by new heads.",
+    "New tasks (arch_style, building_form) plateau at 72%/65% — same as previous runs. The backbone is at capacity for this dataset.",
+    "Crops win on stories and cladding, full images win on arch_style. The tradeoff is real and persistent.",
+    "Further improvement likely requires more data or a multi-encoder architecture."
+  ]
+}
