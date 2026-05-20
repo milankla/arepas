@@ -67,6 +67,21 @@ Require historical comparison or expert architectural knowledge:
 
 ## 🎯 Progressive Training Strategy
 
+> **Architecture note (updated):** Task heads are now **data-driven**, not
+> phase-gated.  The model builds a head for every task listed in
+> `TRAINING_LABEL_COLS` (in `src/loader/architectural_dataset.py`) — no more,
+> no less.  Adding a new task (e.g. `building_category`) requires only two
+> steps: (1) add it to `TRAINING_LABEL_COLS`, and (2) ensure a loss config
+> entry exists in the appropriate `TaskConfig` group in
+> `src/models/multi_task_classifier.py`.  The `active_phase` parameter on
+> the model is kept for checkpoint naming and the `freeze_phase1_heads` warm-up
+> logic but no longer gates which heads are built.
+>
+> **`alteration_level` is currently in `TRAINING_LABEL_COLS`** — it is trained
+> from Phase 1 alongside the other 7 tasks despite being classified as
+> "VERY_HARD" in `TaskConfig`.  The difficulty tier is a loss-config hint
+> (weight, focal-loss settings), not a training-phase gate.
+
 ### **Phase 1: Parallel Pipeline Development (Weeks 1-4)**
 **Goal:** Build preprocessing pipeline (Track 1) while establishing baseline model (Track 2)
 
@@ -277,7 +292,10 @@ Total Loss = 0.15  * L_stories
 
 **New Tasks (4 advanced tasks):**
 - Building Plan (Rectangular, L-shape, T-shape, Irregular)
-- Building Category (Residential-Single, Multi-family, Commercial, Mixed-use)
+- Building Category (Agricultural, Commercial, Other, Residential) — to activate,
+  add `building_category` to `TRAINING_LABEL_COLS` in
+  `src/loader/architectural_dataset.py`; the `TaskConfig.MEDIUM_TASKS` loss config
+  is already registered.
 - Current Use (Residential, Commercial, Institutional, Vacant)
 - Original Use (Historical usage - requires domain knowledge)
 
@@ -324,7 +342,11 @@ Total Loss = 0.15  * L_stories
 ### **Phase 4: Alteration Detection (Weeks 9-10) - RESEARCH PHASE**
 **Goal:** Experimental - Tackle **HARDEST TASKS**
 
-**New Tasks:** Alteration Level, Alterations-Windows, Alterations-Roof, Alterations-Cladding
+**Note:** `alteration_level` is already in `TRAINING_LABEL_COLS` and is trained
+from Phase 1 alongside all other tasks.  Only the sub-tasks below remain truly
+deferred:
+
+**New Tasks:** Alterations-Windows, Alterations-Roof, Alterations-Cladding
 
 **Why This Is Hard:**
 - Requires knowing **original design** (historical knowledge)

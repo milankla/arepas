@@ -80,19 +80,22 @@ IMAGE_ROOT_DEFAULT = "."
 IMAGE_SIZE        = 224
 RANDOM_STATE      = 42
 
-# Label columns expected in the CSV.  The same fields apply to both the
-# data/ and data2/ datasets for Phase 1 training.
-PHASE1_LABEL_COLS: List[str] = [
+# Label columns that are actively trained in the current dataset.
+# Adding a new task here (e.g. building_category) is all that's needed
+# to make the data loader encode it and expose it to the training loop.
+# The model will automatically build a head for it via _build_task_heads.
+TRAINING_LABEL_COLS: List[str] = [
     "architectural_style",
     "building_form",
     "roof_type",
     "primary_cladding",
     "stories",
     "alteration_level",
-    "setting",           # schema 'multi': building’s relation to adjacent lots/street
+    "setting",           # schema 'multi': building's relation to adjacent lots/street
     "chimney_present",   # derived: "Yes"/"No" gate from Chimney multipart column
 ]
-LABEL_COLS = PHASE1_LABEL_COLS   # dataset-agnostic alias
+PHASE1_LABEL_COLS = TRAINING_LABEL_COLS  # backward-compat alias — prefer TRAINING_LABEL_COLS
+LABEL_COLS = TRAINING_LABEL_COLS   # dataset-agnostic alias
 
 # Split column — used for stratification
 STRATIFY_COL = "architectural_style"
@@ -383,7 +386,7 @@ class ArchitecturalDataset(Dataset):
 
     Args:
         df:             DataFrame slice (train / val / test rows).
-        label_encoders: Shared dict of fitted encoders, one per PHASE1_LABEL_COLS.
+        label_encoders: Shared dict of fitted encoders, one per TRAINING_LABEL_COLS.
                         Single-label cols → LabelEncoder; multi-label cols
                         (currently roof_type) → MultiLabelBinarizer.
         image_root:     Base path; image_path column values are joined to it.
@@ -453,7 +456,7 @@ class ArchitecturalDataset(Dataset):
 
         # ── Labels ────────────────────────────────────────────────────────
         labels: Dict[str, Tensor] = {}
-        for col in PHASE1_LABEL_COLS:
+        for col in TRAINING_LABEL_COLS:
             raw   = row[col]
             value = normalize_value(raw)        # field_parser — single source of truth
             if col in PRE_ENCODE_TRANSFORMS:
@@ -503,7 +506,7 @@ class ArchitecturalDataset(Dataset):
             Dict mapping column name → FloatTensor of shape [n_classes].
         """
         weights: Dict[str, torch.Tensor] = {}
-        for col in PHASE1_LABEL_COLS:
+        for col in TRAINING_LABEL_COLS:
             if col in MULTILABEL_COLS:
                 continue  # BCE handles multi-label tasks directly
 
@@ -537,7 +540,7 @@ class ArchitecturalDataset(Dataset):
     def class_counts(self) -> Dict[str, Dict[str, int]]:
         """Return {col: {class_name: count}} from this split."""
         result: Dict[str, Dict[str, int]] = {}
-        for col in PHASE1_LABEL_COLS:
+        for col in TRAINING_LABEL_COLS:
             counts = self.df[col].value_counts().to_dict()
             result[col] = {str(k): int(v) for k, v in counts.items()}
         return result
@@ -627,14 +630,14 @@ def make_splits(
     logger.info(f"Loaded {len(df)} rows from {csv_path}")
 
     # ── Validate required columns ─────────────────────────────────────────
-    missing_cols = [c for c in PHASE1_LABEL_COLS if c not in df.columns]
+    missing_cols = [c for c in TRAINING_LABEL_COLS if c not in df.columns]
     if missing_cols:
         raise ValueError(f"CSV is missing required columns: {missing_cols}")
 
     # ── Drop rows with any empty label ────────────────────────────────────
     before = len(df)
-    df = df.dropna(subset=PHASE1_LABEL_COLS)
-    df = df[df[PHASE1_LABEL_COLS].apply(
+    df = df.dropna(subset=TRAINING_LABEL_COLS)
+    df = df[df[TRAINING_LABEL_COLS].apply(
         lambda col: col.map(normalize_value) != ""
     ).all(axis=1)]
     if len(df) < before:
@@ -642,7 +645,7 @@ def make_splits(
 
     # ── Fit encoders: MultiLabelBinarizer for multi-label cols, LabelEncoder for rest ──
     label_encoders: Dict[str, Union[LabelEncoder, MultiLabelBinarizer]] = {}
-    for col in PHASE1_LABEL_COLS:
+    for col in TRAINING_LABEL_COLS:
         if col in MULTILABEL_COLS:
             # Fixed schema atomics keep class order stable across datasets.
             mlb = MultiLabelBinarizer(classes=MULTILABEL_ATOMICS[col])
@@ -667,7 +670,7 @@ def make_splits(
         "Encoders fitted — class counts: "
         + ", ".join(
             f"{c}: {len(label_encoders[c].classes_)}{'(multi)' if c in MULTILABEL_COLS else ''}"
-            for c in PHASE1_LABEL_COLS
+            for c in TRAINING_LABEL_COLS
         )
     )
 

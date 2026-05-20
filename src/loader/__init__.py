@@ -9,7 +9,7 @@ from .configurable_loader import ConfigurableDataLoader, NeighborhoodData
 from .csv_parser import RobustCSVParser, CSVParseError
 from .image_index import ImageIndex
 from .schema_loader import SchemaLoader, DiscoverDenverSchema, load_schema
-from .architectural_dataset import ArchitecturalDataset, make_splits, PHASE1_LABEL_COLS, LABEL_COLS
+from .architectural_dataset import ArchitecturalDataset, make_splits, TRAINING_LABEL_COLS, PHASE1_LABEL_COLS, LABEL_COLS
 from .dataset_validator import (
     DatasetValidator,
     DatasetValidationReport,
@@ -35,6 +35,7 @@ __all__ = [
     'load_schema',
     'ArchitecturalDataset',
     'make_splits',
+    'TRAINING_LABEL_COLS',
     'PHASE1_LABEL_COLS',
     'LABEL_COLS',
     'DatasetValidator',

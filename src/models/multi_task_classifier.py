@@ -183,8 +183,12 @@ class TaskConfig:
         },
         'building_category': {
             'num_classes': 4,
-            'classes': ['Residential-Single', 'Residential-Multi', 'Commercial', 'Mixed-Use'],
-            'loss_weight': 0.10
+            # Alphabetical order matches sklearn LabelEncoder.fit() output.
+            # NOTE: building_category is NOT yet in TRAINING_LABEL_COLS.
+            # To activate training, add it there; this entry only registers
+            # the loss config so MultiTaskLoss can compute the right loss type.
+            'classes': ['Agricultural', 'Commercial', 'Other', 'Residential'],
+            'loss_weight': 0.10,
         }
     }
     
@@ -237,8 +241,15 @@ class TaskConfig:
     VERY_HARD_TASKS = {
         'alteration_level': {
             'num_classes': 5,
-            'classes': ['5-Not Altered', '4-Minimal', '3-Moderate', '2-Significant', '1-Heavily Altered'],
-            'loss_weight': 0.15
+            # Alphabetical order matches sklearn LabelEncoder.fit().
+            'classes': [
+                '1 - Completely Altered',
+                '2 - Major Alterations',
+                '3 - Moderate Alterations',
+                '4 - Minor Alterations',
+                '5 - Not Altered',
+            ],
+            'loss_weight': 0.15,
         },
         'alterations_windows': {
             'num_classes': 2,
@@ -372,31 +383,51 @@ class MultiTaskArchitecturalClassifier(nn.Module):
             return 2048
     
     def _build_task_heads(self):
-        """Build classification heads for each task based on active phase"""
-        
-        all_tasks = {}
-        
-        # Phase 1: Always include easy tasks
-        if self.active_phase >= 1:
-            all_tasks.update(TaskConfig.EASY_TASKS)
-        
-        # Phase 2: Add medium tasks
-        if self.active_phase >= 2:
-            all_tasks.update(TaskConfig.MEDIUM_TASKS)
-        
-        # Phase 3: Add hard tasks
-        if self.active_phase >= 3:
-            all_tasks.update(TaskConfig.HARD_TASKS)
-        
-        # Phase 4: Add very hard tasks
-        if self.active_phase >= 4:
-            all_tasks.update(TaskConfig.VERY_HARD_TASKS)
-        
+        """Build classification heads driven by data when num_classes is provided.
+
+        **Primary path (training / inference):** when ``num_classes`` is supplied
+        to the constructor (the normal case), heads are built for *exactly* those
+        tasks — no more, no less.  Tasks present in ``TaskConfig`` but absent
+        from ``num_classes`` are silently skipped, so untrained heads never
+        appear in inference output.  This eliminates the previous bug where
+        ``building_category`` was built as a Phase 2 head even though it was
+        never in ``TRAINING_LABEL_COLS``.
+
+        **Fallback path (no data / unit tests):** when ``num_classes`` is empty
+        the old phase-gated construction is used so the model can be
+        instantiated without a dataset (e.g. for architecture inspection).
+        """
+        # Complete registry of known task configs.
+        all_known: Dict[str, Dict] = {
+            **TaskConfig.EASY_TASKS,
+            **TaskConfig.MEDIUM_TASKS,
+            **TaskConfig.HARD_TASKS,
+            **TaskConfig.VERY_HARD_TASKS,
+        }
+
+        if self._num_classes_override:
+            # Data-driven: build exactly the tasks the dataset provides labels for.
+            tasks_to_build: Dict[str, Dict] = {
+                task: all_known.get(task, {'num_classes': n})
+                for task, n in self._num_classes_override.items()
+            }
+        else:
+            # Fallback: phase-gated construction (backward compat / no-data path).
+            tasks_to_build = {}
+            if self.active_phase >= 1:
+                tasks_to_build.update(TaskConfig.EASY_TASKS)
+            if self.active_phase >= 2:
+                tasks_to_build.update(TaskConfig.MEDIUM_TASKS)
+            if self.active_phase >= 3:
+                tasks_to_build.update(TaskConfig.HARD_TASKS)
+            if self.active_phase >= 4:
+                tasks_to_build.update(TaskConfig.VERY_HARD_TASKS)
+
         # Build heads.
         # Style-group tasks (architectural_style, building_form, roof_type) receive
         # the 512-dim output of style_group_fc — their heads are a single Linear.
         # All other tasks get their own 2-layer projection from backbone features.
-        for task_name, task_config in all_tasks.items():
+        for task_name, task_config in tasks_to_build.items():
             # Data-driven count from the caller (train_ds.num_classes) takes
             # precedence over the static placeholder in TaskConfig.
             num_classes = self._num_classes_override.get(
@@ -521,17 +552,18 @@ class MultiTaskLoss(nn.Module):
         losses = {}
         total_loss = 0.0
         
-        # Get all active task configs
-        all_tasks = {}
-        if self.active_phase >= 1:
-            all_tasks.update(TaskConfig.EASY_TASKS)
-        if self.active_phase >= 2:
-            all_tasks.update(TaskConfig.MEDIUM_TASKS)
-        if self.active_phase >= 3:
-            all_tasks.update(TaskConfig.HARD_TASKS)
-        if self.active_phase >= 4:
-            all_tasks.update(TaskConfig.VERY_HARD_TASKS)
-        
+        # Loss is computed for every task where both a prediction and a target are
+        # available.  The full registry is used here so new tasks don't need a
+        # phase-number bump just to participate in loss computation.  The guard
+        # below ('if task_name not in predictions or task_name not in targets')
+        # already handles tasks that are absent from the current batch.
+        all_tasks = {
+            **TaskConfig.EASY_TASKS,
+            **TaskConfig.MEDIUM_TASKS,
+            **TaskConfig.HARD_TASKS,
+            **TaskConfig.VERY_HARD_TASKS,
+        }
+
         # Calculate loss for each task
         for task_name, task_config in all_tasks.items():
             if task_name not in predictions or task_name not in targets:

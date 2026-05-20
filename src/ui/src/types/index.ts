@@ -109,3 +109,44 @@ export interface EpochRecord {
   val_losses: Record<string, number>;
   val_metrics: Record<string, Record<string, number> | number>;
 }
+
+// ---------------------------------------------------------------------------
+// Inference
+// ---------------------------------------------------------------------------
+
+export interface CheckpointInfo {
+  id: string;
+  checkpoint_path: string;
+  backbone: string;
+  phase: number;
+  best_overall_acc: number;
+  dataset_version: string;
+  timestamp: string;
+  run_name: string;
+  input_type: "crop" | "full";
+}
+
+export interface ClassConfidence {
+  label: string;
+  confidence: number; // 0–100
+}
+
+export interface TaskResult {
+  task: string;
+  predicted: string;
+  confidence: number; // 0–100
+  top3: ClassConfidence[];
+}
+
+export interface ImageResult {
+  filename: string;
+  tasks: TaskResult[];
+  auto_cropped: boolean;
+  cropped_image_b64?: string | null;
+}
+
+export interface InferenceResponse {
+  per_image: ImageResult[];
+  aggregated: TaskResult[] | null;
+  auto_cropped: boolean;
+}

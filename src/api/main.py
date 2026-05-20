@@ -11,6 +11,7 @@ from fastapi.staticfiles import StaticFiles
 
 from src.api.routers import datasets, runs
 from src.api.routers.datasets import DATASETS
+from src.api.routers import inference
 
 app = FastAPI(title="Arepas API", version="0.1.0")
 
@@ -20,7 +21,7 @@ app = FastAPI(title="Arepas API", version="0.1.0")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
-    allow_methods=["GET"],
+    allow_methods=["GET", "POST"],
     allow_headers=["*"],
 )
 
@@ -46,3 +47,4 @@ for ds_name, ds_meta in DATASETS.items():
 # ---------------------------------------------------------------------------
 app.include_router(datasets.router, prefix="/api")
 app.include_router(runs.router, prefix="/api")
+app.include_router(inference.router, prefix="/api")

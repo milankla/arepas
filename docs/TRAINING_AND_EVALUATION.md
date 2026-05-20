@@ -335,3 +335,39 @@ runs) by default. Pass `--skip-smoke-tests false` to include them.
 | `outputs_data2/` | `data2/` | multi-label (19 classes) | epoch 5 (patience=5) | data2 baseline |
 | `outputs_data2_v2/` | `data2/` | single-label (13 classes) | epoch 5 (patience=5) | +Compound folding |
 | `outputs_data2_v3/` | `data2/` | single-label (13 classes) | epoch 30 (no patience) | Best accuracy: 77.21% |
+
+---
+
+## Adding a New Training Task
+
+The model constructs heads **data-driven**: it builds exactly one head per task
+listed in `TRAINING_LABEL_COLS` in `src/loader/architectural_dataset.py`.
+
+**Steps to add a task (e.g. `building_category`):**
+
+1. **Register a loss config** — confirm an entry exists in `TaskConfig` in
+   `src/models/multi_task_classifier.py` (e.g. in `MEDIUM_TASKS`).  Set a
+   meaningful `loss_weight`; the classes list is informational only (the data
+   drives actual class count at runtime).
+
+2. **Activate in `TRAINING_LABEL_COLS`** — add the column name to the list:
+   ```python
+   TRAINING_LABEL_COLS: List[str] = [
+       ...,
+       "building_category",   # ← add here
+   ]
+   ```
+
+3. **Verify the CSV** — run a quick check that the column exists and has
+   acceptable coverage:
+   ```bash
+   python -c "
+   import pandas as pd
+   df = pd.read_csv('data2/image_label_mapping_phase1.csv')
+   print(df['building_category'].value_counts(dropna=False))
+   "
+   ```
+
+4. **Train** — no other code changes required.  The trainer auto-builds the
+   new head and `MultiTaskLoss` automatically computes its loss each batch.
+

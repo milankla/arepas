@@ -662,7 +662,12 @@ def progressive_training_pipeline(
             # heads + backbone can update.  Phase 1 head weights are preserved
             # from the loaded checkpoint.
             if freeze_phase1_heads and phase == start_phase:
-                phase1_names = set(TaskConfig.EASY_TASKS.keys())
+                # Freeze the heads that were present in the loaded checkpoint
+                # (i.e. everything trained in the prior run), not just the static
+                # EASY_TASKS set.  This correctly handles runs that started with
+                # a full TRAINING_LABEL_COLS task list (which includes
+                # architectural_style and alteration_level — absent from EASY_TASKS).
+                phase1_names = set(ckpt.get("num_classes", {}).keys())
                 frozen_count = 0
                 for task_name, head_module in model.task_heads.items():
                     if task_name in phase1_names:

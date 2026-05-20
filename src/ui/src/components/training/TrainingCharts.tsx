@@ -37,7 +37,7 @@ const PALETTE = [
 export type RunHistoryMap = Record<string, EpochRecord[]>;
 
 // All tasks that can appear in per-task metric charts
-const PHASE1_TASKS = ["stories", "roof_type", "primary_cladding", "chimney_present", "setting"];
+const PHASE1_TASKS = ["stories", "roof_type", "primary_cladding", "chimney_present", "setting", "alteration_level"];
 const PHASE2_TASKS = ["architectural_style", "building_form"];
 const ALL_TASKS = [...PHASE1_TASKS, ...PHASE2_TASKS];
 
