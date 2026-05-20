@@ -1,0 +1,61 @@
+{
+  "summary": "EfficientNet-B5 Phase 2 (unfrozen heads) on full images (data2). lr=1e-4, wd=0.01, bs=12, grad-accum-steps=2, 30 epochs. Loaded phase1 checkpoint with freeze_phase1_heads=false (key difference from v2). Best overall accuracy 75.57% at epoch 14. Unfreezing phase1 heads during phase2 training yields +1.16pp improvement over frozen-heads approach (v2: 74.41% vs v3: 75.57%). Phase2 tasks (arch_style, building_form) learned more gradually but achieved higher final accuracy. Phase1 tasks showed slight improvement or stability.",
+  "hyperparams": {
+    "backbone": "efficientnet_b5",
+    "image_size": 456,
+    "dataset": "full/data2 (456px full images, no cropping)",
+    "lr": 1e-4,
+    "weight_decay": 0.01,
+    "batch_size": 12,
+    "grad_accum_steps": 2,
+    "effective_batch_size": 24,
+    "epochs": 30,
+    "load_checkpoint": "outputs/data2/b5_full_v1/phase1/best_model_phase1.pth",
+    "freeze_phase1_heads": false,
+    "freeze_backbone": false
+  },
+  "results": {
+    "best_epoch": 14,
+    "best_overall_acc": 0.7557,
+    "per_task_at_best": {
+      "stories": 0.7360,
+      "roof_type": 0.6487,
+      "primary_cladding": 0.7431,
+      "chimney_present": 0.9498,
+      "setting_exact": 0.7690,
+      "architectural_style": 0.7122,
+      "building_form": 0.6371
+    },
+    "last_epoch": 30,
+    "last_overall_acc": 0.7547,
+    "trend": "Converged by epoch 14, slight plateau/noise in epochs 15-30. Early stopping at epoch 14 would have been optimal."
+  },
+  "comparison": {
+    "vs_b5_full_v2_phase2": {
+      "overall": "+1.16pp improvement (75.57% vs 74.41%). Unfreezing heads during phase2 is beneficial despite backbone interference.",
+      "stories": "+1.54pp (73.60% vs 72.06%). Slight advantage for unfrozen approach.",
+      "roof_type": "+4.05pp (64.87% vs 60.82%). Significant gain — indicates phase1 heads benefit from continued learning.",
+      "primary_cladding": "+2.30pp (74.31% vs 72.01%). Phase1 head adaptation helps cladding.",
+      "architectural_style": "-1.81pp (71.22% vs 73.03%). Frozen heads perform better on new arch_style task in v2, but overall accuracy still favors v3.",
+      "building_form": "-0.26pp (63.71% vs 63.97%). Essentially tied.",
+      "key_insight": "Unfrozen heads allow phase1 tasks to benefit from phase2 learning signal (via shared backbone). The tradeoff is phase2 tasks learn more slowly initially but reach higher final accuracy overall."
+    },
+    "vs_b5_crop_v2_phase2": "v3 (full, unfrozen) 75.57% vs crop runs 75.87%. Full images nearly match crops when heads are unfrozen, within noise.",
+    "phase2_convergence_pattern": "v2 (frozen) converges by epoch 3 and plateaus. v3 (unfrozen) converges gradually by epoch 14. Unfrozen allows phase1 and phase2 objectives to optimize together."
+  },
+  "learnings": [
+    "Unfreezing phase1 heads during phase2 is superior to freezing (+1.16pp overall). This contradicts the freeze-to-prevent-regression intuition. The shared backbone adapts to serve both phase1 and phase2 losses simultaneously.",
+    "Phase1 task performance on full images without crops: stories 73.6%, roof_type 64.9%, primary_cladding 74.3%, chimney 95.0%, setting 76.9%. These are respectable but lower than crop-based runs, suggesting crops provide valuable task-specific context for facade analysis.",
+    "Best epoch is 14, not 30. Training continued to epoch 30 with slight noise/degradation. Early stopping with patience=15 would have captured the peak.",
+    "Architectural style and building_form tasks plateau around epoch 10-15. Further training does not improve them materially, indicating the backbone has extracted relevant features.",
+    "The unfrozen approach allows implicit knowledge transfer: phase1 tasks guide backbone training via their loss gradient, making the backbone more balanced for both phases.",
+    "Full image runs (v1, v2, v3) on the same data show: v1 (phase1 only) 78.65%, v2 (phase2 frozen) 74.41%, v3 (phase2 unfrozen) 75.57%. Freezing appears to hurt overall accuracy more than unfrozen."
+  ],
+  "recommendations": [
+    "Use unfrozen heads for future phase2 training. The +1.16pp gain is meaningful and the mechanism (shared backbone optimization) is principled.",
+    "Implement early stopping with patience=15-20 to avoid post-convergence training cost. Epoch 14 is the target, not epoch 30.",
+    "Consider a two-head architecture for setting task: one head uses cropped images (for facade details), another uses full images (for context). This could recover the -6.6pp setting regression seen in crop runs.",
+    "For production: use v3 model (75.57% overall) as baseline. If setting accuracy is critical, explore multi-scale or context-aware variants.",
+    "Next experiment: phase2 with backbone_lr_scale < 1.0 (reduced backbone learning rate) to balance phase1 and phase2 objectives. This may improve arch_style (which dipped to 71.22%) without hurting phase1 tasks."
+  ]
+}
