@@ -1,0 +1,19 @@
+{
+  "summary": "EfficientNet-B5 Phase 2 frozen-head run on cropped images. Completed all 30 epochs. Best overall accuracy was 68.14% at epoch 30, far below the strongest cropped Phase 2 run b5_crop_v3 at 75.87% and full-image b5_full_v3 at 75.58%. Architectural_style improved steadily to 73.75% (+1.77pp vs b5_crop_v3), but this came with severe regression on phase 1 tasks: primary_cladding 77.46% phase1 best -> 55.75% (-21.72pp), roof_type 67.22% -> 48.35% (-18.87pp), and stories 76.49% -> 69.50% (-6.99pp). Building_form also underperformed badly at 54.21% (-11.17pp vs b5_crop_v3). This confirms frozen phase 1 heads are not a safe preservation strategy when the backbone remains trainable.",
+  "learnings": [
+    "freeze_phase1_heads=True did not preserve phase 1 accuracy. The frozen heads could not re-align as the shared backbone representation shifted during Phase 2 training, causing catastrophic forgetting by proxy.",
+    "The run improved architectural_style over previous cropped/full Phase 2 baselines (73.75% vs 71.98% b5_crop_v3 and 71.22% b5_full_v3), but the gain was not useful because it was bought with very large losses in primary_cladding, roof_type, stories, and building_form.",
+    "primary_cladding and roof_type are the clearest failure signals: -20.74pp and -15.34pp vs b5_crop_v3 respectively. These are too large to treat as normal phase 2 tradeoffs.",
+    "building_form lagged throughout training, ending at 54.21% vs 65.38% for b5_crop_v3 and 63.71% for b5_full_v3. Freezing prior heads did not help the new form head learn a better representation.",
+    "Overall accuracy climbed monotonically from 56.74% to 68.14%, so the run was still learning at epoch 30, but it was learning the wrong compromise: architectural_style improved while core phase 1 tasks remained badly degraded.",
+    "The command used --backbone-lr-scale 0.1 and --scheduler cosine, and train_multi_task.py passes those parsed values into MultiTaskTrainer. The saved per-phase run_config.json is incomplete because the phase_cfg snapshot does not copy backbone_lr_scale, scheduler, freeze_backbone, or cropped_root from the top-level RunConfig. Interpret the training behavior from the CLI command, not the stale defaults in run_config.json.",
+    "This result supersedes the earlier hypothesis that freezing phase 1 heads would isolate phase 2 learning. The empirical rule should be: do not freeze task heads while the backbone is trainable. Either freeze the backbone too for a short true head-only warmup, or keep heads unfrozen with differential learning rates."
+  ],
+  "next_steps": [
+    "Do not use b5_crop_v5 as a production or comparison-best checkpoint. Keep it as a negative-control run documenting frozen-head failure.",
+    "For the next Phase 2 run, use no --freeze-phase1-heads. Start from b5_crop_v1/phase1 and use differential LR groups so the backbone moves slowly while phase 1 and phase 2 heads can adapt together.",
+    "Prefer the current best baselines for evaluation: b5_crop_v3/phase2 (75.87%) and b5_full_v3/phase2 (75.58%). Use v5 only to justify avoiding frozen-head training.",
+    "Fix train_multi_task.py so the per-phase RunConfig snapshot persists backbone_lr_scale, scheduler, freeze_backbone, and cropped_root. Until then, do not rely on run_config.json alone for those fields in existing runs.",
+    "Highest-value next experiment: mixed full/crop or task-routed crop/full training, because current results show crops win facade/style tasks while full images win setting and sometimes roof_type."
+  ]
+}

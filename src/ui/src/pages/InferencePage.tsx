@@ -1,4 +1,4 @@
-import { Alert, Box, CircularProgress, Typography } from "@mui/material";
+import { Alert, Box, Chip, CircularProgress, Typography } from "@mui/material";
 import CropIcon from "@mui/icons-material/Crop";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { AppShell } from "@/components/layout/AppShell";
@@ -116,6 +116,11 @@ export default function InferencePage() {
     return medals;
   }, [checkpoints, phaseFilter]);
 
+  const activeCkpt = useMemo(
+    () => checkpoints.find((c) => c.checkpoint_path === selectedCkpt) ?? null,
+    [checkpoints, selectedCkpt]
+  );
+
   const sidebar = (
     <InferenceSidebar
       checkpoints={checkpoints}
@@ -167,6 +172,22 @@ export default function InferencePage() {
           <Typography variant="subtitle2" sx={styles.perImageLabel}>
             {result.per_image.length === 1 ? "Result" : `Per-image results (${result.per_image.length})`}
           </Typography>
+          {activeCkpt && (
+            <Box sx={{ display: "flex", gap: 0.5, flexWrap: "wrap", mb: 1.5 }}>
+              {[
+                activeCkpt.backbone,
+                `ph${activeCkpt.phase}`,
+                `acc ${activeCkpt.best_overall_acc.toFixed(1)}%`,
+                `lr ${activeCkpt.lr.toExponential(0)}`,
+                activeCkpt.backbone_lr_scale != null ? `bb×${activeCkpt.backbone_lr_scale}` : "bb free",
+                activeCkpt.scheduler,
+                activeCkpt.freeze_phase1_heads ? "frozen" : "unfrozen",
+                activeCkpt.input_type,
+              ].map((p) => (
+                <Chip key={p} label={p} size="small" variant="outlined" sx={{ fontSize: 10, height: 18 }} />
+              ))}
+            </Box>
+          )}
           {result.per_image.map((img, i) => (
             <ImageResultPanel
               key={i}

@@ -120,9 +120,9 @@ export function InferenceSidebar({
             {visibleCheckpoints.map((ckpt) => (
               <MenuItem key={ckpt.checkpoint_path} value={ckpt.checkpoint_path}>
                 <Box sx={{ width: "100%" }}>
-                  <Stack direction="row" alignItems="center" gap={1}>
-                    <Typography variant="body2" fontWeight={600} noWrap flex={1}>
-                      {ckpt.id}
+                  <Stack direction="row" alignItems="center" gap={0.75}>
+                    <Typography variant="body2" fontWeight={700} noWrap flex={1}>
+                      {ckpt.short_name}
                     </Typography>
                     {medalMap[ckpt.checkpoint_path] && (
                       <Box component="span" sx={{ fontSize: "1rem", lineHeight: 1, flexShrink: 0 }}>
@@ -130,15 +130,18 @@ export function InferenceSidebar({
                       </Box>
                     )}
                     <Chip
-                      label={ckpt.input_type === "crop" ? "crop" : "full"}
+                      label={`ph${ckpt.phase}`}
+                      size="small"
+                      variant="outlined"
+                      sx={styles.ckptChip}
+                    />
+                    <Chip
+                      label={ckpt.input_type}
                       size="small"
                       color={ckpt.input_type === "crop" ? "info" : "default"}
                       sx={styles.ckptChip}
                     />
                   </Stack>
-                  <Typography variant="caption" color="text.secondary">
-                    {ckpt.backbone} · ph{ckpt.phase} · {ckpt.best_overall_acc.toFixed(1)}% acc
-                  </Typography>
                 </Box>
               </MenuItem>
             ))}

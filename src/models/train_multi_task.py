@@ -53,6 +53,8 @@ class MultiTaskTrainer:
         backbone_lr_scale: Optional[float] = None,
         resume_from_epoch: int = 0,
         resume_checkpoint_path: Optional[str] = None,
+        scheduler: str = 'plateau',
+        num_epochs: int = 30,
     ):
         self.model = model.to(device)
         self.train_loader = train_loader
@@ -101,12 +103,22 @@ class MultiTaskTrainer:
         ).to(device)
         
         # Learning rate scheduler
-        self.scheduler = optim.lr_scheduler.ReduceLROnPlateau(
-            self.optimizer,
-            mode='min',
-            factor=0.5,
-            patience=3,
-        )
+        self._scheduler_type = scheduler
+        if scheduler == 'cosine':
+            self.scheduler = optim.lr_scheduler.CosineAnnealingLR(
+                self.optimizer,
+                T_max=num_epochs,
+                eta_min=learning_rate * 0.01,
+            )
+            logger.info(f"Scheduler: CosineAnnealingLR (T_max={num_epochs}, eta_min={learning_rate * 0.01:.2e})")
+        else:
+            self.scheduler = optim.lr_scheduler.ReduceLROnPlateau(
+                self.optimizer,
+                mode='min',
+                factor=0.5,
+                patience=3,
+            )
+            logger.info("Scheduler: ReduceLROnPlateau (factor=0.5, patience=3)")
         
         # Tracking — pre-populated when resuming from a crashed run.
         self.best_val_loss = float('inf')
@@ -275,7 +287,10 @@ class MultiTaskTrainer:
             train_losses = self.train_epoch(epoch)
             val_losses, val_metrics = self.validate(epoch)
 
-            self.scheduler.step(val_losses['total'])
+            if self._scheduler_type == 'cosine':
+                self.scheduler.step()
+            else:
+                self.scheduler.step(val_losses['total'])
             self._log_epoch_results(epoch, train_losses, val_losses, val_metrics)
             self._save_training_history()
             if self.experiment_logger is not None:
@@ -385,8 +400,11 @@ class MultiTaskTrainer:
             path = self.output_dir / f'best_model_phase{self.model.active_phase}.pth'
             torch.save(checkpoint, path)
         
-        # Save latest
+        # Save latest epoch checkpoint, removing the previous one to avoid accumulation.
         path = self.output_dir / f'checkpoint_epoch{epoch}.pth'
+        prev_epoch_ckpt = self.output_dir / f'checkpoint_epoch{epoch - 1}.pth'
+        if prev_epoch_ckpt.exists():
+            prev_epoch_ckpt.unlink()
         torch.save(checkpoint, path)
         
         # Save training history
@@ -518,6 +536,7 @@ def progressive_training_pipeline(
     backbone_lr_scale: Optional[float] = None,
     force_overwrite: bool = False,
     resume_from_epoch: int = 0,
+    scheduler: str = 'plateau',
 ) -> None:
     """Dataset- and model-agnostic progressive training pipeline.
 
@@ -581,6 +600,8 @@ def progressive_training_pipeline(
         load_checkpoint=initial_checkpoint,
         freeze_phase1_heads=freeze_phase1_heads,
         freeze_backbone=freeze_backbone,
+        backbone_lr_scale=backbone_lr_scale,
+        scheduler=scheduler,
         run_name=run_name or "",
     )
     # Derive output dir from the auto-slug if not explicitly provided.
@@ -696,6 +717,8 @@ def progressive_training_pipeline(
                 backbone_lr_scale=backbone_lr_scale,
                 resume_from_epoch=resume_from_epoch,
                 resume_checkpoint_path=str(prev_checkpoint) if resuming else None,
+                scheduler=scheduler,
+                num_epochs=epochs_per_phase,
             )
             trainer.train(num_epochs=epochs_per_phase)
 
@@ -843,6 +866,15 @@ if __name__ == "__main__":
         ),
     )
     parser.add_argument(
+        "--scheduler", default="plateau", choices=["plateau", "cosine"],
+        help=(
+            "LR scheduler. 'plateau' (default): ReduceLROnPlateau (factor=0.5, patience=3) — "
+            "halves LR when val_loss stalls; can cause premature learning arrest. "
+            "'cosine': CosineAnnealingLR — decays smoothly from lr to lr*0.01 over all epochs; "
+            "keeps the model learning throughout the full run. Recommended for unfrozen phase2."
+        ),
+    )
+    parser.add_argument(
         "--force-overwrite", action="store_true", default=False,
         help=(
             "Allow writing into an output directory that already contains a "
@@ -908,4 +940,5 @@ if __name__ == "__main__":
         backbone_lr_scale=args.backbone_lr_scale,
         force_overwrite=args.force_overwrite,
         resume_from_epoch=args.resume_from,
+        scheduler=args.scheduler,
     )

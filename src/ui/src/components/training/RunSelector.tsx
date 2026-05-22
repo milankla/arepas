@@ -6,8 +6,10 @@ import {
   Divider,
   FormGroup,
   FormControlLabel,
+  Stack,
   Typography,
 } from "@mui/material";
+import { useMemo } from "react";
 import type { RunInfo } from "@/types";
 
 interface RunSelectorProps {
@@ -18,13 +20,20 @@ interface RunSelectorProps {
   runLabels?: Record<string, string>;
 }
 
-function RunLabel({ run, label }: { run: RunInfo; label?: string }) {
-  const displayName = label ?? run.run_id.replace(/^[^/]+\//, "");
+function RunLabel({ run, label, medal }: { run: RunInfo; label?: string; medal?: string }) {
+  const displayName = label ?? run.short_name;
   return (
     <Box sx={{ py: 0.25 }}>
-      <Typography variant="body2" sx={{ fontWeight: 500, lineHeight: 1.3 }}>
-        {displayName}
-      </Typography>
+      <Stack direction="row" alignItems="center" gap={0.5}>
+        <Typography variant="body2" sx={{ fontWeight: 600, lineHeight: 1.3 }}>
+          {displayName}
+        </Typography>
+        {medal && (
+          <Box component="span" sx={{ fontSize: "0.95rem", lineHeight: 1 }}>
+            {medal}
+          </Box>
+        )}
+      </Stack>
       <Box sx={{ display: "flex", gap: 0.5, flexWrap: "wrap", mt: 0.25 }}>
         <Chip
           label={`ep${run.epochs_completed}`}
@@ -54,6 +63,22 @@ function groupRuns(runs: RunInfo[]): Record<string, RunInfo[]> {
 }
 
 export function RunSelector({ runs, loading, selectedIds, onToggle, runLabels }: RunSelectorProps) {
+  const medalMap = useMemo(() => {
+    const medals: Record<string, string> = {};
+    // Rank separately within each phase so ph1 and ph2 each get their own 🥇🥈🥉
+    const byPhase: Record<number, RunInfo[]> = {};
+    for (const run of runs) {
+      (byPhase[run.phase] ??= []).push(run);
+    }
+    for (const group of Object.values(byPhase)) {
+      const sorted = [...group].sort((a, b) => b.best_overall_acc - a.best_overall_acc);
+      (["🥇", "🥈", "🥉"] as const).forEach((m, i) => {
+        if (sorted[i]) medals[sorted[i].run_id] = m;
+      });
+    }
+    return medals;
+  }, [runs]);
+
   if (loading) {
     return (
       <Box sx={{ display: "flex", justifyContent: "center", pt: 4 }}>
@@ -101,7 +126,13 @@ export function RunSelector({ runs, loading, selectedIds, onToggle, runLabels }:
                     sx={{ pt: 0.5, pl: 0, pr: 0.5 }}
                   />
                 }
-                label={<RunLabel run={run} label={runLabels?.[run.run_id]} />}
+                label={
+                  <RunLabel
+                    run={run}
+                    label={runLabels?.[run.run_id]}
+                    medal={medalMap[run.run_id]}
+                  />
+                }
               />
             ))}
           </FormGroup>

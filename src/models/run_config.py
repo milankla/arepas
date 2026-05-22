@@ -76,6 +76,8 @@ class RunConfig:
     load_checkpoint: Optional[str] = None   # path to checkpoint loaded before phase 1
     freeze_phase1_heads: bool = False       # Stage 1 of two-stage Phase 2 training
     freeze_backbone: bool = False           # Freeze backbone entirely; only heads are updated
+    backbone_lr_scale: Optional[float] = None  # backbone LR = lr * scale; None = same as heads
+    scheduler: str = "plateau"              # "plateau" | "cosine"
 
     # ── Preprocessing decisions ───────────────────────────────────────────────
     roof_type_encoding: str = "single_label_compound"   # or "multi_label_19"

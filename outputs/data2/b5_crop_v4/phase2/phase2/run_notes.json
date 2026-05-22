@@ -1,0 +1,15 @@
+{
+  "summary": "Phase 2 run with cosine scheduler. Stopped at epoch 14 — overall accuracy plateaued at 74.1% (ep10–ep13). Root cause identified: alteration_level at ~63% dragging the 7-task average down vs v3's 6-task average. On the 6 shared tasks, v4 and v3 are essentially equal (74.5% vs 74.7%). Architectural_style (+1.5pp) and building_form (+1.1pp) improved vs v3, but phase 1 heads slowly degraded due to shared style_group_fc contention.",
+  "learnings": [
+    "alteration_level (~63%) is new in v4 and pulls overall_accuracy down by ~1.6pp vs a 6-task run — misleading apples-to-oranges comparison with v3",
+    "style_group_fc is shared by roof_type (phase 1) and architectural_style + building_form (phase 2). Phase 2 gradient pressure (architectural_style loss_weight=0.35) shifts this shared layer, slowly degrading roof_type (65.1% ep2 → 61.6% ep14)",
+    "stories also degraded by -2.0pp vs v3 best, likely from backbone feature drift under combined phase 2 gradient signal",
+    "cosine scheduler maintained steady LR — no premature arrest — but overall accuracy still plateaued around ep10, suggesting capacity/data ceiling rather than scheduler issue",
+    "freeze_phase1_heads=False was the right call to understand the dynamic, but v4+1 should use --freeze-phase1-heads to protect phase 1 tasks and isolate phase 2 learning"
+  ],
+  "next_steps": [
+    "Run b5_crop_v5 with --freeze-phase1-heads to lock roof_type/stories/primary_cladding/chimney_present at their phase 1 best and let phase 2 heads train without interference",
+    "alteration_level removed from TRAINING_LABEL_COLS: acc=63% ≈ 57% naive baseline, macro F1=27% after 14 epochs — majority-class collapse. Re-add when coarsened to 2-3 classes or expert labels available.",
+    "Monitor whether architectural_style and building_form can improve further when not competing with deteriorating phase 1 gradients"
+  ]
+}

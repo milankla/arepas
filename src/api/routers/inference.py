@@ -43,6 +43,7 @@ IMAGENET_STD  = (0.229, 0.224, 0.225)
 
 class CheckpointInfo(BaseModel):
     id: str               # relative path under outputs/, e.g. "data2/b5_crop_v1/phase1"
+    short_name: str       # e.g. "b5_crop_v4"
     checkpoint_path: str  # full relative path to .pth
     backbone: str
     phase: int
@@ -51,6 +52,10 @@ class CheckpointInfo(BaseModel):
     timestamp: str
     run_name: str
     input_type: str       # "crop" | "full"
+    lr: float
+    backbone_lr_scale: float | None
+    scheduler: str
+    freeze_phase1_heads: bool
 
 
 class ClassConfidence(BaseModel):
@@ -121,8 +126,13 @@ def _discover_checkpoints() -> list[CheckpointInfo]:
             except Exception:
                 pass
 
+        # Derive short name: strip leading "<dataset>/" and trailing "/phase<N>"
+        short_name = re.sub(r"^[^/]+/", "", run_id)   # strip "data2/"
+        short_name = re.sub(r"(/phase\d+)+$", "", short_name)  # strip "/phase2" (including nested)
+
         results.append(CheckpointInfo(
             id=run_id,
+            short_name=short_name,
             checkpoint_path=str(ckpt_path),
             backbone=cfg.get("backbone", "unknown"),
             phase=phase,
@@ -131,6 +141,10 @@ def _discover_checkpoints() -> list[CheckpointInfo]:
             timestamp=cfg.get("timestamp", ""),
             run_name=cfg.get("run_name", ""),
             input_type="crop" if _is_crop_run(run_id) else "full",
+            lr=cfg.get("lr", 1e-4),
+            backbone_lr_scale=cfg.get("backbone_lr_scale", None),
+            scheduler=cfg.get("scheduler", "plateau"),
+            freeze_phase1_heads=cfg.get("freeze_phase1_heads", False),
         ))
     return results
 

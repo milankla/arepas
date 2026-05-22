@@ -90,7 +90,10 @@ TRAINING_LABEL_COLS: List[str] = [
     "roof_type",
     "primary_cladding",
     "stories",
-    "alteration_level",
+    # "alteration_level",  # removed: majority-class collapse (acc=63% ≈ 57% naive baseline,
+    #                        # macro F1=27% after 14 epochs). Tier 4 task — not learnable from
+    #                        # single facade photos without expert labels or class coarsening.
+    #                        # Re-add when coarsened to 2-3 classes or data volume increases.
     "setting",           # schema 'multi': building's relation to adjacent lots/street
     "chimney_present",   # derived: "Yes"/"No" gate from Chimney multipart column
 ]

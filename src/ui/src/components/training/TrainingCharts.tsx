@@ -52,28 +52,17 @@ export function formatRunLabel(runId: string, runLabels?: Record<string, string>
  * Params compared vs the group's v1 baseline: lr, weight_decay, batch_size.
  */
 export function buildRunLabels(runs: RunInfo[]): Record<string, string> {
-  const sorted = [...runs].sort((a, b) => a.timestamp.localeCompare(b.timestamp));
-
-  // Group by backbone + phase so phase 1 and phase 2 version independently
-  const byKey: Record<string, RunInfo[]> = {};
-  for (const run of sorted) {
-    const key = `${run.backbone}__ph${run.phase}`;
-    (byKey[key] ??= []).push(run);
+  // Count how many distinct phases exist per short_name to detect ph1+ph2 pairs
+  const namePhases: Record<string, Set<number>> = {};
+  for (const run of runs) {
+    (namePhases[run.short_name] ??= new Set()).add(run.phase);
   }
-
   const labels: Record<string, string> = {};
-  for (const group of Object.values(byKey)) {
-    const baseline = group[0];
-    group.forEach((run, i) => {
-      const changed: string[] = [];
-      if (i > 0) {
-        if (run.lr !== baseline.lr) changed.push(`lr${run.lr.toExponential(0)}`);
-        if (run.weight_decay !== baseline.weight_decay) changed.push(`wd${run.weight_decay}`);
-        if (run.batch_size !== baseline.batch_size) changed.push(`bs${run.batch_size}`);
-      }
-      const paramSuffix = changed.length > 0 ? `_${changed.join("_")}` : "";
-      labels[run.run_id] = `${run.backbone}_v${i + 1}${paramSuffix}_ph${run.phase}`;
-    });
+  for (const run of runs) {
+    const multiPhase = (namePhases[run.short_name]?.size ?? 0) > 1;
+    labels[run.run_id] = multiPhase
+      ? `${run.short_name} · ph${run.phase}`
+      : run.short_name;
   }
   return labels;
 }
@@ -368,7 +357,7 @@ export function AccuracyChart({ histories, runLabels, epochMax }: { histories: R
       runLabels={runLabels}
       yLabel="%"
       yFormatter={(v) => `${v.toFixed(1)}%`}
-      domain={[0, 100]}
+      domain={[60, 100]}
       epochMax={epochMax}
     />
   );
@@ -406,7 +395,7 @@ export function TaskAccuracyCharts({ histories, runLabels, epochMax }: { histori
             runIds={runIds}
             runLabels={runLabels}
             yFormatter={(v) => `${v.toFixed(1)}%`}
-            domain={[0, 100]}
+            domain={[60, 100]}
             epochMax={epochMax}
           />
         );

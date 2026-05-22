@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   Box,
+  Chip,
   Divider,
   Tab,
   Tabs,
@@ -204,6 +205,23 @@ export default function TrainingEvaluationPage() {
               <TaskF1Charts histories={selectedHistories} runLabels={runLabels} epochMax={epochMax} />
             </>
           )}
+        </Box>
+      )}
+
+      {/* ── Model params — shown when exactly one run is selected ── */}
+      {selectedRuns.length === 1 && (
+        <Box sx={{ mt: 2, display: "flex", gap: 0.5, flexWrap: "wrap" }}>
+          {[
+            selectedRuns[0].backbone,
+            `ph${selectedRuns[0].phase}`,
+            `ep ${selectedRuns[0].epochs_completed}`,
+            `acc ${(selectedRuns[0].best_overall_acc * 100).toFixed(1)}%`,
+            `lr ${selectedRuns[0].lr.toExponential(0)}`,
+            `bs ${selectedRuns[0].batch_size}`,
+            `wd ${selectedRuns[0].weight_decay}`,
+          ].map((p) => (
+            <Chip key={p} label={p} size="small" variant="outlined" sx={{ fontSize: 10, height: 18 }} />
+          ))}
         </Box>
       )}
 

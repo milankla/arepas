@@ -86,6 +86,7 @@ export interface RunNotes {
 
 export interface RunInfo {
   run_id: string;
+  short_name: string;
   backbone: string;
   phase: number;
   epochs_completed: number;
@@ -116,6 +117,7 @@ export interface EpochRecord {
 
 export interface CheckpointInfo {
   id: string;
+  short_name: string;
   checkpoint_path: string;
   backbone: string;
   phase: number;
@@ -124,6 +126,10 @@ export interface CheckpointInfo {
   timestamp: string;
   run_name: string;
   input_type: "crop" | "full";
+  lr: number;
+  backbone_lr_scale: number | null;
+  scheduler: string;
+  freeze_phase1_heads: boolean;
 }
 
 export interface ClassConfidence {

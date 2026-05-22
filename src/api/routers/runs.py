@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 from pathlib import Path
 from typing import Any
 
@@ -48,6 +49,7 @@ class RunNotes(BaseModel):
 
 class RunInfo(BaseModel):
     run_id: str            # e.g. "data2/v1/phase1"
+    short_name: str        # e.g. "b5_crop_v4"
     backbone: str
     phase: int
     epochs_completed: int
@@ -133,8 +135,13 @@ def list_runs() -> list[RunInfo]:
                     except ValueError:
                         pass
 
+        # Derive short name: strip leading "<dataset>/" and all trailing "/phase<N>" segments
+        short_name = re.sub(r"^[^/]+/", "", run_id)
+        short_name = re.sub(r"(/phase\d+)+$", "", short_name)
+
         runs.append(RunInfo(
             run_id=run_id,
+            short_name=short_name,
             backbone=config.get("backbone", "unknown"),
             phase=phase,
             epochs_completed=len(history),
