@@ -409,6 +409,7 @@ class ArchitecturalDataset(Dataset):
         transform: Optional[transforms.Compose] = None,
         image_size: int = IMAGE_SIZE,
         cropped_root: Optional[str] = None,
+        paired_views: bool = False,
     ) -> None:
         self.df            = df.reset_index(drop=True)
         self.label_encoders = label_encoders
@@ -416,46 +417,53 @@ class ArchitecturalDataset(Dataset):
         self.image_size    = image_size
         self.transform     = transform or build_eval_transform(image_size)
         self.cropped_root  = Path(cropped_root) if cropped_root else None
+        self.paired_views  = paired_views
+
+    def _resolve_image_paths(self, raw_image_path: str) -> Tuple[Path, Optional[Path]]:
+        raw_image_path = unquote(raw_image_path)
+        full_path = self.image_root / raw_image_path
+        if not full_path.exists():
+            encoded = quote(raw_image_path, safe="/._-~")
+            alt = self.image_root / encoded
+            if alt.exists():
+                full_path = alt
+
+        crop_path: Optional[Path] = None
+        if self.cropped_root is not None:
+            stem = Path(raw_image_path).stem
+            img_par = Path(raw_image_path).parent
+            parts = img_par.parts
+            rel_dir = Path(*parts[1:]) if len(parts) > 1 else img_par
+            crop_candidate = self.cropped_root / rel_dir / f"{stem}_crop.jpg"
+            if crop_candidate.exists():
+                crop_path = crop_candidate
+        return full_path, crop_path
+
+    def _load_image_tensor(self, img_path: Path) -> Tensor:
+        try:
+            image = Image.open(img_path).convert("RGB")
+            return self.transform(image)
+        except (FileNotFoundError, OSError) as exc:
+            logger.warning(f"Missing image at {img_path}: {exc}. Returning zeros.")
+            return torch.zeros(3, self.image_size, self.image_size)
 
     # ── Dataset protocol ─────────────────────────────────────────────────────
 
     def __len__(self) -> int:
         return len(self.df)
 
-    def __getitem__(self, idx: int) -> Tuple[Tensor, Dict[str, Tensor]]:
+    def __getitem__(self, idx: int) -> Tuple[Union[Tensor, Dict[str, Tensor]], Dict[str, Tensor]]:
         row = self.df.iloc[idx]
 
         # ── Image ─────────────────────────────────────────────────────────
-        # Normalise to decoded form (literal chars) as the canonical path.
-        # Fall back to URL-encoded form for machines that store files with
-        # percent-encoded names (e.g. %26 for &, %27 for ', %2C for ,).
-        raw_image_path = unquote(row["image_path"])
-        img_path = self.image_root / raw_image_path
-        if not img_path.exists():
-            encoded = quote(raw_image_path, safe="/._-~")
-            alt = self.image_root / encoded
-            if alt.exists():
-                img_path = alt
-
-        # If a cropped_root is configured, prefer the pre-cropped version.
-        if self.cropped_root is not None:
-            stem    = Path(raw_image_path).stem
-            img_par = Path(raw_image_path).parent
-            # Strip the data-root prefix (first path component, e.g. "data2")
-            # so the lookup is <cropped_root>/Cole/x_crop.jpg, not
-            # <cropped_root>/data2/Cole/x_crop.jpg.
-            parts = img_par.parts
-            rel_dir = Path(*parts[1:]) if len(parts) > 1 else img_par
-            crop_candidate = self.cropped_root / rel_dir / f"{stem}_crop.jpg"
-            if crop_candidate.exists():
-                img_path = crop_candidate
-
-        try:
-            image = Image.open(img_path).convert("RGB")
-            image = self.transform(image)
-        except (FileNotFoundError, OSError) as exc:
-            logger.warning(f"Missing image at {img_path}: {exc}. Returning zeros.")
-            image = torch.zeros(3, self.image_size, self.image_size)
+        full_path, crop_path = self._resolve_image_paths(row["image_path"])
+        if self.paired_views:
+            image: Union[Tensor, Dict[str, Tensor]] = {
+                "full": self._load_image_tensor(full_path),
+                "crop": self._load_image_tensor(crop_path or full_path),
+            }
+        else:
+            image = self._load_image_tensor(crop_path or full_path)
 
         # ── Labels ────────────────────────────────────────────────────────
         labels: Dict[str, Tensor] = {}
@@ -561,10 +569,11 @@ def make_splits(
     image_size: int = IMAGE_SIZE,
     norm_mean: Tuple[float, float, float] = IMAGENET_MEAN,
     norm_std:  Tuple[float, float, float] = IMAGENET_STD,
-    model_config: "ModelConfig | None" = None,
+    model_config = None,
     train_transform: Optional[transforms.Compose] = None,
     eval_transform:  Optional[transforms.Compose] = None,
     cropped_root: Optional[str] = None,
+    paired_views: bool = False,
 ) -> Tuple[ArchitecturalDataset, ArchitecturalDataset, ArchitecturalDataset]:
     """
     Load a label-mapping CSV, fit label encoders from its actual classes, and
@@ -608,6 +617,9 @@ def make_splits(
                          by scripts/crop_dataset.py.  When set, __getitem__ tries
                          ``<cropped_root>/<stem>_crop.jpg`` before falling back to
                          the original image.  Pass None (default) to use originals.
+        paired_views:    Return both full and cropped images as a dict with keys
+                 ``full`` and ``crop``. Requires cropped_root for true
+                 paired training; missing crops fall back to full image.
 
     Returns:
         (train_ds, val_ds, test_ds)
@@ -739,18 +751,21 @@ def make_splits(
         transform=train_transform or build_train_transform(image_size, norm_mean, norm_std),
         image_size=image_size,
         cropped_root=cropped_root,
+        paired_views=paired_views,
     )
     val_ds = ArchitecturalDataset(
         df_val, label_encoders, image_root,
         transform=eval_transform or build_eval_transform(image_size, norm_mean, norm_std),
         image_size=image_size,
         cropped_root=cropped_root,
+        paired_views=paired_views,
     )
     test_ds = ArchitecturalDataset(
         df_test, label_encoders, image_root,
         transform=eval_transform or build_eval_transform(image_size, norm_mean, norm_std),
         image_size=image_size,
         cropped_root=cropped_root,
+        paired_views=paired_views,
     )
 
     return train_ds, val_ds, test_ds

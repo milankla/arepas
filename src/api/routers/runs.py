@@ -61,6 +61,9 @@ class RunInfo(BaseModel):
     dataset_version: str
     timestamp: str
     run_name: str
+    input_type: str = "full"
+    paired_views: bool = False
+    paired_fusion_mode: str | None = None
     notes: RunNotes | None = None
 
 
@@ -91,6 +94,12 @@ def _best_loss(history: list[dict]) -> float:
     if not history:
         return 0.0
     return min(e["val_losses"]["total"] for e in history)
+
+
+def _input_type(run_id: str, config: dict[str, Any]) -> str:
+    if config.get("paired_views", False) or "pair" in run_id.lower():
+        return "paired"
+    return "crop" if "crop" in run_id.lower() else "full"
 
 
 # ---------------------------------------------------------------------------
@@ -153,6 +162,9 @@ def list_runs() -> list[RunInfo]:
             dataset_version=config.get("dataset_version", ""),
             timestamp=config.get("timestamp", ""),
             run_name=config.get("run_name", run_id),
+            input_type=_input_type(run_id, config),
+            paired_views=_input_type(run_id, config) == "paired",
+            paired_fusion_mode=config.get("paired_fusion_mode"),
             notes=notes,
         ))
     return runs

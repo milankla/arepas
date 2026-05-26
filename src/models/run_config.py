@@ -79,6 +79,12 @@ class RunConfig:
     backbone_lr_scale: Optional[float] = None  # backbone LR = lr * scale; None = same as heads
     scheduler: str = "plateau"              # "plateau" | "cosine"
 
+    # ── Paired full + crop views ──────────────────────────────────────────────
+    cropped_root: Optional[str] = None       # Root of precomputed crops, if used
+    paired_views: bool = False               # Feed both full image and crop to model
+    paired_fusion_mode: str = "concat_mlp"   # concat_mlp | crop_residual | task_gated_residual
+    paired_gate_init: str = "crop_prior"     # crop_prior | neutral
+
     # ── Preprocessing decisions ───────────────────────────────────────────────
     roof_type_encoding: str = "single_label_compound"   # or "multi_label_19"
     augmentation_version: str = "v1"                    # bump when transforms change

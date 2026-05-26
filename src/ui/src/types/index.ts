@@ -98,6 +98,9 @@ export interface RunInfo {
   dataset_version: string;
   timestamp: string;
   run_name: string;
+  input_type: "crop" | "full" | "paired";
+  paired_views: boolean;
+  paired_fusion_mode?: string | null;
   notes?: RunNotes | null;
 }
 
@@ -125,7 +128,9 @@ export interface CheckpointInfo {
   dataset_version: string;
   timestamp: string;
   run_name: string;
-  input_type: "crop" | "full";
+  input_type: "crop" | "full" | "paired";
+  paired_views: boolean;
+  paired_fusion_mode?: string | null;
   lr: number;
   backbone_lr_scale: number | null;
   scheduler: string;

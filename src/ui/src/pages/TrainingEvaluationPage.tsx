@@ -219,8 +219,10 @@ export default function TrainingEvaluationPage() {
             `lr ${selectedRuns[0].lr.toExponential(0)}`,
             `bs ${selectedRuns[0].batch_size}`,
             `wd ${selectedRuns[0].weight_decay}`,
+            selectedRuns[0].input_type,
+            selectedRuns[0].paired_fusion_mode,
           ].map((p) => (
-            <Chip key={p} label={p} size="small" variant="outlined" sx={{ fontSize: 10, height: 18 }} />
+            p ? <Chip key={p} label={p} size="small" variant="outlined" sx={{ fontSize: 10, height: 18 }} /> : null
           ))}
         </Box>
       )}

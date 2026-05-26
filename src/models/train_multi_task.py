@@ -20,7 +20,12 @@ from pathlib import Path
 from tqdm import tqdm
 import json
 
-from src.models.multi_task_classifier import MultiTaskArchitecturalClassifier, MultiTaskLoss, TaskConfig
+from src.models.multi_task_classifier import (
+    MultiTaskArchitecturalClassifier,
+    MultiTaskLoss,
+    TaskConfig,
+    normalize_paired_fusion_state_dict,
+)
 from src.models.model_config import ModelConfig
 from src.models.metrics import compute_metrics, format_metrics_table
 from src.loader.architectural_dataset import make_splits
@@ -29,6 +34,21 @@ from src.models.experiment_logger import ExperimentLogger
 
 
 logger = logging.getLogger(__name__)
+
+
+ImageBatch = torch.Tensor | Dict[str, torch.Tensor]
+
+
+def _move_images_to_device(images: ImageBatch, device: str) -> ImageBatch:
+    if isinstance(images, dict):
+        return {k: v.to(device) for k, v in images.items()}
+    return images.to(device)
+
+
+def _image_batch_size(images: ImageBatch) -> int:
+    if isinstance(images, dict):
+        return next(iter(images.values())).size(0)
+    return images.size(0)
 
 
 class MultiTaskTrainer:
@@ -80,10 +100,13 @@ class MultiTaskTrainer:
         # when Phase 2 new heads are still adapting.
         if backbone_lr_scale is not None:
             backbone_lr = learning_rate * backbone_lr_scale
+            head_params = list(model.style_group_fc.parameters()) + list(model.task_heads.parameters())
+            if model.paired_fusion is not None:
+                head_params += list(model.paired_fusion.parameters())
             self.optimizer = optim.AdamW(
                 [
                     {"params": model.backbone.parameters(), "lr": backbone_lr},
-                    {"params": model.task_heads.parameters(), "lr": learning_rate},
+                    {"params": head_params, "lr": learning_rate},
                 ],
                 weight_decay=weight_decay,
             )
@@ -179,7 +202,7 @@ class MultiTaskTrainer:
         for batch_idx, (images, targets) in enumerate(pbar):
             if self.max_batches is not None and batch_idx >= self.max_batches:
                 break
-            images = images.to(self.device)
+            images = _move_images_to_device(images, self.device)
             targets = {k: v.to(self.device) for k, v in targets.items()}
 
             # Forward pass
@@ -204,7 +227,7 @@ class MultiTaskTrainer:
                 self.optimizer.zero_grad(set_to_none=True)
             
             # Accumulate losses
-            batch_size = images.size(0)
+            batch_size = _image_batch_size(images)
             total_samples += batch_size
             
             for loss_name, loss_value in losses.items():
@@ -241,13 +264,13 @@ class MultiTaskTrainer:
             for batch_idx, (images, targets) in enumerate(pbar):
                 if self.max_batches is not None and batch_idx >= self.max_batches:
                     break
-                images  = images.to(self.device)
+                images  = _move_images_to_device(images, self.device)
                 targets = {k: v.to(self.device) for k, v in targets.items()}
 
                 predictions = self.model(images)
                 losses      = self.criterion(predictions, targets)
 
-                batch_size = images.size(0)
+                batch_size = _image_batch_size(images)
                 total_samples += batch_size
 
                 for loss_name, loss_value in losses.items():
@@ -428,6 +451,18 @@ _PHASE_NAMES: Dict[int, str] = {
     4: "ALTERATION DETECTION",
 }
 
+def _num_classes_for_phase(num_classes: Dict[str, int], phase: int) -> Dict[str, int]:
+    allowed: Dict[str, Dict[str, Any]] = {}
+    if phase >= 1:
+        allowed.update(TaskConfig.EASY_TASKS)
+    if phase >= 2:
+        allowed.update(TaskConfig.MEDIUM_TASKS)
+    if phase >= 3:
+        allowed.update(TaskConfig.HARD_TASKS)
+    if phase >= 4:
+        allowed.update(TaskConfig.VERY_HARD_TASKS)
+    return {task: count for task, count in num_classes.items() if task in allowed}
+
 
 # ── DataLoader factory ────────────────────────────────────────────────────────
 
@@ -438,6 +473,7 @@ def build_dataloaders(
     num_workers: int = 4,
     prefetch_factor: int = 2,
     cropped_root: Optional[str] = None,
+    paired_views: bool = False,
 ) -> Tuple[DataLoader, DataLoader, DataLoader, Dict[str, int], Dict[str, torch.Tensor]]:
     """Build train / val / test DataLoaders from any CSV + ModelConfig.
 
@@ -464,6 +500,7 @@ def build_dataloaders(
         csv_path=csv_path,
         model_config=model_config,
         cropped_root=cropped_root,
+        paired_views=paired_views,
     )
     logger.info(
         f"Dataset splits — train: {len(train_ds)}, "
@@ -533,6 +570,9 @@ def progressive_training_pipeline(
     freeze_phase1_heads: bool = False,
     freeze_backbone: bool = False,
     cropped_root: Optional[str] = None,
+    paired_views: bool = False,
+    paired_fusion_mode: str = 'concat_mlp',
+    paired_gate_init: str = 'crop_prior',
     backbone_lr_scale: Optional[float] = None,
     force_overwrite: bool = False,
     resume_from_epoch: int = 0,
@@ -568,7 +608,8 @@ def progressive_training_pipeline(
     logger.info(
         f"Device: {device} | Backbone: {model_config.backbone} | "
         f"CSV: {csv_path} | Phases: {start_phase}\u2013{end_phase} | "
-        f"weight_decay: {weight_decay} | grad_accum_steps: {grad_accum_steps}"
+        f"weight_decay: {weight_decay} | grad_accum_steps: {grad_accum_steps} | "
+        f"paired_views: {paired_views} | paired_fusion: {paired_fusion_mode}"
     )
 
     # Build loaders once — image size and norm stats come from model_config.
@@ -579,6 +620,7 @@ def progressive_training_pipeline(
         num_workers=num_workers,
         prefetch_factor=prefetch_factor,
         cropped_root=cropped_root,
+        paired_views=paired_views,
     )
 
     # Build a RunConfig to capture all parameters that define this run.
@@ -602,6 +644,10 @@ def progressive_training_pipeline(
         freeze_backbone=freeze_backbone,
         backbone_lr_scale=backbone_lr_scale,
         scheduler=scheduler,
+        cropped_root=cropped_root,
+        paired_views=paired_views,
+        paired_fusion_mode=paired_fusion_mode,
+        paired_gate_init=paired_gate_init,
         run_name=run_name or "",
     )
     # Derive output dir from the auto-slug if not explicitly provided.
@@ -653,6 +699,13 @@ def progressive_training_pipeline(
             early_stopping_patience=run_cfg.early_stopping_patience,
             load_checkpoint=run_cfg.load_checkpoint,
             freeze_phase1_heads=run_cfg.freeze_phase1_heads,
+            freeze_backbone=run_cfg.freeze_backbone,
+            backbone_lr_scale=run_cfg.backbone_lr_scale,
+            scheduler=run_cfg.scheduler,
+            cropped_root=run_cfg.cropped_root,
+            paired_views=run_cfg.paired_views,
+            paired_fusion_mode=run_cfg.paired_fusion_mode,
+            paired_gate_init=run_cfg.paired_gate_init,
             run_name=_phase_run_name,
             output_dir=str(phase_out),
         )
@@ -663,15 +716,19 @@ def progressive_training_pipeline(
             weights="DEFAULT",
             active_phase=phase,
             freeze_backbone=run_cfg.freeze_backbone,
-            num_classes=num_classes,   # data-driven head sizes
+            num_classes=_num_classes_for_phase(num_classes, phase),
+            paired_views=run_cfg.paired_views,
+            paired_fusion_mode=run_cfg.paired_fusion_mode,
+            paired_gate_init=run_cfg.paired_gate_init,
         )
 
         # Warm-start: transfer backbone + earlier task heads from previous phase
         # (or from an externally supplied checkpoint via --load-checkpoint).
         if prev_checkpoint is not None and Path(prev_checkpoint).exists():
             ckpt = torch.load(prev_checkpoint, map_location="cpu")
+            state = normalize_paired_fusion_state_dict(ckpt["model_state_dict"])
             missing, unexpected = model.load_state_dict(
-                ckpt["model_state_dict"], strict=False
+                state, strict=False
             )
             logger.info(
                 f"Phase {phase} warm-start \u2190 {prev_checkpoint} "
@@ -866,6 +923,29 @@ if __name__ == "__main__":
         ),
     )
     parser.add_argument(
+        "--paired-views", action="store_true", default=False,
+        help=(
+            "Train on paired full + cropped images. Requires --cropped-root for "
+            "true paired views; missing crops fall back to the full image."
+        ),
+    )
+    parser.add_argument(
+        "--paired-fusion",
+        default="concat_mlp",
+        choices=["concat_mlp", "crop_residual", "task_gated_residual"],
+        help=(
+            "Fusion module for --paired-views. concat_mlp preserves paired-v1; "
+            "crop_residual starts as crop passthrough; task_gated_residual gives "
+            "each task a crop/full gate."
+        ),
+    )
+    parser.add_argument(
+        "--paired-gate-init",
+        default="crop_prior",
+        choices=["crop_prior", "neutral"],
+        help="Initial task gate bias for task_gated_residual paired fusion.",
+    )
+    parser.add_argument(
         "--scheduler", default="plateau", choices=["plateau", "cosine"],
         help=(
             "LR scheduler. 'plateau' (default): ReduceLROnPlateau (factor=0.5, patience=3) — "
@@ -937,6 +1017,9 @@ if __name__ == "__main__":
         freeze_phase1_heads=args.freeze_phase1_heads,
         freeze_backbone=args.freeze_backbone,
         cropped_root=args.cropped_root,
+        paired_views=args.paired_views,
+        paired_fusion_mode=args.paired_fusion,
+        paired_gate_init=args.paired_gate_init,
         backbone_lr_scale=args.backbone_lr_scale,
         force_overwrite=args.force_overwrite,
         resume_from_epoch=args.resume_from,

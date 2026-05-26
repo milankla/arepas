@@ -183,8 +183,9 @@ export default function InferencePage() {
                 activeCkpt.scheduler,
                 activeCkpt.freeze_phase1_heads ? "frozen" : "unfrozen",
                 activeCkpt.input_type,
+                activeCkpt.paired_fusion_mode,
               ].map((p) => (
-                <Chip key={p} label={p} size="small" variant="outlined" sx={{ fontSize: 10, height: 18 }} />
+                p ? <Chip key={p} label={p} size="small" variant="outlined" sx={{ fontSize: 10, height: 18 }} /> : null
               ))}
             </Box>
           )}

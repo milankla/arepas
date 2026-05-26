@@ -138,7 +138,7 @@ export function InferenceSidebar({
                     <Chip
                       label={ckpt.input_type}
                       size="small"
-                      color={ckpt.input_type === "crop" ? "info" : "default"}
+                      color={ckpt.input_type === "paired" ? "success" : ckpt.input_type === "crop" ? "info" : "default"}
                       sx={styles.ckptChip}
                     />
                   </Stack>

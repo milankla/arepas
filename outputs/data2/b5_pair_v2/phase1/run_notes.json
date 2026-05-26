@@ -1,0 +1,19 @@
+{
+  "summary": "EfficientNet-B5 paired-view v2 Phase 1 run using full images plus 456px building crops, task_gated_residual fusion, and crop_prior gate initialization. Completed 30 epochs with cosine scheduler, batch_size=6, grad_accum_steps=4, lr=1.5e-4, and weight_decay=0.01. Best and final overall accuracy was 79.44% at epoch 30. This is a clear improvement over paired-v1 (+1.12pp) and full-only (+0.79pp), but it did not beat the crop-only Phase 1 best (79.87%, -0.43pp). The main win was fixing the paired-v1 stories regression: stories improved from 69.12% in paired-v1 to 74.08% in paired-v2 (+4.97pp), while setting retained a meaningful context benefit over crop-only (exact +5.25pp, Jaccard +2.75pp). The remaining gap to crop-only is mostly roof_type (-1.38pp), stories (-2.41pp), and small losses on chimney_present and primary_cladding.",
+  "learnings": [
+    "The crop-prior task-gated fusion addressed the biggest paired-v1 failure mode. Stories recovered by +4.97pp versus paired-v1, showing that avoiding random global fusion helped preserve crop-detail geometry.",
+    "The expected +1.0 to +1.5pp over crop-only did not materialize. Actual result was 79.44%, which is 0.43pp below crop-only and about 1.43-1.93pp below the expected 80.87-81.37% target range.",
+    "The model did learn useful complementarity: setting improved substantially over crop-only (exact 76.21% vs 70.96%; Jaccard 86.02% vs 83.27%), and primary_cladding/stories beat full-only.",
+    "The remaining miss is not random fusion anymore; it is task-specific signal tradeoff. Crop-only still does better on roof_type and stories, which are detail/geometry-sensitive tasks, while full-image context is most helpful for setting.",
+    "Task-gated residual fusion starts from crop-heavy priors, but the Phase 1 tasks may not have enough full-image upside to outweigh even small detail degradation. Phase 1 is mostly crop/detail work; the larger full-context payoff is still more likely in Phase 2 style/form tasks.",
+    "The validation curve was still improving at the end: epoch 30 was the best checkpoint. Train loss reached 0.0017 while val loss rose to 0.3828, consistent with prior B5 runs where confidence increases faster than accuracy degrades. Best-by-accuracy remains the right checkpoint for downstream use.",
+    "Paired-v2 should be considered successful as an architectural repair over paired-v1, but not yet a replacement for crop-only as the best Phase 1 checkpoint."
+  ],
+  "next_steps": [
+    "Run paired-v2 Phase 2 from outputs/data2/b5_pair_v2/phase1/best_model_phase1.pth using --paired-views, --paired-fusion task_gated_residual, --paired-gate-init crop_prior, differential LR, and no --freeze-phase1-heads.",
+    "Use Phase 2 as the real test of the paired architecture. Architectural_style and building_form should benefit more from full-image massing/context than the Phase 1 detail-heavy tasks did.",
+    "Track Phase 1 retention during Phase 2, especially roof_type and stories. If they drop, reduce backbone_lr_scale or consider task-specific LR/freeze rules rather than freezing all Phase 1 heads.",
+    "If another Phase 1 paired run is attempted, test stronger crop preservation for roof_type/stories: lower initial full gate for roof_type, task-specific residual scales, or a crop-only bypass into those heads.",
+    "Keep b5_crop_v1 as the best Phase 1 baseline for now, but keep b5_pair_v2 as the preferred paired checkpoint for Phase 2 exploration."
+  ]
+}

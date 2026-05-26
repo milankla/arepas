@@ -27,7 +27,11 @@ from tqdm import tqdm
 from src.loader.architectural_dataset import make_splits
 from src.models.metrics import compute_metrics, format_metrics_table
 from src.models.model_config import ModelConfig
-from src.models.multi_task_classifier import MultiTaskArchitecturalClassifier
+from src.models.multi_task_classifier import (
+    MultiTaskArchitecturalClassifier,
+    checkpoint_has_paired_fusion,
+    normalize_paired_fusion_state_dict,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -41,6 +45,7 @@ def evaluate(
     num_workers: int = 4,
     prefetch_factor: int = 4,
     cropped_root: Optional[str] = None,
+    paired_views: Optional[bool] = None,
 ) -> Tuple[Dict[str, Any], Dict[str, str]]:
     """Run evaluation and return (metrics, per_task_reports).
 
@@ -67,6 +72,7 @@ def evaluate(
 
     # ── Load checkpoint ───────────────────────────────────────────────────
     ckpt = torch.load(checkpoint_path, map_location=device, weights_only=False)
+    state = normalize_paired_fusion_state_dict(ckpt.get("model_state_dict", ckpt))
     active_phase = ckpt["active_phase"]
     num_classes  = ckpt.get("num_classes", {})
     logger.info(
@@ -74,11 +80,22 @@ def evaluate(
         + (f", best_val_loss={ckpt['best_val_loss']:.4f}" if "best_val_loss" in ckpt else "")
     )
 
+    run_cfg_path = Path(checkpoint_path).parent / "run_config.json"
+    run_cfg: Dict[str, Any] = {}
+    if run_cfg_path.exists():
+        with open(run_cfg_path) as f:
+            run_cfg = json.load(f)
+    if paired_views is None:
+        paired_views = bool(run_cfg.get("paired_views", False)) or checkpoint_has_paired_fusion(state)
+    if cropped_root is None:
+        cropped_root = run_cfg.get("cropped_root")
+
     # ── Build dataset splits ──────────────────────────────────────────────
     train_ds, val_ds, test_ds = make_splits(
         csv_path=csv_path,
         model_config=model_config,
         cropped_root=cropped_root,
+        paired_views=paired_views,
     )
     ds = {"train": train_ds, "val": val_ds, "test": test_ds}[split]
 
@@ -103,8 +120,11 @@ def evaluate(
         backbone=model_config.backbone,
         active_phase=active_phase,
         num_classes=num_classes,
+        paired_views=paired_views,
+        paired_fusion_mode=run_cfg.get("paired_fusion_mode", "concat_mlp"),
+        paired_gate_init=run_cfg.get("paired_gate_init", "crop_prior"),
     )
-    model.load_state_dict(ckpt["model_state_dict"])
+    model.load_state_dict(state, strict=False)
     model.to(device).eval()
     logger.info(
         f"Model: {model_config.backbone}, phase {active_phase}, "
@@ -117,7 +137,10 @@ def evaluate(
 
     with torch.no_grad():
         for images, targets in tqdm(loader, desc=f"Evaluating [{split}]"):
-            images = images.to(device)
+            if isinstance(images, dict):
+                images = {k: v.to(device) for k, v in images.items()}
+            else:
+                images = images.to(device)
             preds  = model(images)
             for task_name, pred in preds.items():
                 all_preds.setdefault(task_name, []).append(pred.cpu())
@@ -195,6 +218,10 @@ def main() -> None:
         help="Root directory of pre-cropped images (from scripts/crop_dataset.py). "
              "When set, crops are preferred over originals. Omit to use original images.",
     )
+    parser.add_argument(
+        "--paired-views", action="store_true", default=None,
+        help="Evaluate paired full + crop checkpoints. Defaults to run_config.json when available.",
+    )
     parser.add_argument("--output", default=None, help="Path to save JSON report (optional)")
     args = parser.parse_args()
 
@@ -209,6 +236,7 @@ def main() -> None:
         num_workers=args.num_workers,
         prefetch_factor=args.prefetch_factor,
         cropped_root=args.cropped_root,
+        paired_views=args.paired_views,
     )
 
     # ── Print summary ─────────────────────────────────────────────────────

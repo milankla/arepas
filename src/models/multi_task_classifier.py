@@ -15,7 +15,7 @@ from torchvision.models import (
     EfficientNet_B0_Weights,
     EfficientNet_B5_Weights,
 )
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Literal
 from enum import Enum
 
 from .model_config import ModelConfig
@@ -39,6 +39,110 @@ STYLE_GROUP_DIM = 512
 # Source: docs/ATTRIBUTE_DEPENDENCY_ANALYSIS.md § Key Finding 5
 FOCAL_LOSS_TASKS = frozenset({'primary_cladding'})
 FOCAL_GAMMA_DEFAULT = 2.0
+
+PairedFusionMode = Literal['concat_mlp', 'crop_residual', 'task_gated_residual']
+
+
+def checkpoint_has_paired_fusion(state_dict: Dict[str, torch.Tensor]) -> bool:
+    return any(key.startswith('paired_fusion.') for key in state_dict)
+
+
+def normalize_paired_fusion_state_dict(state_dict: Dict[str, torch.Tensor]) -> Dict[str, torch.Tensor]:
+    """Map paired-v1 fusion checkpoint keys to the paired-v2 module layout."""
+    remapped = dict(state_dict)
+    for key, tensor in state_dict.items():
+        if key.startswith(('paired_fusion.0.', 'paired_fusion.1.', 'paired_fusion.2.')):
+            new_key = key.replace('paired_fusion.', 'paired_fusion.concat_mlp.', 1)
+            remapped.setdefault(new_key, tensor)
+    return remapped
+
+
+class PairedViewFusion(nn.Module):
+    """Fuse full-image and crop features for paired-view training.
+
+    ``concat_mlp`` preserves the original paired-v1 behavior.  The residual
+    modes start from crop features so a paired model does not have to relearn
+    the crop-only baseline through a random projection before it can use context.
+    """
+
+    def __init__(
+        self,
+        feature_dim: int,
+        mode: PairedFusionMode = 'concat_mlp',
+        task_names: Optional[List[str]] = None,
+        gate_init: str = 'crop_prior',
+    ):
+        super().__init__()
+        self.mode = mode
+        self.feature_dim = feature_dim
+        self.gate_init = gate_init
+
+        if mode == 'concat_mlp':
+            self.concat_mlp = nn.Sequential(
+                nn.Linear(feature_dim * 2, feature_dim),
+                nn.ReLU(),
+                nn.Dropout(0.3),
+            )
+        elif mode == 'crop_residual':
+            self.full_residual = nn.Sequential(
+                nn.Linear(feature_dim, feature_dim),
+                nn.ReLU(),
+                nn.Dropout(0.3),
+            )
+            self.residual_scale = nn.Parameter(torch.tensor(0.0))
+        elif mode == 'task_gated_residual':
+            self.full_residual = nn.Sequential(
+                nn.Linear(feature_dim, feature_dim),
+                nn.ReLU(),
+                nn.Dropout(0.3),
+            )
+            names = sorted(set(task_names or []) | {'style_group'})
+            self.task_gates = nn.ModuleDict({
+                name: nn.Linear(feature_dim * 2, 1)
+                for name in names
+            })
+            self._init_task_gates()
+        else:
+            raise ValueError(f"Unsupported paired fusion mode: {mode}")
+
+    def _initial_gate_probability(self, task_name: str) -> float:
+        if self.gate_init != 'crop_prior':
+            return 0.5
+        if task_name == 'setting':
+            return 0.35
+        if task_name in {'architectural_style', 'building_form', 'style_group'}:
+            return 0.25
+        if task_name in {'roof_type', 'chimney_present'}:
+            return 0.12
+        return 0.05
+
+    def _init_task_gates(self) -> None:
+        for task_name, gate in self.task_gates.items():
+            nn.init.zeros_(gate.weight)
+            p = self._initial_gate_probability(task_name)
+            bias = torch.logit(torch.tensor(p, dtype=gate.bias.dtype))
+            nn.init.constant_(gate.bias, float(bias))
+
+    def forward(
+        self,
+        full_features: torch.Tensor,
+        crop_features: torch.Tensor,
+        task_name: Optional[str] = None,
+    ) -> torch.Tensor:
+        if self.mode == 'concat_mlp':
+            return self.concat_mlp(torch.cat([full_features, crop_features], dim=1))
+
+        residual = self.full_residual(full_features)
+        if self.mode == 'crop_residual':
+            return crop_features + self.residual_scale * residual
+
+        if task_name is None:
+            raise ValueError("task_name is required for task_gated_residual fusion")
+        gate_name = task_name if task_name in self.task_gates else 'style_group'
+        gate = torch.sigmoid(
+            self.task_gates[gate_name](torch.cat([full_features, crop_features], dim=1))
+        )
+        return crop_features + gate * residual
 
 
 class FocalLoss(nn.Module):
@@ -282,6 +386,9 @@ class MultiTaskArchitecturalClassifier(nn.Module):
         freeze_backbone: bool = False,
         model_config: Optional[ModelConfig] = None,
         num_classes: Optional[Dict[str, int]] = None,
+        paired_views: bool = False,
+        paired_fusion_mode: PairedFusionMode = 'concat_mlp',
+        paired_gate_init: str = 'crop_prior',
     ):
         """
         Args:
@@ -316,6 +423,9 @@ class MultiTaskArchitecturalClassifier(nn.Module):
         self._num_classes_override: Dict[str, int] = num_classes or {}
 
         self.active_phase = active_phase
+        self.paired_views = paired_views
+        self.paired_fusion_mode = paired_fusion_mode
+        self.paired_gate_init = paired_gate_init
         
         # Shared feature extractor
         self.backbone = self._build_backbone(backbone, weights)
@@ -338,6 +448,16 @@ class MultiTaskArchitecturalClassifier(nn.Module):
         # Task-specific heads
         self.task_heads = nn.ModuleDict()
         self._build_task_heads()
+
+        self.paired_fusion = (
+            PairedViewFusion(
+                feature_dim=self.feature_dim,
+                mode=paired_fusion_mode,
+                task_names=list(self.task_heads.keys()),
+                gate_init=paired_gate_init,
+            )
+            if paired_views else None
+        )
         
     def _build_backbone(self, backbone: str, weights: Optional[str]):
         """Build shared feature extractor.
@@ -447,7 +567,13 @@ class MultiTaskArchitecturalClassifier(nn.Module):
                     nn.Linear(512, num_classes)
                 )
     
-    def forward(self, x: torch.Tensor) -> Dict[str, torch.Tensor]:
+    def _extract_features(self, x: torch.Tensor) -> torch.Tensor:
+        features = self.backbone(x)
+        if features.dim() == 4:
+            features = features.flatten(1)
+        return features
+
+    def forward(self, x: torch.Tensor | Dict[str, torch.Tensor]) -> Dict[str, torch.Tensor]:
         """
         Forward pass through network
         
@@ -461,10 +587,25 @@ class MultiTaskArchitecturalClassifier(nn.Module):
         their strong co-dependence (Cramér's V 0.521–0.923). All other tasks
         receive backbone features directly.
         """
-        # Shared feature extraction
-        features = self.backbone(x)  # [B, feature_dim, 1, 1]
-        if features.dim() == 4:
-            features = features.flatten(1)  # [B, feature_dim]
+        if isinstance(x, dict):
+            if self.paired_fusion is None:
+                raise ValueError("Received paired-view input, but model was not created with paired_views=True")
+            full_features = self._extract_features(x["full"])
+            crop_features = self._extract_features(x["crop"])
+            if self.paired_fusion_mode == 'task_gated_residual':
+                style_base_features = self.paired_fusion(full_features, crop_features, 'style_group')
+                style_features = self.style_group_fc(style_base_features)
+                outputs = {}
+                for task_name, head in self.task_heads.items():
+                    if task_name in STYLE_GROUP_TASKS:
+                        feat = style_features
+                    else:
+                        feat = self.paired_fusion(full_features, crop_features, task_name)
+                    outputs[task_name] = head(feat)
+                return outputs
+            features = self.paired_fusion(full_features, crop_features)
+        else:
+            features = self._extract_features(x)
 
         # Style-group branch: shared 512-dim projection for co-dependent tasks
         style_features = self.style_group_fc(features)

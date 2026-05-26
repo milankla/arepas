@@ -28,7 +28,11 @@ from torchvision import transforms
 from src.image_preprocessing.grounding_dino_detector import GroundingDINODetector
 from src.loader.architectural_dataset import make_splits
 from src.models.model_config import ModelConfig
-from src.models.multi_task_classifier import MultiTaskArchitecturalClassifier
+from src.models.multi_task_classifier import (
+    MultiTaskArchitecturalClassifier,
+    checkpoint_has_paired_fusion,
+    normalize_paired_fusion_state_dict,
+)
 
 router = APIRouter()
 
@@ -51,7 +55,9 @@ class CheckpointInfo(BaseModel):
     dataset_version: str
     timestamp: str
     run_name: str
-    input_type: str       # "crop" | "full"
+    input_type: str       # "crop" | "full" | "paired"
+    paired_views: bool
+    paired_fusion_mode: str | None = None
     lr: float
     backbone_lr_scale: float | None
     scheduler: str
@@ -92,6 +98,12 @@ def _is_crop_run(run_id: str) -> bool:
     return "crop" in run_id.lower()
 
 
+def _checkpoint_input_type(run_id: str, cfg: dict[str, Any]) -> str:
+    if cfg.get("paired_views", False) or "pair" in run_id.lower():
+        return "paired"
+    return "crop" if _is_crop_run(run_id) else "full"
+
+
 def _discover_checkpoints() -> list[CheckpointInfo]:
     results = []
     for ckpt_path in sorted(OUTPUTS_ROOT.rglob("best_model_phase*.pth")):
@@ -130,6 +142,7 @@ def _discover_checkpoints() -> list[CheckpointInfo]:
         short_name = re.sub(r"^[^/]+/", "", run_id)   # strip "data2/"
         short_name = re.sub(r"(/phase\d+)+$", "", short_name)  # strip "/phase2" (including nested)
 
+        input_type = _checkpoint_input_type(run_id, cfg)
         results.append(CheckpointInfo(
             id=run_id,
             short_name=short_name,
@@ -140,7 +153,9 @@ def _discover_checkpoints() -> list[CheckpointInfo]:
             dataset_version=cfg.get("dataset_version", ""),
             timestamp=cfg.get("timestamp", ""),
             run_name=cfg.get("run_name", ""),
-            input_type="crop" if _is_crop_run(run_id) else "full",
+            input_type=input_type,
+            paired_views=input_type == "paired",
+            paired_fusion_mode=cfg.get("paired_fusion_mode"),
             lr=cfg.get("lr", 1e-4),
             backbone_lr_scale=cfg.get("backbone_lr_scale", None),
             scheduler=cfg.get("scheduler", "plateau"),
@@ -197,7 +212,7 @@ def _auto_crop_pil(img: Image.Image) -> tuple[Image.Image, bool]:
 # ---------------------------------------------------------------------------
 
 @lru_cache(maxsize=4)
-def _load_model(checkpoint_path: str) -> tuple[MultiTaskArchitecturalClassifier, ModelConfig, dict[str, list[str]], set[str]]:
+def _load_model(checkpoint_path: str) -> tuple[MultiTaskArchitecturalClassifier, ModelConfig, dict[str, list[str]], set[str], dict[str, Any]]:
     """Load and cache model + config from a checkpoint path."""
     ckpt = torch.load(checkpoint_path, map_location="cpu", weights_only=False)
 
@@ -232,7 +247,9 @@ def _load_model(checkpoint_path: str) -> tuple[MultiTaskArchitecturalClassifier,
     num_classes: dict[str, int] = ckpt.get("num_classes", {})
 
     # If not present (older checkpoints), fall back to parsing the state_dict
-    state = ckpt.get("model_state_dict", ckpt)
+    state = normalize_paired_fusion_state_dict(ckpt.get("model_state_dict", ckpt))
+    paired_views = bool(run_cfg.get("paired_views", False)) or checkpoint_has_paired_fusion(state)
+    run_cfg = {**run_cfg, "paired_views": paired_views}
     if not num_classes:
         for key, tensor in state.items():
             if "task_heads." not in key:
@@ -247,6 +264,9 @@ def _load_model(checkpoint_path: str) -> tuple[MultiTaskArchitecturalClassifier,
         active_phase=active_phase,
         freeze_backbone=False,
         num_classes=num_classes if num_classes else None,
+        paired_views=paired_views,
+        paired_fusion_mode=run_cfg.get("paired_fusion_mode", "concat_mlp"),
+        paired_gate_init=run_cfg.get("paired_gate_init", "crop_prior"),
     )
     model.load_state_dict(state, strict=False)
     model.eval()
@@ -263,7 +283,7 @@ def _load_model(checkpoint_path: str) -> tuple[MultiTaskArchitecturalClassifier,
         if "task_heads." in k
     }
     trained_tasks: set[str] = set(num_classes.keys()) & state_dict_tasks
-    return model, model_config, label_classes, trained_tasks
+    return model, model_config, label_classes, trained_tasks, run_cfg
 
 
 def _get_transform(model_config: ModelConfig) -> transforms.Compose:
@@ -283,13 +303,17 @@ def _get_transform(model_config: ModelConfig) -> transforms.Compose:
 
 def _predict_single(
     model: MultiTaskArchitecturalClassifier,
-    tensor: torch.Tensor,
+    tensor: torch.Tensor | dict[str, torch.Tensor],
     label_classes: dict[str, list[str]],
     trained_tasks: set[str] | None = None,
 ) -> list[TaskResult]:
     """Run one image tensor through the model and return TaskResult list."""
     with torch.no_grad():
-        logits: dict[str, torch.Tensor] = model(tensor.unsqueeze(0))
+        if isinstance(tensor, dict):
+            batch = {k: v.unsqueeze(0) for k, v in tensor.items()}
+            logits: dict[str, torch.Tensor] = model(batch)
+        else:
+            logits = model(tensor.unsqueeze(0))
 
     results = []
     for task_name, raw in logits.items():
@@ -376,12 +400,13 @@ async def run_inference(
         raise HTTPException(status_code=404, detail=f"Checkpoint not found: {checkpoint_path}")
 
     try:
-        model, model_config, label_classes, trained_tasks = _load_model(str(ckpt))
+        model, model_config, label_classes, trained_tasks, run_cfg = _load_model(str(ckpt))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to load model: {e}")
 
     run_id = str(ckpt.parent.relative_to(outputs_resolved))
-    needs_crop = _is_crop_run(run_id)
+    input_type = _checkpoint_input_type(run_id, run_cfg)
+    needs_crop = input_type in {"crop", "paired"}
 
     transform = _get_transform(model_config)
 
@@ -399,15 +424,21 @@ async def run_inference(
 
         was_cropped = False
         cropped_b64: str | None = None
+        full_img = img
+        crop_img = img
         if needs_crop:
-            img, was_cropped = _auto_crop_pil(img)
+            crop_img, was_cropped = _auto_crop_pil(img)
             if was_cropped:
                 any_cropped = True
                 buf = io.BytesIO()
-                img.save(buf, format="JPEG", quality=85)
+                crop_img.save(buf, format="JPEG", quality=85)
                 cropped_b64 = base64.b64encode(buf.getvalue()).decode()
 
-        tensor = transform(img)
+        tensor: torch.Tensor | dict[str, torch.Tensor]
+        if input_type == "paired":
+            tensor = {"full": transform(full_img), "crop": transform(crop_img)}
+        else:
+            tensor = transform(crop_img if input_type == "crop" else full_img)
         results = _predict_single(model, tensor, label_classes, trained_tasks)
         per_image_results.append(results)
         image_names.append(upload.filename or "image")

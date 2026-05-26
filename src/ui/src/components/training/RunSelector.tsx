@@ -47,6 +47,12 @@ function RunLabel({ run, label, medal }: { run: RunInfo; label?: string; medal?:
           variant="outlined"
           sx={{ fontSize: 10, height: 18 }}
         />
+        <Chip
+          label={run.input_type}
+          size="small"
+          variant="outlined"
+          sx={{ fontSize: 10, height: 18 }}
+        />
       </Box>
     </Box>
   );

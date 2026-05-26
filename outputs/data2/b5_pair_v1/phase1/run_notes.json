@@ -1,0 +1,19 @@
+{
+  "summary": "EfficientNet-B5 paired-view Phase 1 run using both full images and 456px building crops through a shared backbone plus fusion layer. Completed all 30 epochs with cosine scheduler, batch_size=6 and grad_accum_steps=4 (effective batch 24). Best overall accuracy was 78.32% at epoch 30. This did not beat the crop-only Phase 1 best (b5_crop_v1: 79.87%, -1.55pp), but nearly matched the full-image Phase 1 best (b5_full_v1: 78.65%, -0.33pp). The paired model recovered the expected context/detail tradeoff: setting improved vs crop-only (85.40% vs 83.27%, +2.13pp), while primary_cladding and roof_type improved vs full-only (76.47% vs 73.70%, +2.77pp; 66.17% vs 65.30%, +0.87pp). Main remaining weakness is stories: 69.12%, still -7.38pp vs crop-only and -3.43pp vs full-only.",
+  "learnings": [
+    "The paired-view architecture is viable: it trained end-to-end, used the correct five Phase 1 heads, and converged to within 1.55pp of the current best Phase 1 model despite starting with a randomly initialized fusion layer.",
+    "Early training looked poor but late epochs caught up strongly. Overall accuracy rose from 73.13% at epoch 15 to 78.32% at epoch 30, with the last 8 epochs stabilizing to a narrow 1.41pp range.",
+    "The model successfully learned some full/crop complementarity. Setting benefited from full-image context (+2.13pp vs crop-only), while cladding and roof benefited from crop/detail cues (+2.77pp and +0.87pp vs full-only).",
+    "Stories remains the bottleneck. Paired-view stories reached only 69.12%, compared with 76.49% for crop-only. The fusion layer appears to dilute the tight facade/eave cues that crop-only training uses for storey count.",
+    "Validation loss increased while accuracy improved: train_loss fell to 0.0020 and val_loss ended at 0.3649. This mirrors prior B5 behavior on this dataset: the model becomes more confident, so best-by-accuracy is the relevant checkpoint for this objective.",
+    "The paired model is smoother by the end than it was mid-run. Last-8-epoch overall stdev was 0.47pp, with setting and roof_type especially stable. The severe mid-run oscillation was mostly an early fusion-learning/transient issue.",
+    "Because paired Phase 1 did not beat crop-only overall, it should not replace b5_crop_v1 as the default Phase 1 checkpoint yet. Its value is as a context-aware foundation for the paired Phase 2 experiment."
+  ],
+  "next_steps": [
+    "Run paired Phase 2 from outputs/data2/b5_pair_v1/phase1/best_model_phase1.pth with --paired-views, no --freeze-phase1-heads, and differential LR. This tests whether full+crop context helps architectural_style and building_form while preserving the stronger Phase 1 tradeoffs.",
+    "Use best-by-accuracy checkpoint for downstream comparison. For this run, best overall was epoch 30, so outputs/data2/b5_pair_v1/phase1/best_model_phase1.pth is the checkpoint to warm-start Phase 2.",
+    "If paired Phase 2 underperforms, implement crop-passthrough fusion initialization so the paired model starts from known-good crop behavior and learns to add full-image context gradually instead of learning fusion from scratch.",
+    "Track stories closely in paired Phase 2. If it remains weak, consider task-specific fusion/adapters so stories can lean more heavily on crop features while setting leans on full-image features.",
+    "Do not judge paired-view strategy solely from Phase 1 overall accuracy. The Phase 1 result is slightly below crop-only, but it may still improve Phase 2 style/form tasks where full-image context is more valuable."
+  ]
+}
