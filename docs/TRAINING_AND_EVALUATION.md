@@ -63,6 +63,13 @@ python -m src.models.train_multi_task \
 | `--dataset-version` | *(auto)* | Short label for the dataset (e.g. `data2`) |
 | `--early-stopping-patience` | *(disabled)* | Stop if val_loss doesn't improve for N epochs |
 | `--max-batches` | *(disabled)* | Limit batches per epoch — useful for smoke tests |
+| `--cropped-root` | *(disabled)* | Root of pre-cropped images; single-view training prefers crops when set |
+| `--paired-views` | `false` | Train paired full-image + crop inputs instead of one image tensor |
+| `--paired-fusion` | `concat_mlp` | Paired fusion mode: `concat_mlp`, `crop_residual`, or `task_gated_residual` |
+| `--paired-gate-init` | `crop_prior` | Initial task-gate bias policy for `task_gated_residual` |
+| `--paired-gate-overrides` | *(empty)* | Comma-separated task gate probabilities, e.g. `roof_type=0.03,stories=0.01` |
+| `--paired-residual-scales` | *(empty)* | Comma-separated trainable full-residual scales, e.g. `roof_type=0.5,stories=0.25` |
+| `--paired-crop-bypass-tasks` | *(empty)* | Comma-separated tasks that use crop features only, e.g. `stories` |
 
 ### Auto-slug Output Directory
 
@@ -108,6 +115,50 @@ python -m src.models.train_multi_task \
     --csv data2/image_label_mapping_phase1.csv \
     --epochs 30 --output-dir ./outputs_my_run
 ```
+
+### Paired Full + Crop Training
+
+Use `--paired-views` when the model should receive both the original full image
+and the detected building crop. This requires `--cropped-root`; missing crops
+fall back to the full image so training can continue.
+
+Fusion modes:
+
+- `concat_mlp`: original paired-v1 behavior; concatenates full and crop features
+    through a randomly initialized projection.
+- `crop_residual`: starts as exact crop passthrough and learns a global full-image
+    residual.
+- `task_gated_residual`: starts from crop-heavy task gates and lets each task learn
+    its own full/crop balance.
+
+For Phase 1 experiments that specifically protect `roof_type` and `stories`, use
+task-gated residual fusion with stronger crop preservation:
+
+```bash
+python -m src.models.train_multi_task \
+        --csv data2/image_label_mapping_phase1.csv \
+        --model-config config/models/efficientnet_b5.json \
+        --start-phase 1 --end-phase 1 \
+        --epochs 30 \
+        --lr 1.5e-4 \
+        --scheduler cosine \
+        --batch-size 6 \
+        --grad-accum-steps 4 \
+        --weight-decay 0.01 \
+        --cropped-root crops/data2 \
+        --paired-views \
+        --paired-fusion task_gated_residual \
+        --paired-gate-init crop_prior \
+        --paired-gate-overrides roof_type=0.03,stories=0.01 \
+        --paired-residual-scales roof_type=0.5,stories=0.25 \
+        --paired-crop-bypass-tasks stories \
+        --output-dir outputs/data2/b5_pair_v3_preserve_roof_stories \
+        --run-name b5_pair_v3_preserve_roof_stories_phase1
+```
+
+This keeps `stories` crop-only at the fusion layer and lets `roof_type` retain a
+small, trainable full-image residual. Use `--paired-crop-bypass-tasks
+stories,roof_type` for a more aggressive crop-only protection test.
 
 ### What Gets Logged During Training
 

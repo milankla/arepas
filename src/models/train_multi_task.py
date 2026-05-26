@@ -39,6 +39,27 @@ logger = logging.getLogger(__name__)
 ImageBatch = torch.Tensor | Dict[str, torch.Tensor]
 
 
+def _parse_task_float_map(value: Optional[str]) -> Dict[str, float]:
+    if not value:
+        return {}
+    result: Dict[str, float] = {}
+    for item in value.split(','):
+        item = item.strip()
+        if not item:
+            continue
+        if '=' not in item:
+            raise ValueError(f"Expected task=value in '{item}'")
+        task, raw_value = item.split('=', 1)
+        result[task.strip()] = float(raw_value)
+    return result
+
+
+def _parse_task_list(value: Optional[str]) -> List[str]:
+    if not value:
+        return []
+    return [item.strip() for item in value.split(',') if item.strip()]
+
+
 def _move_images_to_device(images: ImageBatch, device: str) -> ImageBatch:
     if isinstance(images, dict):
         return {k: v.to(device) for k, v in images.items()}
@@ -573,6 +594,9 @@ def progressive_training_pipeline(
     paired_views: bool = False,
     paired_fusion_mode: str = 'concat_mlp',
     paired_gate_init: str = 'crop_prior',
+    paired_gate_overrides: str = '',
+    paired_residual_scales: str = '',
+    paired_crop_bypass_tasks: str = '',
     backbone_lr_scale: Optional[float] = None,
     force_overwrite: bool = False,
     resume_from_epoch: int = 0,
@@ -611,6 +635,9 @@ def progressive_training_pipeline(
         f"weight_decay: {weight_decay} | grad_accum_steps: {grad_accum_steps} | "
         f"paired_views: {paired_views} | paired_fusion: {paired_fusion_mode}"
     )
+    gate_overrides = _parse_task_float_map(paired_gate_overrides)
+    residual_scales = _parse_task_float_map(paired_residual_scales)
+    crop_bypass_tasks = _parse_task_list(paired_crop_bypass_tasks)
 
     # Build loaders once — image size and norm stats come from model_config.
     train_loader, val_loader, _, num_classes, class_weights = build_dataloaders(
@@ -648,6 +675,9 @@ def progressive_training_pipeline(
         paired_views=paired_views,
         paired_fusion_mode=paired_fusion_mode,
         paired_gate_init=paired_gate_init,
+        paired_gate_overrides=paired_gate_overrides,
+        paired_residual_scales=paired_residual_scales,
+        paired_crop_bypass_tasks=paired_crop_bypass_tasks,
         run_name=run_name or "",
     )
     # Derive output dir from the auto-slug if not explicitly provided.
@@ -706,6 +736,9 @@ def progressive_training_pipeline(
             paired_views=run_cfg.paired_views,
             paired_fusion_mode=run_cfg.paired_fusion_mode,
             paired_gate_init=run_cfg.paired_gate_init,
+            paired_gate_overrides=run_cfg.paired_gate_overrides,
+            paired_residual_scales=run_cfg.paired_residual_scales,
+            paired_crop_bypass_tasks=run_cfg.paired_crop_bypass_tasks,
             run_name=_phase_run_name,
             output_dir=str(phase_out),
         )
@@ -720,6 +753,9 @@ def progressive_training_pipeline(
             paired_views=run_cfg.paired_views,
             paired_fusion_mode=run_cfg.paired_fusion_mode,
             paired_gate_init=run_cfg.paired_gate_init,
+            paired_gate_overrides=gate_overrides,
+            paired_residual_scales=residual_scales,
+            paired_crop_bypass_tasks=crop_bypass_tasks,
         )
 
         # Warm-start: transfer backbone + earlier task heads from previous phase
@@ -946,6 +982,30 @@ if __name__ == "__main__":
         help="Initial task gate bias for task_gated_residual paired fusion.",
     )
     parser.add_argument(
+        "--paired-gate-overrides",
+        default="",
+        help=(
+            "Comma-separated task=probability overrides for task_gated_residual initial gates, "
+            "for example roof_type=0.03,stories=0.01."
+        ),
+    )
+    parser.add_argument(
+        "--paired-residual-scales",
+        default="",
+        help=(
+            "Comma-separated task=scale initial full-residual multipliers for task_gated_residual, "
+            "for example roof_type=0.5,stories=0.25. Scales are trainable."
+        ),
+    )
+    parser.add_argument(
+        "--paired-crop-bypass-tasks",
+        default="",
+        help=(
+            "Comma-separated task names that should use crop features only in task_gated_residual, "
+            "for example stories or stories,roof_type."
+        ),
+    )
+    parser.add_argument(
         "--scheduler", default="plateau", choices=["plateau", "cosine"],
         help=(
             "LR scheduler. 'plateau' (default): ReduceLROnPlateau (factor=0.5, patience=3) — "
@@ -1020,6 +1080,9 @@ if __name__ == "__main__":
         paired_views=args.paired_views,
         paired_fusion_mode=args.paired_fusion,
         paired_gate_init=args.paired_gate_init,
+        paired_gate_overrides=args.paired_gate_overrides,
+        paired_residual_scales=args.paired_residual_scales,
+        paired_crop_bypass_tasks=args.paired_crop_bypass_tasks,
         backbone_lr_scale=args.backbone_lr_scale,
         force_overwrite=args.force_overwrite,
         resume_from_epoch=args.resume_from,

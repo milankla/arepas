@@ -84,6 +84,9 @@ class RunConfig:
     paired_views: bool = False               # Feed both full image and crop to model
     paired_fusion_mode: str = "concat_mlp"   # concat_mlp | crop_residual | task_gated_residual
     paired_gate_init: str = "crop_prior"     # crop_prior | neutral
+    paired_gate_overrides: str = ""          # comma list, e.g. roof_type=0.03,stories=0.01
+    paired_residual_scales: str = ""         # comma list, e.g. roof_type=0.5,stories=0.25
+    paired_crop_bypass_tasks: str = ""       # comma list, e.g. stories,roof_type
 
     # ── Preprocessing decisions ───────────────────────────────────────────────
     roof_type_encoding: str = "single_label_compound"   # or "multi_label_19"

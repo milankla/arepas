@@ -71,11 +71,16 @@ class PairedViewFusion(nn.Module):
         mode: PairedFusionMode = 'concat_mlp',
         task_names: Optional[List[str]] = None,
         gate_init: str = 'crop_prior',
+        gate_overrides: Optional[Dict[str, float]] = None,
+        residual_scales: Optional[Dict[str, float]] = None,
+        crop_bypass_tasks: Optional[List[str]] = None,
     ):
         super().__init__()
         self.mode = mode
         self.feature_dim = feature_dim
         self.gate_init = gate_init
+        self.gate_overrides = gate_overrides or {}
+        self.crop_bypass_tasks = set(crop_bypass_tasks or [])
 
         if mode == 'concat_mlp':
             self.concat_mlp = nn.Sequential(
@@ -101,11 +106,17 @@ class PairedViewFusion(nn.Module):
                 name: nn.Linear(feature_dim * 2, 1)
                 for name in names
             })
+            self.task_residual_scales = nn.ParameterDict({
+                name: nn.Parameter(torch.tensor((residual_scales or {}).get(name, 1.0)))
+                for name in names
+            })
             self._init_task_gates()
         else:
             raise ValueError(f"Unsupported paired fusion mode: {mode}")
 
     def _initial_gate_probability(self, task_name: str) -> float:
+        if task_name in self.gate_overrides:
+            return self.gate_overrides[task_name]
         if self.gate_init != 'crop_prior':
             return 0.5
         if task_name == 'setting':
@@ -138,11 +149,14 @@ class PairedViewFusion(nn.Module):
 
         if task_name is None:
             raise ValueError("task_name is required for task_gated_residual fusion")
+        if task_name in self.crop_bypass_tasks:
+            return crop_features
         gate_name = task_name if task_name in self.task_gates else 'style_group'
         gate = torch.sigmoid(
             self.task_gates[gate_name](torch.cat([full_features, crop_features], dim=1))
         )
-        return crop_features + gate * residual
+        scale = self.task_residual_scales[gate_name]
+        return crop_features + scale * gate * residual
 
 
 class FocalLoss(nn.Module):
@@ -389,6 +403,9 @@ class MultiTaskArchitecturalClassifier(nn.Module):
         paired_views: bool = False,
         paired_fusion_mode: PairedFusionMode = 'concat_mlp',
         paired_gate_init: str = 'crop_prior',
+        paired_gate_overrides: Optional[Dict[str, float]] = None,
+        paired_residual_scales: Optional[Dict[str, float]] = None,
+        paired_crop_bypass_tasks: Optional[List[str]] = None,
     ):
         """
         Args:
@@ -426,6 +443,9 @@ class MultiTaskArchitecturalClassifier(nn.Module):
         self.paired_views = paired_views
         self.paired_fusion_mode = paired_fusion_mode
         self.paired_gate_init = paired_gate_init
+        self.paired_gate_overrides = paired_gate_overrides or {}
+        self.paired_residual_scales = paired_residual_scales or {}
+        self.paired_crop_bypass_tasks = paired_crop_bypass_tasks or []
         
         # Shared feature extractor
         self.backbone = self._build_backbone(backbone, weights)
@@ -455,6 +475,9 @@ class MultiTaskArchitecturalClassifier(nn.Module):
                 mode=paired_fusion_mode,
                 task_names=list(self.task_heads.keys()),
                 gate_init=paired_gate_init,
+                gate_overrides=self.paired_gate_overrides,
+                residual_scales=self.paired_residual_scales,
+                crop_bypass_tasks=self.paired_crop_bypass_tasks,
             )
             if paired_views else None
         )
@@ -593,12 +616,11 @@ class MultiTaskArchitecturalClassifier(nn.Module):
             full_features = self._extract_features(x["full"])
             crop_features = self._extract_features(x["crop"])
             if self.paired_fusion_mode == 'task_gated_residual':
-                style_base_features = self.paired_fusion(full_features, crop_features, 'style_group')
-                style_features = self.style_group_fc(style_base_features)
                 outputs = {}
                 for task_name, head in self.task_heads.items():
                     if task_name in STYLE_GROUP_TASKS:
-                        feat = style_features
+                        task_features = self.paired_fusion(full_features, crop_features, task_name)
+                        feat = self.style_group_fc(task_features)
                     else:
                         feat = self.paired_fusion(full_features, crop_features, task_name)
                     outputs[task_name] = head(feat)
