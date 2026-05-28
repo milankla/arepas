@@ -173,6 +173,17 @@ class MultiTaskTrainer:
             if history_path.exists():
                 with open(history_path) as _f:
                     self.training_history = json.load(_f)
+                original_history_len = len(self.training_history)
+                self.training_history = [
+                    rec for rec in self.training_history
+                    if int(rec.get('epoch', 0)) <= resume_from_epoch
+                ]
+                if len(self.training_history) != original_history_len:
+                    self._save_training_history()
+                    logger.info(
+                        f"Trimmed training history from {original_history_len} to "
+                        f"{len(self.training_history)} records for resume"
+                    )
                 # Restore best-so-far so early-stopping and checkpoint logic work correctly.
                 for _rec in self.training_history:
                     _loss = _rec.get('val_losses', {}).get('total', float('inf'))
@@ -438,21 +449,38 @@ class MultiTaskTrainer:
         # Save best model
         if is_best:
             path = self.output_dir / f'best_model_by_loss_phase{self.model.active_phase}.pth'
-            torch.save(checkpoint, path)
+            self._atomic_torch_save(checkpoint, path)
 
         if best_by_acc:
             path = self.output_dir / f'best_model_phase{self.model.active_phase}.pth'
-            torch.save(checkpoint, path)
+            self._atomic_torch_save(checkpoint, path)
         
-        # Save latest epoch checkpoint, removing the previous one to avoid accumulation.
+        # Save the latest epoch checkpoint before removing old ones. This keeps the
+        # previous valid checkpoint available if the write fails partway through.
         path = self.output_dir / f'checkpoint_epoch{epoch}.pth'
-        prev_epoch_ckpt = self.output_dir / f'checkpoint_epoch{epoch - 1}.pth'
-        if prev_epoch_ckpt.exists():
-            prev_epoch_ckpt.unlink()
-        torch.save(checkpoint, path)
+        self._atomic_torch_save(checkpoint, path)
+        self._cleanup_epoch_checkpoints(current_epoch=epoch)
         
         # Save training history
         self._save_training_history()
+
+    def _atomic_torch_save(self, obj: Dict[str, Any], path: Path) -> None:
+        """Write a torch checkpoint without replacing a good file on failure."""
+        tmp_path = path.with_name(f".{path.name}.tmp")
+        try:
+            torch.save(obj, tmp_path)
+            tmp_path.replace(path)
+        except Exception:
+            if tmp_path.exists():
+                tmp_path.unlink()
+            raise
+
+    def _cleanup_epoch_checkpoints(self, current_epoch: int) -> None:
+        """Keep only the latest successful epoch checkpoint for this run."""
+        current_path = self.output_dir / f'checkpoint_epoch{current_epoch}.pth'
+        for checkpoint_path in self.output_dir.glob('checkpoint_epoch*.pth'):
+            if checkpoint_path != current_path:
+                checkpoint_path.unlink()
 
     def _save_training_history(self) -> None:
         """Persist training history to disk (atomic write to avoid partial reads)."""

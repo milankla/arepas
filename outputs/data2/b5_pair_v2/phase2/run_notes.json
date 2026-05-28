@@ -1,0 +1,80 @@
+{
+  "summary": "EfficientNet-B5 paired-view v2 Phase 2 run using full images plus 456px crops, task_gated_residual fusion, crop_prior initialization, lr=5e-5, backbone_lr_scale=0.1, batch_size=6, grad_accum_steps=4, cosine scheduler, and unfrozen heads. Training completed all 30 epochs after resuming from epoch 20. Best overall accuracy was 76.22% at epoch 22, making this the strongest Phase 2 run so far versus b5_crop_v3 at 75.87% and b5_full_v3 at 75.57%. The main gains are architectural_style and building_form: paired-v2 reaches 73.55% architectural_style and 67.32% building_form at the best checkpoint, beating both crop-only and full-only baselines. Phase 1 retention is mixed: primary_cladding is strong at 77.70%, stories is stable around 73.62%, but roof_type lags the full and crop baselines at 62.10%, and setting exact match is below the full-image baseline. Use best_model_phase2.pth from epoch 22 as the comparison-best checkpoint; final epoch 30 drifted slightly down to 75.97% overall.",
+  "hyperparams": {
+    "backbone": "efficientnet_b5",
+    "image_size": 456,
+    "dataset": "paired full/data2 + crops/data2",
+    "lr": 5e-5,
+    "weight_decay": 0.01,
+    "batch_size": 6,
+    "grad_accum_steps": 4,
+    "effective_batch_size": 24,
+    "epochs": 30,
+    "scheduler": "cosine",
+    "backbone_lr_scale": 0.1,
+    "freeze_phase1_heads": false,
+    "freeze_backbone": false,
+    "paired_views": true,
+    "paired_fusion_mode": "task_gated_residual",
+    "paired_gate_init": "crop_prior"
+  },
+  "results": {
+    "best_epoch_by_accuracy": 22,
+    "best_overall_acc": 0.7622,
+    "best_epoch_by_loss": 5,
+    "best_val_loss": 0.8229,
+    "last_epoch": 30,
+    "last_overall_acc": 0.7597,
+    "per_task_at_best_accuracy": {
+      "architectural_style": 0.7355,
+      "building_form": 0.6732,
+      "stories": 0.7362,
+      "roof_type": 0.6210,
+      "primary_cladding": 0.7770,
+      "chimney_present": 0.9434,
+      "setting_exact": 0.7478,
+      "setting_jaccard": 0.8493
+    },
+    "trend": "Accuracy improved gradually from 75.27% at epoch 1 to 76.22% at epoch 22, then drifted slightly to 75.97% by epoch 30 while val_loss continued rising. Best-by-accuracy remains the right checkpoint for comparison and downstream use."
+  },
+  "comparison": {
+    "vs_b5_crop_v3_phase2": {
+      "overall": "+0.35pp (76.22% vs 75.87%). Paired-v2 is the new best overall Phase 2 checkpoint.",
+      "architectural_style": "+1.57pp (73.55% vs 71.98%). Full-image context appears to help style recognition when fused carefully with crops.",
+      "building_form": "+1.94pp (67.32% vs 65.38%). This is the clearest Phase 2 gain from paired full+crop input.",
+      "stories": "-2.10pp (73.62% vs 75.72%). Crop-only remains better for storey geometry.",
+      "roof_type": "-1.59pp (62.10% vs 63.69%). Roof type still wants stronger crop preservation or task-specific handling.",
+      "primary_cladding": "+1.21pp (77.70% vs 76.49%). Paired-v2 preserves or improves cladding detail."
+    },
+    "vs_b5_full_v3_phase2": {
+      "overall": "+0.65pp (76.22% vs 75.57%). Paired-v2 improves the best full-image baseline.",
+      "architectural_style": "+2.33pp (73.55% vs 71.22%).",
+      "building_form": "+3.61pp (67.32% vs 63.71%).",
+      "stories": "+0.02pp (73.62% vs 73.60%). Essentially tied.",
+      "roof_type": "-2.77pp (62.10% vs 64.87%). Full-image v3 remains better on roof_type in this comparison.",
+      "primary_cladding": "+3.39pp (77.70% vs 74.31%).",
+      "setting_exact": "-2.13pp (74.78% vs 76.90%). Full-image context is still best for setting."
+    },
+    "vs_b5_pair_v2_phase1_expectation": "Phase 2 is where paired full+crop finally paid off. Phase 1 paired-v2 did not beat crop-only, but Phase 2 paired-v2 becomes the best overall checkpoint because style and form benefit from full-image massing/context without fully sacrificing crop detail."
+  },
+  "learnings": [
+    "Paired full+crop is validated for Phase 2. The expected context payoff did not appear in Phase 1, but it does appear for architectural_style and building_form.",
+    "task_gated_residual fusion is good enough to beat both single-view baselines overall. The gain is modest (+0.35pp over crop-only) but meaningful because it comes with stronger Phase 2 heads.",
+    "The main remaining weakness is task-specific retention. Roof_type underperforms both crop-only and full-only baselines, and stories underperforms crop-only. These tasks still need stronger crop preservation or a crop-only bypass during Phase 2.",
+    "Setting did not retain the full-image advantage despite paired input. The model may need task-routed full-image features for setting rather than the current crop-prior fusion path.",
+    "Best loss and best accuracy diverge sharply: val_loss is lowest at epoch 5, but best accuracy is epoch 22. This matches prior B5 behavior where confidence calibration worsens while classification accuracy continues improving.",
+    "The final epoch is not the best checkpoint. Future Phase 2 runs should use early stopping or checkpoint selection by overall accuracy, with patience around 8-12 epochs after the best accuracy plateau begins."
+  ],
+  "next_steps": [
+    "Use outputs/data2/b5_pair_v2/phase2/best_model_phase2.pth as the new best Phase 2 comparison checkpoint.",
+    "Run a paired-v3 Phase 2 preservation experiment from the paired-v2 Phase 1 checkpoint with --paired-gate-overrides roof_type=0.03,stories=0.01, --paired-residual-scales roof_type=0.5,stories=0.25, and --paired-crop-bypass-tasks stories. Consider adding roof_type to the bypass if roof retention is the priority.",
+    "Consider task-routed fusion for setting: full-image or full-heavy features for setting, crop-heavy features for stories/roof_type/primary_cladding, and paired features for architectural_style/building_form.",
+    "Add early stopping or best-accuracy patience to reduce wasted epochs after the accuracy plateau. Epoch 22 was best; epochs 23-30 mostly added val_loss without improving the selected checkpoint.",
+    "Keep b5_crop_v3 and b5_full_v3 as diagnostic baselines, but use paired-v2 Phase 2 as the current production/comparison leader."
+  ],
+  "operational_notes": [
+    "The run was resumed after an epoch-25 checkpoint write failure caused by low disk space. The final history contains all 30 epochs and best_model_phase2.pth is valid at epoch 22.",
+    "Non-best checkpoint_epoch*.pth files were removed during disk cleanup after training. The retained best_model_phase2.pth and best_model_by_loss_phase2.pth checkpoints are valid and loadable.",
+    "The saved run_config.json reflects the resumed checkpoint path rather than the original Phase 1 warm-start path. Interpret the training lineage as paired-v2 Phase 2 resumed from an in-phase checkpoint after starting from outputs/data2/b5_pair_v2/phase1/best_model_phase1.pth."
+  ]
+}
