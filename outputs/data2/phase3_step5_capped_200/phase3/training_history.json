@@ -1,0 +1,647 @@
+[
+  {
+    "epoch": 1,
+    "train_losses": {
+      "stories": 0.022847529315199608,
+      "roof_type": 0.06365402366103808,
+      "primary_cladding": 0.08223117597211654,
+      "chimney_present": 0.014281982074557841,
+      "setting": 0.319320068091795,
+      "architectural_style": 0.4654813752969494,
+      "building_form": 0.9353250482119619,
+      "wall_features": 1.0589137068390846,
+      "landscape_features": 0.897037633061409,
+      "window": 0.9719649863243103,
+      "entrance": 0.9876285529136658,
+      "associated_buildings": 0.9062015822529793,
+      "building_category": 0.1975162314064801,
+      "current_use": 0.6339992439746857,
+      "roof_materials": 0.7177661517262459,
+      "original_use": 0.6707739713229239,
+      "total": 0.5542473544925451
+    },
+    "val_losses": {
+      "stories": 1.5539121707760792,
+      "roof_type": 0.6891318766036298,
+      "primary_cladding": 0.8336711824599589,
+      "chimney_present": 0.35524674361125086,
+      "setting": 1.1109486258324954,
+      "architectural_style": 1.2502318779823647,
+      "building_form": 1.0489995864925004,
+      "wall_features": 1.1343602883815764,
+      "landscape_features": 0.9294499307870865,
+      "window": 1.0646353709697722,
+      "entrance": 0.8894082310795784,
+      "associated_buildings": 0.8312201380729676,
+      "building_category": 0.2019334414601326,
+      "current_use": 0.5475792913511396,
+      "roof_materials": 0.6545349821448326,
+      "original_use": 0.5753370148595423,
+      "total": 1.334643637165427
+    },
+    "val_metrics": {
+      "architectural_style": {
+        "acc": 0.6975,
+        "f1": 0.41526314085315935
+      },
+      "building_form": {
+        "acc": 0.7275,
+        "f1": 0.29288108602280777
+      },
+      "roof_type": {
+        "acc": 0.6475,
+        "f1": 0.535361226769886
+      },
+      "primary_cladding": {
+        "acc": 0.83,
+        "f1": 0.3741947812567544
+      },
+      "stories": {
+        "acc": 0.7075,
+        "f1": 0.4497293878115796
+      },
+      "setting": {
+        "exact": 0.8075,
+        "jaccard": 0.8839583333333333,
+        "hamming": 0.9575,
+        "f1_sample": 0.91,
+        "f1": 0.3376258621103982
+      },
+      "chimney_present": {
+        "acc": 0.9375,
+        "f1": 0.5208662737770111
+      },
+      "wall_features": {
+        "exact": 0.0,
+        "jaccard": 0.18165579661351722,
+        "hamming": 0.5617857142857143,
+        "f1_sample": 0.2936849205575986,
+        "f1": 0.222546561039507
+      },
+      "landscape_features": {
+        "exact": 0.005,
+        "jaccard": 0.3707415223665224,
+        "hamming": 0.7505882352941177,
+        "f1_sample": 0.5160161019536019,
+        "f1": 0.27318460868895267
+      },
+      "window": {
+        "exact": 0.0,
+        "jaccard": 0.2876229838595357,
+        "hamming": 0.5448,
+        "f1_sample": 0.43357243496426534,
+        "f1": 0.34665995369909836
+      },
+      "entrance": {
+        "exact": 0.0025,
+        "jaccard": 0.23512905844155843,
+        "hamming": 0.6571428571428571,
+        "f1_sample": 0.35610008047508046,
+        "f1": 0.24204993941496059
+      },
+      "associated_buildings": {
+        "exact": 0.385,
+        "jaccard": 0.3708333333333333,
+        "hamming": 0.8591666666666666,
+        "f1_sample": 0.38916666666666666,
+        "f1": 0.12231824392667649
+      },
+      "building_category": {
+        "acc": 0.765,
+        "f1": 0.34237045006275774
+      },
+      "current_use": {
+        "acc": 0.19,
+        "f1": 0.1306837468124557
+      },
+      "roof_materials": {
+        "exact": 0.4475,
+        "jaccard": 0.5372916666666667,
+        "hamming": 0.8795833333333334,
+        "f1_sample": 0.5701666666666667,
+        "f1": 0.21081529058323836
+      },
+      "original_use": {
+        "acc": 0.275,
+        "f1": 0.13094294079252009
+      },
+      "overall_accuracy": 0.5402957934134043
+    }
+  },
+  {
+    "epoch": 2,
+    "train_losses": {
+      "stories": 0.057229508437518464,
+      "roof_type": 0.11137560254148639,
+      "primary_cladding": 0.07840863170372091,
+      "chimney_present": 0.04938773776703496,
+      "setting": 0.20935867967924196,
+      "architectural_style": 0.5281117349758279,
+      "building_form": 0.9345557429944165,
+      "wall_features": 1.0180489441752434,
+      "landscape_features": 0.8860092461109161,
+      "window": 0.9144068783521653,
+      "entrance": 0.969768625497818,
+      "associated_buildings": 0.8525973212718964,
+      "building_category": 0.13223010707180946,
+      "current_use": 0.6281205431185662,
+      "roof_materials": 0.692222373187542,
+      "original_use": 0.6000980562157929,
+      "total": 0.5687138647586107
+    },
+    "val_losses": {
+      "stories": 1.3744512010052012,
+      "roof_type": 0.6639317269291429,
+      "primary_cladding": 0.7858442843751544,
+      "chimney_present": 0.3238149211571033,
+      "setting": 1.071741634633984,
+      "architectural_style": 1.2567641881462344,
+      "building_form": 1.0159323355530796,
+      "wall_features": 1.1214041298627853,
+      "landscape_features": 0.9056515407562256,
+      "window": 1.0576000759005546,
+      "entrance": 0.8758876302838325,
+      "associated_buildings": 0.7851409012079239,
+      "building_category": 0.21465815712348557,
+      "current_use": 0.49981621485203503,
+      "roof_materials": 0.6082809048891068,
+      "original_use": 0.5297215827275068,
+      "total": 1.2853908929228783
+    },
+    "val_metrics": {
+      "architectural_style": {
+        "acc": 0.6975,
+        "f1": 0.4567162033398689
+      },
+      "building_form": {
+        "acc": 0.73,
+        "f1": 0.29711012006197085
+      },
+      "roof_type": {
+        "acc": 0.635,
+        "f1": 0.5186684046299525
+      },
+      "primary_cladding": {
+        "acc": 0.8225,
+        "f1": 0.3674033671113963
+      },
+      "stories": {
+        "acc": 0.685,
+        "f1": 0.4335895550989891
+      },
+      "setting": {
+        "exact": 0.8025,
+        "jaccard": 0.881875,
+        "hamming": 0.9566666666666667,
+        "f1_sample": 0.9091666666666666,
+        "f1": 0.33760478613995515
+      },
+      "chimney_present": {
+        "acc": 0.93,
+        "f1": 0.5151515151515151
+      },
+      "wall_features": {
+        "exact": 0.0,
+        "jaccard": 0.2210432831057831,
+        "hamming": 0.6192857142857142,
+        "f1_sample": 0.34498410879196484,
+        "f1": 0.24312861267575622
+      },
+      "landscape_features": {
+        "exact": 0.01,
+        "jaccard": 0.39641666666666664,
+        "hamming": 0.7667647058823529,
+        "f1_sample": 0.5406442862692863,
+        "f1": 0.286393254781938
+      },
+      "window": {
+        "exact": 0.0,
+        "jaccard": 0.324077948549988,
+        "hamming": 0.5933999999999999,
+        "f1_sample": 0.4744139263937197,
+        "f1": 0.3656897229120315
+      },
+      "entrance": {
+        "exact": 0.015,
+        "jaccard": 0.3168226911976912,
+        "hamming": 0.7301785714285715,
+        "f1_sample": 0.4465711926961927,
+        "f1": 0.24588018772015044
+      },
+      "associated_buildings": {
+        "exact": 0.4475,
+        "jaccard": 0.4008333333333334,
+        "hamming": 0.87625,
+        "f1_sample": 0.41541666666666666,
+        "f1": 0.13283223718550996
+      },
+      "building_category": {
+        "acc": 0.8,
+        "f1": 0.3570048309178744
+      },
+      "current_use": {
+        "acc": 0.1225,
+        "f1": 0.13111869351992267
+      },
+      "roof_materials": {
+        "exact": 0.575,
+        "jaccard": 0.6275,
+        "hamming": 0.9120833333333334,
+        "f1_sample": 0.64625,
+        "f1": 0.22132183908045977
+      },
+      "original_use": {
+        "acc": 0.19,
+        "f1": 0.10783549783549784
+      },
+      "overall_accuracy": 0.5488168076783414
+    }
+  },
+  {
+    "epoch": 3,
+    "train_losses": {
+      "stories": 0.04507987119131712,
+      "roof_type": 0.07051670589155037,
+      "primary_cladding": 0.05826284324118772,
+      "chimney_present": 0.014655026812272954,
+      "setting": 0.17004942727808156,
+      "architectural_style": 0.5818109726521652,
+      "building_form": 0.8842172261234373,
+      "wall_features": 1.0124598184227944,
+      "landscape_features": 0.8370607781410218,
+      "window": 0.9446572616696358,
+      "entrance": 0.928969513475895,
+      "associated_buildings": 0.8556298783421517,
+      "building_category": 0.10263016636949032,
+      "current_use": 0.5213355501182377,
+      "roof_materials": 0.6389979755878449,
+      "original_use": 0.4876277321390808,
+      "total": 0.5576915207505226
+    },
+    "val_losses": {
+      "stories": 1.3744014006888354,
+      "roof_type": 0.6768559148386452,
+      "primary_cladding": 0.7878808273608953,
+      "chimney_present": 0.3144531938635778,
+      "setting": 1.038115143071522,
+      "architectural_style": 1.228945461796293,
+      "building_form": 1.0440728671624675,
+      "wall_features": 1.1119918218255043,
+      "landscape_features": 0.8892701280117035,
+      "window": 1.0519342947006225,
+      "entrance": 0.8659867182374,
+      "associated_buildings": 0.7594795806705952,
+      "building_category": 0.23598348747065756,
+      "current_use": 0.4801323695946485,
+      "roof_materials": 0.5728463543951512,
+      "original_use": 0.5098199361097068,
+      "total": 1.2732294600456953
+    },
+    "val_metrics": {
+      "architectural_style": {
+        "acc": 0.7075,
+        "f1": 0.48571504421743056
+      },
+      "building_form": {
+        "acc": 0.72,
+        "f1": 0.29686841600887487
+      },
+      "roof_type": {
+        "acc": 0.645,
+        "f1": 0.5778662853062054
+      },
+      "primary_cladding": {
+        "acc": 0.8025,
+        "f1": 0.35850587395339784
+      },
+      "stories": {
+        "acc": 0.69,
+        "f1": 0.46813893344364643
+      },
+      "setting": {
+        "exact": 0.79,
+        "jaccard": 0.871875,
+        "hamming": 0.9529166666666666,
+        "f1_sample": 0.9005000000000001,
+        "f1": 0.3310550083730823
+      },
+      "chimney_present": {
+        "acc": 0.9325,
+        "f1": 0.5469608624522841
+      },
+      "wall_features": {
+        "exact": 0.0,
+        "jaccard": 0.2442563478188478,
+        "hamming": 0.6601190476190476,
+        "f1_sample": 0.3730627513826043,
+        "f1": 0.2517720491237583
+      },
+      "landscape_features": {
+        "exact": 0.0175,
+        "jaccard": 0.4217003968253968,
+        "hamming": 0.7854411764705882,
+        "f1_sample": 0.5644982378732378,
+        "f1": 0.29407055925071995
+      },
+      "window": {
+        "exact": 0.0,
+        "jaccard": 0.3356723156981478,
+        "hamming": 0.6126,
+        "f1_sample": 0.4870361876303991,
+        "f1": 0.3682933739960111
+      },
+      "entrance": {
+        "exact": 0.035,
+        "jaccard": 0.36661038961038955,
+        "hamming": 0.7698214285714285,
+        "f1_sample": 0.49585840548340554,
+        "f1": 0.2675827433735874
+      },
+      "associated_buildings": {
+        "exact": 0.4825,
+        "jaccard": 0.3725,
+        "hamming": 0.8879166666666667,
+        "f1_sample": 0.38416666666666666,
+        "f1": 0.13266283524904213
+      },
+      "building_category": {
+        "acc": 0.7375,
+        "f1": 0.33179643323183994
+      },
+      "current_use": {
+        "acc": 0.125,
+        "f1": 0.1456624219261735
+      },
+      "roof_materials": {
+        "exact": 0.615,
+        "jaccard": 0.6679166666666667,
+        "hamming": 0.9183333333333333,
+        "f1_sample": 0.6858333333333334,
+        "f1": 0.22261011419249596
+      },
+      "original_use": {
+        "acc": 0.11,
+        "f1": 0.07393708014372755
+      },
+      "overall_accuracy": 0.5469081947887156
+    }
+  },
+  {
+    "epoch": 4,
+    "train_losses": {
+      "stories": 0.036577575223751636,
+      "roof_type": 0.05878547023196006,
+      "primary_cladding": 0.08365431835108726,
+      "chimney_present": 0.06111186814703331,
+      "setting": 0.1360989900640925,
+      "architectural_style": 0.5797816539637278,
+      "building_form": 0.9981733409687876,
+      "wall_features": 0.9918270987272263,
+      "landscape_features": 0.845287980735302,
+      "window": 0.9491406914591789,
+      "entrance": 0.9546596783399582,
+      "associated_buildings": 0.8309718289971352,
+      "building_category": 0.12993958150967955,
+      "current_use": 0.5263612248562276,
+      "roof_materials": 0.5947508706152439,
+      "original_use": 0.44819569213315846,
+      "total": 0.5705479174852371
+    },
+    "val_losses": {
+      "stories": 1.3356620063772968,
+      "roof_type": 0.655355059460795,
+      "primary_cladding": 0.7648501249568531,
+      "chimney_present": 0.29955719477606085,
+      "setting": 1.0156219879602968,
+      "architectural_style": 1.2023371117981412,
+      "building_form": 1.0229581357191637,
+      "wall_features": 1.106572424173355,
+      "landscape_features": 0.8793515321612358,
+      "window": 1.048683444261551,
+      "entrance": 0.8605371055006981,
+      "associated_buildings": 0.7480587193369865,
+      "building_category": 0.2378087775077438,
+      "current_use": 0.4729261260852218,
+      "roof_materials": 0.5535768692195415,
+      "original_use": 0.500847760885954,
+      "total": 1.2450438886135817
+    },
+    "val_metrics": {
+      "architectural_style": {
+        "acc": 0.7075,
+        "f1": 0.4899458822511908
+      },
+      "building_form": {
+        "acc": 0.72,
+        "f1": 0.3047064098987471
+      },
+      "roof_type": {
+        "acc": 0.64,
+        "f1": 0.5150282932354531
+      },
+      "primary_cladding": {
+        "acc": 0.7975,
+        "f1": 0.3555075807777982
+      },
+      "stories": {
+        "acc": 0.68,
+        "f1": 0.4892721740516638
+      },
+      "setting": {
+        "exact": 0.795,
+        "jaccard": 0.870625,
+        "hamming": 0.9529166666666666,
+        "f1_sample": 0.8967500000000002,
+        "f1": 0.3313643345901411
+      },
+      "chimney_present": {
+        "acc": 0.925,
+        "f1": 0.5392412839809553
+      },
+      "wall_features": {
+        "exact": 0.0,
+        "jaccard": 0.2536679501054501,
+        "hamming": 0.6758333333333333,
+        "f1_sample": 0.38478701810745153,
+        "f1": 0.2523776099654317
+      },
+      "landscape_features": {
+        "exact": 0.015,
+        "jaccard": 0.4551398809523809,
+        "hamming": 0.7951470588235294,
+        "f1_sample": 0.5995058552558552,
+        "f1": 0.313168011672825
+      },
+      "window": {
+        "exact": 0.0,
+        "jaccard": 0.34337603962729735,
+        "hamming": 0.6229,
+        "f1_sample": 0.49539005396318586,
+        "f1": 0.3747307186317728
+      },
+      "entrance": {
+        "exact": 0.055,
+        "jaccard": 0.39997519841269835,
+        "hamming": 0.7880357142857143,
+        "f1_sample": 0.5269872211122211,
+        "f1": 0.2708051044062734
+      },
+      "associated_buildings": {
+        "exact": 0.4875,
+        "jaccard": 0.37625,
+        "hamming": 0.8883333333333333,
+        "f1_sample": 0.3875,
+        "f1": 0.13032222903467539
+      },
+      "building_category": {
+        "acc": 0.755,
+        "f1": 0.33845029239766083
+      },
+      "current_use": {
+        "acc": 0.1225,
+        "f1": 0.15312808117686166
+      },
+      "roof_materials": {
+        "exact": 0.6875,
+        "jaccard": 0.7395833333333335,
+        "hamming": 0.9320833333333334,
+        "f1_sample": 0.7570833333333333,
+        "f1": 0.23399577469832064
+      },
+      "original_use": {
+        "acc": 0.12,
+        "f1": 0.08146278934265587
+      },
+      "overall_accuracy": 0.5566323376519475
+    }
+  },
+  {
+    "epoch": 5,
+    "train_losses": {
+      "stories": 0.059921842530113734,
+      "roof_type": 0.026713240658009455,
+      "primary_cladding": 0.05323119932278045,
+      "chimney_present": 0.006781586999430537,
+      "setting": 0.1011632769284688,
+      "architectural_style": 0.51021773781511,
+      "building_form": 0.8489163850154727,
+      "wall_features": 1.0157901373505593,
+      "landscape_features": 0.8721777054667473,
+      "window": 0.9272106659412384,
+      "entrance": 0.9590909916162491,
+      "associated_buildings": 0.8596191483736039,
+      "building_category": 0.11438314747065306,
+      "current_use": 0.43642299631610515,
+      "roof_materials": 0.6098460590839386,
+      "original_use": 0.44328746570274236,
+      "total": 0.5159791254997254
+    },
+    "val_losses": {
+      "stories": 1.304714824299474,
+      "roof_type": 0.6339779166217042,
+      "primary_cladding": 0.7625130218975701,
+      "chimney_present": 0.288387420034552,
+      "setting": 1.006579219365515,
+      "architectural_style": 1.2111488528951169,
+      "building_form": 1.0267496150253281,
+      "wall_features": 1.1052672031521797,
+      "landscape_features": 0.8767249205708504,
+      "window": 1.0477220976352692,
+      "entrance": 0.8587617778778076,
+      "associated_buildings": 0.7449710421264172,
+      "building_category": 0.23928234335035087,
+      "current_use": 0.4712901376094669,
+      "roof_materials": 0.5482752414047718,
+      "original_use": 0.49820656050927936,
+      "total": 1.238625985234976
+    },
+    "val_metrics": {
+      "architectural_style": {
+        "acc": 0.7025,
+        "f1": 0.48397279066379006
+      },
+      "building_form": {
+        "acc": 0.72,
+        "f1": 0.28987933521060716
+      },
+      "roof_type": {
+        "acc": 0.6375,
+        "f1": 0.5171179582944289
+      },
+      "primary_cladding": {
+        "acc": 0.81,
+        "f1": 0.3559674074074074
+      },
+      "stories": {
+        "acc": 0.675,
+        "f1": 0.45778747159821337
+      },
+      "setting": {
+        "exact": 0.795,
+        "jaccard": 0.873125,
+        "hamming": 0.9533333333333334,
+        "f1_sample": 0.9000833333333332,
+        "f1": 0.32880163003600976
+      },
+      "chimney_present": {
+        "acc": 0.9225,
+        "f1": 0.5368814192343604
+      },
+      "wall_features": {
+        "exact": 0.0,
+        "jaccard": 0.25543569624819623,
+        "hamming": 0.6782142857142857,
+        "f1_sample": 0.38627732232937334,
+        "f1": 0.24830018606080873
+      },
+      "landscape_features": {
+        "exact": 0.015,
+        "jaccard": 0.4538849206349206,
+        "hamming": 0.7920588235294117,
+        "f1_sample": 0.5980793234543235,
+        "f1": 0.31538672613051383
+      },
+      "window": {
+        "exact": 0.0,
+        "jaccard": 0.3430407815438775,
+        "hamming": 0.6224000000000001,
+        "f1_sample": 0.49474927865182733,
+        "f1": 0.3769578145697426
+      },
+      "entrance": {
+        "exact": 0.0375,
+        "jaccard": 0.3966758658008658,
+        "hamming": 0.7842857142857143,
+        "f1_sample": 0.5262173520923521,
+        "f1": 0.27165036774290136
+      },
+      "associated_buildings": {
+        "exact": 0.49,
+        "jaccard": 0.37875,
+        "hamming": 0.89,
+        "f1_sample": 0.39,
+        "f1": 0.13747995188452286
+      },
+      "building_category": {
+        "acc": 0.76,
+        "f1": 0.34039847392963124
+      },
+      "current_use": {
+        "acc": 0.1275,
+        "f1": 0.16086839266450917
+      },
+      "roof_materials": {
+        "exact": 0.7025,
+        "jaccard": 0.7520833333333334,
+        "hamming": 0.935,
+        "f1_sample": 0.76875,
+        "f1": 0.23706013168796058
+      },
+      "original_use": {
+        "acc": 0.12,
+        "f1": 0.08475135255533076
+      },
+      "overall_accuracy": 0.5579997248475745
+    }
+  }
+]

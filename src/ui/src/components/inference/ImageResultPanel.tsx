@@ -2,6 +2,7 @@ import { Box, Card, CardContent, Chip, Stack, Typography } from "@mui/material";
 import CropIcon from "@mui/icons-material/Crop";
 import type { ImageResult } from "@/types";
 import { TaskResultCard } from "./TaskResultCard";
+import { PHASE3_TASKS } from "./taskLabels";
 
 const styles = {
   card: {
@@ -46,6 +47,15 @@ const styles = {
   cropIcon: {
     fontSize: "0.75rem !important",
   },
+  taskGrid: {
+    display: "grid",
+    gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" },
+    gap: 2,
+  },
+  columnHeading: {
+    mb: 1,
+    color: "text.secondary",
+  },
 } as const;
 
 export function ImageResultPanel({
@@ -62,6 +72,9 @@ export function ImageResultPanel({
   const croppedSrc = result.cropped_image_b64
     ? `data:image/jpeg;base64,${result.cropped_image_b64}`
     : null;
+  const phase12Tasks = result.tasks.filter((t) => !PHASE3_TASKS.has(t.task));
+  const phase3Tasks = result.tasks.filter((t) => PHASE3_TASKS.has(t.task));
+  const hasPhase3 = phase3Tasks.length > 0;
 
   return (
     <Card variant="outlined" sx={styles.card}>
@@ -115,9 +128,30 @@ export function ImageResultPanel({
                 />
               )}
             </Stack>
-            {result.tasks.map((t, i) => (
-              <TaskResultCard key={t.task} result={t} divider={i > 0} />
-            ))}
+            {hasPhase3 ? (
+              <Box sx={styles.taskGrid}>
+                <Box>
+                  <Typography variant="caption" fontWeight={700} sx={styles.columnHeading}>
+                    Phase 1 / 2
+                  </Typography>
+                  {phase12Tasks.map((t, i) => (
+                    <TaskResultCard key={t.task} result={t} divider={i > 0} />
+                  ))}
+                </Box>
+                <Box>
+                  <Typography variant="caption" fontWeight={700} sx={styles.columnHeading}>
+                    Phase 3
+                  </Typography>
+                  {phase3Tasks.map((t, i) => (
+                    <TaskResultCard key={t.task} result={t} divider={i > 0} />
+                  ))}
+                </Box>
+              </Box>
+            ) : (
+              result.tasks.map((t, i) => (
+                <TaskResultCard key={t.task} result={t} divider={i > 0} />
+              ))
+            )}
           </Box>
         </Stack>
       </CardContent>

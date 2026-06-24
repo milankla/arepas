@@ -3,7 +3,6 @@ import {
   Legend,
   Line,
   LineChart,
-  ReferenceLine,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -11,6 +10,7 @@ import {
 } from "recharts";
 import {
   Box,
+  Chip,
   Paper,
   Table,
   TableBody,
@@ -35,11 +35,61 @@ const PALETTE = [
 ];
 
 export type RunHistoryMap = Record<string, EpochRecord[]>;
+type ChartRow = Record<string, number | null | undefined>;
 
 // All tasks that can appear in per-task metric charts
-const PHASE1_TASKS = ["stories", "roof_type", "primary_cladding", "chimney_present", "setting", "alteration_level"];
-const PHASE2_TASKS = ["architectural_style", "building_form"];
-const ALL_TASKS = [...PHASE1_TASKS, ...PHASE2_TASKS];
+type TaskType = "single-label" | "multi-label";
+
+interface TaskDefinition {
+  key: string;
+  label: string;
+  type: TaskType;
+  primaryMetricLabel: string;
+}
+
+interface TaskPhaseGroup {
+  phase: number;
+  title: string;
+  tasks: TaskDefinition[];
+}
+
+const TASK_PHASE_GROUPS: TaskPhaseGroup[] = [
+  {
+    phase: 1,
+    title: "Phase 1 - Easy visual features",
+    tasks: [
+      { key: "stories", label: "Stories", type: "single-label", primaryMetricLabel: "Accuracy" },
+      { key: "roof_type", label: "Roof type", type: "single-label", primaryMetricLabel: "Accuracy" },
+      { key: "primary_cladding", label: "Primary cladding", type: "single-label", primaryMetricLabel: "Accuracy" },
+      { key: "chimney_present", label: "Chimney present", type: "single-label", primaryMetricLabel: "Accuracy" },
+      { key: "setting", label: "Setting", type: "multi-label", primaryMetricLabel: "Exact match" },
+      { key: "alteration_level", label: "Alteration level", type: "single-label", primaryMetricLabel: "Accuracy" },
+    ],
+  },
+  {
+    phase: 2,
+    title: "Phase 2 - Architectural classification",
+    tasks: [
+      { key: "architectural_style", label: "Architectural style", type: "single-label", primaryMetricLabel: "Accuracy" },
+      { key: "building_form", label: "Building form", type: "single-label", primaryMetricLabel: "Accuracy" },
+    ],
+  },
+  {
+    phase: 3,
+    title: "Phase 3 - Fine-grained features",
+    tasks: [
+      { key: "wall_features", label: "Wall features", type: "multi-label", primaryMetricLabel: "Jaccard" },
+      { key: "landscape_features", label: "Landscape features", type: "multi-label", primaryMetricLabel: "Jaccard" },
+      { key: "window", label: "Window", type: "multi-label", primaryMetricLabel: "Jaccard" },
+      { key: "entrance", label: "Entrance", type: "multi-label", primaryMetricLabel: "Jaccard" },
+      { key: "associated_buildings", label: "Associated buildings", type: "multi-label", primaryMetricLabel: "Jaccard" },
+      { key: "building_category", label: "Building category", type: "single-label", primaryMetricLabel: "Accuracy" },
+      { key: "roof_materials", label: "Roof materials", type: "multi-label", primaryMetricLabel: "Jaccard" },
+    ],
+  },
+];
+
+const ALL_TASKS = TASK_PHASE_GROUPS.flatMap((group) => group.tasks.map((task) => task.key));
 
 export function formatRunLabel(runId: string, runLabels?: Record<string, string>): string {
   return runLabels?.[runId] ?? runId.replace(/^[^/]+\//, "");
@@ -74,15 +124,15 @@ export function buildRunLabels(runs: RunInfo[]): Record<string, string> {
 /** Build a per-epoch series for a single scalar field across multiple runs. */
 function buildSeries(
   histories: RunHistoryMap,
-  getVal: (e: EpochRecord) => number
-): Array<Record<string, number>> {
+  getVal: (e: EpochRecord) => number | null | undefined
+): ChartRow[] {
   // Determine max epoch
   const maxEpoch = Math.max(
     ...Object.values(histories).map((h) => (h.length > 0 ? h[h.length - 1].epoch : 0))
   );
-  const rows: Array<Record<string, number>> = [];
+  const rows: ChartRow[] = [];
   for (let ep = 1; ep <= maxEpoch; ep++) {
-    const row: Record<string, number> = { epoch: ep };
+    const row: ChartRow = { epoch: ep };
     for (const [runId, history] of Object.entries(histories)) {
       const rec = history.find((e) => e.epoch === ep);
       if (rec !== undefined) row[runId] = getVal(rec);
@@ -110,7 +160,7 @@ function ChartDataTable({
   data,
   columns,
 }: {
-  data: Array<Record<string, number>>;
+  data: ChartRow[];
   columns: ColDef[];
 }) {
   const rows = data.filter((row) =>
@@ -137,18 +187,16 @@ function ChartDataTable({
         </TableHead>
         <TableBody>
           {rows.map((row) => (
-            <TableRow key={row.epoch} hover>
+            <TableRow key={String(row.epoch)} hover>
               {columns.map((col) => {
                 const val = row[col.key];
                 return (
                   <TableCell key={col.key} sx={{ fontSize: 11, whiteSpace: "nowrap" }}>
-                    {val == null
-                      ? "—"
-                      : col.format
-                      ? col.format(val)
-                      : typeof val === "number"
-                      ? val.toFixed(4)
-                      : val}
+                    {typeof val === "number"
+                      ? col.format
+                        ? col.format(val)
+                        : val.toFixed(4)
+                      : "—"}
                   </TableCell>
                 );
               })}
@@ -166,13 +214,15 @@ function ChartDataTable({
 
 interface ChartProps {
   title: string;
-  data: Array<Record<string, number>>;
+  data: ChartRow[];
   runIds: string[];
   runLabels?: Record<string, string>;
   yLabel?: string;
   yFormatter?: (v: number) => string;
   domain?: [number | "auto", number | "auto"];
   epochMax?: number;
+  showTable?: boolean;
+  height?: number;
 }
 
 function TrainingChart({
@@ -184,6 +234,8 @@ function TrainingChart({
   yFormatter,
   domain,
   epochMax,
+  showTable = true,
+  height = 260,
 }: ChartProps) {
   if (data.length === 0 || runIds.length === 0) return null;
 
@@ -197,7 +249,7 @@ function TrainingChart({
   ];
 
   return (
-    <Box sx={{ mb: 4 }}>
+    <Box sx={{ mb: 4, width: "100%", minWidth: 0 }}>
       <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>
         {title}
       </Typography>
@@ -205,13 +257,15 @@ function TrainingChart({
       <Box
         sx={{
           display: "flex",
-          flexDirection: { xs: "column", md: "row" },
+          flexDirection: { xs: "column", md: showTable ? "row" : "column" },
           gap: 2,
           alignItems: "flex-start",
+          width: "100%",
+          minWidth: 0,
         }}
       >
-        <Box sx={{ flex: "1 1 60%", minWidth: 0 }}>
-          <ResponsiveContainer width="100%" height={260}>
+        <Box sx={{ flex: showTable ? "1 1 60%" : "1 1 auto", minWidth: 0, width: "100%" }}>
+          <ResponsiveContainer width="100%" height={height}>
         <LineChart data={data} margin={{ top: 4, right: 24, left: 0, bottom: 0 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />
           <XAxis
@@ -233,9 +287,13 @@ function TrainingChart({
             domain={domain}
           />
           <Tooltip
-            formatter={(val: number, name: string) => [
-              yFormatter ? yFormatter(val) : val.toFixed(4),
-              runLabel(name, runLabels),
+            formatter={(val, name) => [
+              typeof val === "number"
+                ? yFormatter
+                  ? yFormatter(val)
+                  : val.toFixed(4)
+                : String(val),
+              runLabel(String(name), runLabels),
             ]}
             labelFormatter={(ep) => `Epoch ${ep}`}
           />
@@ -257,9 +315,11 @@ function TrainingChart({
         </LineChart>
       </ResponsiveContainer>
         </Box>
-        <Box sx={{ flex: "1 1 40%", minWidth: 0, width: { xs: "100%", md: "auto" } }}>
-          <ChartDataTable data={data} columns={tableCols} />
-        </Box>
+        {showTable && (
+          <Box sx={{ flex: "1 1 40%", minWidth: 0, width: { xs: "100%", md: "auto" } }}>
+            <ChartDataTable data={data} columns={tableCols} />
+          </Box>
+        )}
       </Box>
     </Box>
   );
@@ -360,6 +420,124 @@ export function AccuracyChart({ histories, runLabels, epochMax }: { histories: R
       domain={[60, 100]}
       epochMax={epochMax}
     />
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Per-task metrics across runs
+// ---------------------------------------------------------------------------
+
+function hasTaskMetric(histories: RunHistoryMap, taskKey: string) {
+  return Object.values(histories).some((history) =>
+    history.some((e) => Boolean(e.val_metrics[taskKey]))
+  );
+}
+
+function taskPrimaryMetricValue(metric: Record<string, number>, task: TaskDefinition) {
+  if (task.type === "multi-label") return metric.jaccard ?? metric.exact ?? metric.acc ?? 0;
+  return metric.acc ?? metric.exact ?? metric.jaccard ?? 0;
+}
+
+function typeCounts(tasks: TaskDefinition[]) {
+  const counts = tasks.reduce(
+    (acc, task) => ({ ...acc, [task.type]: acc[task.type] + 1 }),
+    { "single-label": 0, "multi-label": 0 } satisfies Record<TaskType, number>
+  );
+  return Object.entries(counts).filter(([, count]) => count > 0);
+}
+
+export function TaskMetricCharts({ histories, runLabels, epochMax }: { histories: RunHistoryMap; runLabels?: Record<string, string>; epochMax?: number }) {
+  const runIds = Object.keys(histories);
+
+  return (
+    <Box sx={{ display: "flex", flexDirection: "column", gap: 3, width: "100%", minWidth: 0 }}>
+      {TASK_PHASE_GROUPS.map((group) => {
+        const visibleTasks = group.tasks.filter((task) => hasTaskMetric(histories, task.key));
+        if (visibleTasks.length === 0) return null;
+
+        return (
+          <Box key={group.phase} sx={{ width: "100%", minWidth: 0 }}>
+            <Box sx={{ mb: 1.5, display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap" }}>
+              <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+                {group.title}
+              </Typography>
+              {typeCounts(visibleTasks).map(([type, count]) => (
+                <Chip
+                  key={type}
+                  label={`${count} ${type}`}
+                  size="small"
+                  variant="outlined"
+                  sx={{ height: 20, fontSize: 11 }}
+                />
+              ))}
+            </Box>
+
+            <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+              {visibleTasks.map((task) => {
+                const primaryData = buildSeries(histories, (e) => {
+                  const metric = e.val_metrics[task.key];
+                  if (!metric || typeof metric === "number") return null;
+                  return taskPrimaryMetricValue(metric, task) * 100;
+                });
+                const f1Data = buildSeries(histories, (e) => {
+                  const metric = e.val_metrics[task.key];
+                  if (!metric || typeof metric === "number") return null;
+                  return (metric.f1 ?? 0) * 100;
+                });
+
+                return (
+                  <Paper key={task.key} variant="outlined" sx={{ p: 2, width: "100%", minWidth: 0 }}>
+                    <Box sx={{ mb: 1, display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap" }}>
+                      <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+                        {task.label}
+                      </Typography>
+                      <Chip
+                        label={task.type}
+                        size="small"
+                        variant="outlined"
+                        sx={{ height: 18, fontSize: 10 }}
+                      />
+                    </Box>
+                    <Box
+                      sx={{
+                        display: "grid",
+                        gridTemplateColumns: { xs: "1fr", lg: "minmax(0, 1fr) minmax(0, 1fr)" },
+                        gap: 2,
+                        width: "100%",
+                        minWidth: 0,
+                      }}
+                    >
+                      <TrainingChart
+                        title={`${task.primaryMetricLabel} (val)`}
+                        data={primaryData}
+                        runIds={runIds}
+                        runLabels={runLabels}
+                        yFormatter={(v) => `${v.toFixed(1)}%`}
+                        domain={[0, 100]}
+                        epochMax={epochMax}
+                        showTable={false}
+                        height={220}
+                      />
+                      <TrainingChart
+                        title="Macro F1 (val)"
+                        data={f1Data}
+                        runIds={runIds}
+                        runLabels={runLabels}
+                        yFormatter={(v) => `${v.toFixed(1)}%`}
+                        domain={[0, 100]}
+                        epochMax={epochMax}
+                        showTable={false}
+                        height={220}
+                      />
+                    </Box>
+                  </Paper>
+                );
+              })}
+            </Box>
+          </Box>
+        );
+      })}
+    </Box>
   );
 }
 

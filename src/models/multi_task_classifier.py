@@ -107,7 +107,7 @@ class PairedViewFusion(nn.Module):
                 for name in names
             })
             self.task_residual_scales = nn.ParameterDict({
-                name: nn.Parameter(torch.tensor((residual_scales or {}).get(name, 1.0)))
+                name: nn.Parameter(torch.tensor(self._initial_residual_scale(name, residual_scales)))
                 for name in names
             })
             self._init_task_gates()
@@ -120,12 +120,37 @@ class PairedViewFusion(nn.Module):
         if self.gate_init != 'crop_prior':
             return 0.5
         if task_name == 'setting':
-            return 0.35
+            return 0.65
         if task_name in {'architectural_style', 'building_form', 'style_group'}:
             return 0.25
-        if task_name in {'roof_type', 'chimney_present'}:
+        if task_name == 'stories':
+            return 0.01
+        if task_name == 'roof_type':
+            return 0.03
+        if task_name == 'primary_cladding':
+            return 0.20
+        if task_name in {'chimney_present', 'wall_features', 'window'}:
+            return 0.08
+        if task_name in {'entrance', 'roof_materials'}:
             return 0.12
+        if task_name in {'landscape_features', 'associated_buildings', 'building_category', 'current_use', 'original_use'}:
+            return 0.60
         return 0.05
+
+    def _initial_residual_scale(self, task_name: str, residual_scales: Optional[Dict[str, float]]) -> float:
+        if residual_scales and task_name in residual_scales:
+            return residual_scales[task_name]
+        if self.gate_init != 'crop_prior':
+            return 1.0
+        if task_name == 'stories':
+            return 0.25
+        if task_name == 'roof_type':
+            return 0.50
+        if task_name in {'wall_features', 'window'}:
+            return 0.60
+        if task_name in {'entrance', 'roof_materials', 'primary_cladding'}:
+            return 0.75
+        return 1.0
 
     def _init_task_gates(self) -> None:
         for task_name, gate in self.task_gates.items():
@@ -299,15 +324,6 @@ class TaskConfig:
             # the same underlying signal through two separate loss terms.
             'loss_weight': 0.12,
         },
-        'building_category': {
-            'num_classes': 4,
-            # Alphabetical order matches sklearn LabelEncoder.fit() output.
-            # NOTE: building_category is NOT yet in TRAINING_LABEL_COLS.
-            # To activate training, add it there; this entry only registers
-            # the loss config so MultiTaskLoss can compute the right loss type.
-            'classes': ['Agricultural', 'Commercial', 'Other', 'Residential'],
-            'loss_weight': 0.10,
-        }
     }
     
     # Phase 3: Fine-Grained Features (Multi-label)
@@ -320,17 +336,52 @@ class TaskConfig:
             'multi_label': True
         },
         'wall_features': {
-            'num_classes': 10,  # Multi-label
-            'classes': ['Belt Course', 'Quoins', 'Half-Timbering', 'Bay Window',
-                       'Brick Pattern', 'Decorative Trim', 'Corbelling', 'Pilasters',
-                       'Water Table', 'Foundation Details'],
-            'loss_weight': 0.10,
+            'num_classes': 21,
+            'loss_weight': 0.05,
             'multi_label': True
         },
-        'window_type': {
-            'num_classes': 7,
-            'classes': ['Double-Hung', 'Casement', 'Fixed', 'Bay', 'Bow', 'Awning', 'Sliding'],
-            'loss_weight': 0.10
+        'landscape_features': {
+            'num_classes': 17,
+            'loss_weight': 0.03,
+            'multi_label': True,
+        },
+        'window': {
+            'num_classes': 25,
+            'loss_weight': 0.045,
+            'multi_label': True,
+        },
+        'entrance': {
+            'num_classes': 14,
+            'loss_weight': 0.035,
+            'multi_label': True,
+        },
+        'associated_buildings': {
+            'num_classes': 6,
+            'loss_weight': 0.025,
+            'multi_label': True,
+        },
+        'building_category': {
+            'num_classes': 3,
+            'loss_weight': 0.025,
+            'focal_loss': True,
+            'focal_gamma': 2.0,
+        },
+        'current_use': {
+            'num_classes': 5,
+            'loss_weight': 0.02,
+            'focal_loss': True,
+            'focal_gamma': 2.0,
+        },
+        'roof_materials': {
+            'num_classes': 6,
+            'loss_weight': 0.025,
+            'multi_label': True,
+        },
+        'original_use': {
+            'num_classes': 5,
+            'loss_weight': 0.015,
+            'focal_loss': True,
+            'focal_gamma': 2.0,
         },
         # Chimney sub-fields — schema-compliant multi-label stubs.
         # loss_weight=0.0: only ~330 positive buildings across both datasets;
@@ -577,6 +628,24 @@ class MultiTaskArchitecturalClassifier(nn.Module):
                 task_name, task_config['num_classes']
             )
 
+            # building_category has a fixed, schema-defined cardinality. A
+            # data-derived count that diverges signals a label/data problem
+            # (e.g. an unexpected category leaking in, or a category dropped
+            # from the split) rather than a head we should silently resize to
+            # fit bad data. Fail loudly so the encoder/CSV gets fixed.
+            if (
+                task_name == 'building_category'
+                and task_name in self._num_classes_override
+            ):
+                expected = all_known['building_category']['num_classes']
+                if num_classes != expected:
+                    raise ValueError(
+                        f"building_category head size mismatch: data yielded "
+                        f"{num_classes} classes but TaskConfig declares "
+                        f"{expected}. Check the label encoder / CSV for "
+                        f"unexpected or missing building categories."
+                    )
+
             if task_name in STYLE_GROUP_TASKS:
                 # Input is STYLE_GROUP_DIM (512) from the shared style_group_fc
                 self.task_heads[task_name] = nn.Linear(STYLE_GROUP_DIM, num_classes)
@@ -688,11 +757,16 @@ class MultiTaskLoss(nn.Module):
             **TaskConfig.VERY_HARD_TASKS,
         }
         focal_modules: Dict[str, nn.Module] = {}
+        bce_modules: Dict[str, nn.Module] = {}
         for task_name, task_cfg in all_task_configs.items():
             if task_cfg.get('focal_loss', False):
                 w = (class_weights or {}).get(task_name)   # None if not provided
                 focal_modules[task_name] = FocalLoss(gamma=focal_gamma, weight=w)
+            if task_cfg.get('multi_label', False):
+                pos_weight = (class_weights or {}).get(task_name)
+                bce_modules[task_name] = nn.BCEWithLogitsLoss(pos_weight=pos_weight)
         self._focal_losses = nn.ModuleDict(focal_modules)
+        self._bce_losses = nn.ModuleDict(bce_modules)
 
         # Fallback for any focal-loss task not pre-registered above.
         self._default_focal = FocalLoss(gamma=focal_gamma)
@@ -741,7 +815,8 @@ class MultiTaskLoss(nn.Module):
             #   focal_loss tasks   → per-task FocalLoss  (class-weighted focal CE)
             #   everything else    → CrossEntropyLoss
             if task_config.get('multi_label', False):
-                task_loss = self.bce_loss(pred, target.float())
+                bce = self._bce_losses[task_name] if task_name in self._bce_losses else self.bce_loss
+                task_loss = bce(pred, target.float())
             elif task_config.get('focal_loss', False):
                 focal = self._focal_losses[task_name] if task_name in self._focal_losses else self._default_focal
                 task_loss = focal(pred, target)

@@ -61,6 +61,7 @@ class RunConfig:
     model_config_path: str = "config/models/resnet50.json"
     start_phase: int = 1
     end_phase: int = 1
+    phase3_labels: str = ""                  # comma list subset; blank = all Phase 3 labels
 
     # ── Hyperparameters ───────────────────────────────────────────────────────
     epochs: int = 30

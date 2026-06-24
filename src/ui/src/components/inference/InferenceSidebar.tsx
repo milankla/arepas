@@ -151,7 +151,7 @@ export function InferenceSidebar({
 
       {/* Phase filter */}
       <Stack direction="row" gap={1}>
-        {[1, 2].map((ph) => (
+        {[1, 2, 3].map((ph) => (
           <FormControlLabel
             key={ph}
             label={<Typography variant="caption">Phase {ph}</Typography>}

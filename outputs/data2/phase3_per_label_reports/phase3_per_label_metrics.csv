@@ -1,0 +1,179 @@
+run,split,field,label,support,predicted_positive,true_positive,false_positive,false_negative,true_negative,precision,recall,f1
+phase3_full_v1,val,wall_features,Foundation - Not Visible,1442,1957,1073,884,369,1579,0.548288,0.744105,0.631362
+phase3_full_v1,val,wall_features,Foundation - Concrete,1176,1305,785,520,391,2209,0.601533,0.667517,0.632809
+phase3_full_v1,val,wall_features,Brick - Patterned,1165,1886,890,996,275,1744,0.471898,0.763948,0.583415
+phase3_full_v1,val,wall_features,Belt Course,995,1784,806,978,189,1932,0.451794,0.81005,0.580065
+phase3_full_v1,val,wall_features,Brick - Polychromatic,1007,1830,867,963,140,1935,0.47377,0.860973,0.611209
+phase3_full_v1,val,wall_features,Gable Vents,795,1592,621,971,174,2139,0.390075,0.781132,0.520318
+phase3_full_v1,val,wall_features,Brick - Corbeled,613,1569,508,1061,105,2231,0.323773,0.828711,0.465628
+phase3_full_v1,val,wall_features,Shingles in Gable - Decorative,414,632,349,283,65,3208,0.552215,0.842995,0.667304
+phase3_full_v1,val,wall_features,Half-Timbering,394,1027,358,669,36,2842,0.348588,0.908629,0.503871
+phase3_full_v1,val,wall_features,Shutters,308,806,155,651,153,2946,0.192308,0.503247,0.278276
+phase3_full_v1,val,wall_features,Masonry Bay,344,1084,271,813,73,2748,0.25,0.787791,0.379552
+phase3_full_v1,val,wall_features,Foundation - Brick,318,1175,229,946,89,2641,0.194894,0.720126,0.306765
+phase3_full_v1,val,wall_features,Awnings,297,594,118,476,179,3132,0.198653,0.397306,0.264871
+phase3_full_v1,val,wall_features,Engaged Columns,277,843,210,633,67,2995,0.24911,0.758123,0.375
+phase3_full_v1,val,wall_features,Shingles in Gable - Plain,199,778,117,661,82,3045,0.150386,0.58794,0.239509
+phase3_full_v1,val,wall_features,Foundation - Stone,170,776,128,648,42,3087,0.164948,0.752941,0.270613
+phase3_full_v1,val,wall_features,Quoins,169,412,54,358,115,3378,0.131068,0.319527,0.185886
+phase3_full_v1,val,wall_features,Other Wall Details,82,115,13,102,69,3721,0.113043,0.158537,0.13198
+phase3_full_v1,val,wall_features,Rowlock Course,86,34,6,28,80,3791,0.176471,0.069767,0.1
+phase3_full_v1,val,wall_features,Attached Sign,97,207,72,135,25,3673,0.347826,0.742268,0.473684
+phase3_full_v1,val,wall_features,Balcony,53,191,23,168,30,3684,0.120419,0.433962,0.188525
+phase3_full_v1,val,landscape_features,Walkway - Concrete,3182,2690,2344,346,838,377,0.871375,0.736644,0.798365
+phase3_full_v1,val,landscape_features,Fence - Rear,2973,2449,2088,361,885,571,0.852593,0.702321,0.770195
+phase3_full_v1,val,landscape_features,Fence - Left Side,1278,1443,742,701,536,1926,0.514207,0.580595,0.545388
+phase3_full_v1,val,landscape_features,Fence - Right Side,1298,1404,732,672,566,1935,0.521368,0.563945,0.541821
+phase3_full_v1,val,landscape_features,Driveway - Solid,1015,1612,674,938,341,1952,0.418114,0.664039,0.513133
+phase3_full_v1,val,landscape_features,Wall - Retaining,880,2148,627,1521,253,1504,0.291899,0.7125,0.414135
+phase3_full_v1,val,landscape_features,Fence - Front,920,1234,594,640,326,2345,0.481361,0.645652,0.551532
+phase3_full_v1,val,landscape_features,Denver Roll,995,1947,734,1213,261,1697,0.37699,0.737688,0.49898
+phase3_full_v1,val,landscape_features,Built-In Planters,490,1413,242,1171,248,2244,0.171267,0.493878,0.254335
+phase3_full_v1,val,landscape_features,Walkway - Stone,291,1126,181,945,110,2669,0.160746,0.621993,0.255469
+phase3_full_v1,val,landscape_features,Parking Lot,216,393,169,224,47,3465,0.430025,0.782407,0.555008
+phase3_full_v1,val,landscape_features,Stone Public Sidewalk,135,565,75,490,60,3280,0.132743,0.555556,0.214286
+phase3_full_v1,val,landscape_features,Fence - Ornamental,121,250,30,220,91,3564,0.12,0.247934,0.161725
+phase3_full_v1,val,landscape_features,Driveway - Ribbon,112,12,0,12,112,3781,0.0,0.0,0.0
+phase3_full_v1,val,landscape_features,Driveway - Unpaved,74,121,12,109,62,3722,0.099174,0.162162,0.123077
+phase3_full_v1,val,landscape_features,Walkway - Brick,87,7,0,7,87,3811,0.0,0.0,0.0
+phase3_full_v1,val,landscape_features,Fence - Historic,60,1,1,0,59,3845,1.0,0.016667,0.032787
+phase3_full_v1,val,window,Window Type: Double/Single Hung,2839,2657,2364,293,475,773,0.889725,0.832688,0.860262
+phase3_full_v1,val,window,Window Type: Fixed,2817,2379,1933,446,884,642,0.812526,0.686191,0.744034
+phase3_full_v1,val,window,Window Type: Sliding,2197,1708,1246,462,951,1246,0.729508,0.567137,0.638156
+phase3_full_v1,val,window,Window Type: Casement,736,1760,462,1298,274,1871,0.2625,0.627717,0.370192
+phase3_full_v1,val,window,Window Type: Unknown Window Type,660,1897,493,1404,167,1841,0.259884,0.74697,0.385608
+phase3_full_v1,val,window,Window Type: Hopper/Awning,369,1487,260,1227,109,2309,0.174849,0.704607,0.280172
+phase3_full_v1,val,window,Window Features: Rowlock Sill,1880,1852,1532,320,348,1705,0.827214,0.814894,0.821008
+phase3_full_v1,val,window,Window Features: None,1850,1509,1038,471,812,1584,0.687873,0.561081,0.618041
+phase3_full_v1,val,window,Window Features: Paired Windows,1525,2094,1112,982,413,1398,0.531041,0.72918,0.614534
+phase3_full_v1,val,window,Window Features: Tripartite Window,1201,1929,892,1037,309,1667,0.462416,0.742714,0.569968
+phase3_full_v1,val,window,Window Features: Stone Sill,1198,1446,1049,397,149,2310,0.72545,0.875626,0.793495
+phase3_full_v1,val,window,Window Features: Divided Lights - All,1123,1851,829,1022,294,1760,0.447866,0.738201,0.557498
+phase3_full_v1,val,window,Window Features: Dormer Window,873,1175,752,423,121,2609,0.64,0.861397,0.734375
+phase3_full_v1,val,window,Window Features: Arch - Segmented,724,1141,647,494,77,2687,0.567046,0.893646,0.693834
+phase3_full_v1,val,window,Window Features: Decorative Surround,816,1619,610,1009,206,2080,0.376776,0.747549,0.501027
+phase3_full_v1,val,window,Window Features: Grouped Windows,709,1514,488,1026,221,2170,0.322325,0.688293,0.439046
+phase3_full_v1,val,window,Window Features: Picture Window,558,1434,358,1076,200,2271,0.249651,0.641577,0.359438
+phase3_full_v1,val,window,Window Features: Divided Lights - Some,466,1662,337,1325,129,2114,0.202768,0.723176,0.316729
+phase3_full_v1,val,window,Window Features: Transom,281,1227,158,1069,123,2555,0.128769,0.562278,0.209549
+phase3_full_v1,val,window,Window Features: Stained/Leaded Glass,294,910,231,679,63,2932,0.253846,0.785714,0.383721
+phase3_full_v1,val,window,Window Features: Arch - Rounded,203,637,152,485,51,3217,0.238619,0.748768,0.361905
+phase3_full_v1,val,window,Window Features: Cottage Window,172,718,144,574,28,3159,0.200557,0.837209,0.323596
+phase3_full_v1,val,window,Window Features: Oriel Window,107,296,23,273,84,3525,0.077703,0.214953,0.114144
+phase3_full_v1,val,window,Window Features: Stone Lintel,101,393,41,352,60,3452,0.104326,0.405941,0.165992
+phase3_full_v1,val,window,Window Features: Ribbon Windows,67,30,1,29,66,3809,0.033333,0.014925,0.020619
+phase3_full_v1,val,entrance,Entrance Location: Front Facade,3505,2515,2347,168,1158,232,0.933201,0.669615,0.779734
+phase3_full_v1,val,entrance,Entrance Location: Right Side,588,1389,326,1063,262,2254,0.234701,0.554422,0.329793
+phase3_full_v1,val,entrance,Entrance Location: Left Side,542,1456,314,1142,228,2221,0.215659,0.579336,0.314314
+phase3_full_v1,val,entrance,Entrance Location: Rear,372,1293,224,1069,148,2464,0.173241,0.602151,0.269069
+phase3_full_v1,val,entrance,Entrance Type: Porch - Partial Width - Projecting,1274,1266,635,631,639,2000,0.50158,0.49843,0.5
+phase3_full_v1,val,entrance,Entrance Type: Porch - Full Width - Projecting,1120,1779,961,818,159,1967,0.540191,0.858036,0.662987
+phase3_full_v1,val,entrance,Entrance Type: Stoop - Low,664,1617,457,1160,207,2081,0.282622,0.688253,0.400701
+phase3_full_v1,val,entrance,Entrance Type: Flush Door - No Porch or Stoop,646,1438,368,1070,278,2189,0.255911,0.569659,0.353167
+phase3_full_v1,val,entrance,Entrance Type: Porch - Partial Width - Recessed,425,1266,325,941,100,2539,0.256714,0.764706,0.384388
+phase3_full_v1,val,entrance,Entrance Type: Stoop - High,452,1215,281,934,171,2519,0.231276,0.621681,0.337133
+phase3_full_v1,val,entrance,Entrance Type: Other Entrance Type,118,235,19,216,99,3571,0.080851,0.161017,0.107649
+phase3_full_v1,val,entrance,Entrance Type: Unknown - Not Visible,99,74,5,69,94,3737,0.067568,0.050505,0.057803
+phase3_full_v1,val,entrance,Entrance Type: Storefront,101,160,84,76,17,3728,0.525,0.831683,0.643678
+phase3_full_v1,val,entrance,Entrance Type: Vehicular Entrance,56,100,36,64,20,3785,0.36,0.642857,0.461538
+phase3_full_v1,val,associated_buildings,Building/Object Type: Garage - Detached,1833,2256,1327,929,506,1143,0.588209,0.72395,0.649058
+phase3_full_v1,val,associated_buildings,Building/Object Type: Shed or Storage Building,419,1420,200,1220,219,2266,0.140845,0.477327,0.21751
+phase3_full_v1,val,associated_buildings,Building/Object Type: Garage – Attached,268,1126,178,948,90,2689,0.158082,0.664179,0.25538
+phase3_full_v1,val,associated_buildings,Building/Object Type: Carport - Attached,95,30,5,25,90,3785,0.166667,0.052632,0.08
+phase3_full_v1,val,associated_buildings,Building/Object Type: Accessory Dwelling Unit (ADU),86,13,0,13,86,3806,0.0,0.0,0.0
+phase3_full_v1,val,associated_buildings,Building/Object Type: Other Associated Building or Object,110,13,3,10,107,3785,0.230769,0.027273,0.04878
+phase3_full_v1,val,roof_materials,Shingles - Asphalt,3465,3292,3240,52,225,388,0.984204,0.935065,0.959005
+phase3_full_v1,val,roof_materials,Unknown Roof Material,399,520,357,163,42,3343,0.686538,0.894737,0.776931
+phase3_full_v1,val,roof_materials,Terra Cotta Tile,8,125,3,122,5,3775,0.024,0.375,0.045113
+phase3_full_v1,val,roof_materials,Metal,29,58,12,46,17,3830,0.206897,0.413793,0.275862
+phase3_full_v1,val,roof_materials,Shingles - Concrete,14,5,0,5,14,3886,0.0,0.0,0.0
+phase3_full_v1,val,roof_materials,Rare Roof Material,13,15,0,15,13,3877,0.0,0.0,0.0
+phase3_v2_visual_retention,val,wall_features,Foundation - Not Visible,1442,1985,1088,897,354,1566,0.548111,0.754508,0.634958
+phase3_v2_visual_retention,val,wall_features,Foundation - Concrete,1176,1474,851,623,325,2106,0.577341,0.723639,0.642264
+phase3_v2_visual_retention,val,wall_features,Brick - Patterned,1165,1590,821,769,344,1971,0.516352,0.704721,0.596007
+phase3_v2_visual_retention,val,wall_features,Belt Course,995,1628,768,860,227,2050,0.471744,0.771859,0.585589
+phase3_v2_visual_retention,val,wall_features,Brick - Polychromatic,1007,1544,806,738,201,2160,0.522021,0.800397,0.631909
+phase3_v2_visual_retention,val,wall_features,Gable Vents,795,1646,635,1011,160,2099,0.385784,0.798742,0.520279
+phase3_v2_visual_retention,val,wall_features,Brick - Corbeled,613,1360,469,891,144,2401,0.344853,0.76509,0.475418
+phase3_v2_visual_retention,val,wall_features,Shingles in Gable - Decorative,414,621,341,280,73,3211,0.549114,0.823671,0.658937
+phase3_v2_visual_retention,val,wall_features,Half-Timbering,394,973,352,621,42,2890,0.361768,0.893401,0.514996
+phase3_v2_visual_retention,val,wall_features,Shutters,308,853,159,694,149,2903,0.186401,0.516234,0.273902
+phase3_v2_visual_retention,val,wall_features,Masonry Bay,344,1003,262,741,82,2820,0.261216,0.761628,0.389013
+phase3_v2_visual_retention,val,wall_features,Foundation - Brick,318,880,192,688,126,2899,0.218182,0.603774,0.320534
+phase3_v2_visual_retention,val,wall_features,Awnings,297,503,114,389,183,3219,0.22664,0.383838,0.285
+phase3_v2_visual_retention,val,wall_features,Engaged Columns,277,782,206,576,71,3052,0.263427,0.743682,0.389046
+phase3_v2_visual_retention,val,wall_features,Shingles in Gable - Plain,199,701,113,588,86,3118,0.161198,0.567839,0.251111
+phase3_v2_visual_retention,val,wall_features,Foundation - Stone,170,747,133,614,37,3121,0.178046,0.782353,0.290076
+phase3_v2_visual_retention,val,wall_features,Quoins,169,397,53,344,116,3392,0.133501,0.313609,0.187279
+phase3_v2_visual_retention,val,wall_features,Other Wall Details,82,175,13,162,69,3661,0.074286,0.158537,0.101167
+phase3_v2_visual_retention,val,wall_features,Rowlock Course,86,25,7,18,79,3801,0.28,0.081395,0.126126
+phase3_v2_visual_retention,val,wall_features,Attached Sign,97,214,74,140,23,3668,0.345794,0.762887,0.475884
+phase3_v2_visual_retention,val,wall_features,Balcony,53,254,26,228,27,3624,0.102362,0.490566,0.169381
+phase3_v2_visual_retention,val,landscape_features,Walkway - Concrete,3182,2524,2216,308,966,415,0.877971,0.696417,0.776726
+phase3_v2_visual_retention,val,landscape_features,Fence - Rear,2973,2346,2017,329,956,603,0.859761,0.678439,0.758413
+phase3_v2_visual_retention,val,landscape_features,Fence - Left Side,1278,1391,758,633,520,1994,0.544932,0.593114,0.568003
+phase3_v2_visual_retention,val,landscape_features,Fence - Right Side,1298,1378,750,628,548,1979,0.544267,0.577812,0.560538
+phase3_v2_visual_retention,val,landscape_features,Driveway - Solid,1015,1552,674,878,341,2012,0.434278,0.664039,0.525127
+phase3_v2_visual_retention,val,landscape_features,Wall - Retaining,880,2007,599,1408,281,1617,0.298455,0.680682,0.414964
+phase3_v2_visual_retention,val,landscape_features,Fence - Front,920,1244,637,607,283,2378,0.512058,0.692391,0.588725
+phase3_v2_visual_retention,val,landscape_features,Denver Roll,995,1833,711,1122,284,1788,0.387889,0.714573,0.502829
+phase3_v2_visual_retention,val,landscape_features,Built-In Planters,490,1850,286,1564,204,1851,0.154595,0.583673,0.244444
+phase3_v2_visual_retention,val,landscape_features,Walkway - Stone,291,1031,179,852,112,2762,0.173618,0.61512,0.270802
+phase3_v2_visual_retention,val,landscape_features,Parking Lot,216,436,175,261,41,3428,0.401376,0.810185,0.53681
+phase3_v2_visual_retention,val,landscape_features,Stone Public Sidewalk,135,532,72,460,63,3310,0.135338,0.533333,0.215892
+phase3_v2_visual_retention,val,landscape_features,Fence - Ornamental,121,300,34,266,87,3518,0.113333,0.280992,0.16152
+phase3_v2_visual_retention,val,landscape_features,Driveway - Ribbon,112,90,5,85,107,3708,0.055556,0.044643,0.049505
+phase3_v2_visual_retention,val,landscape_features,Driveway - Unpaved,74,209,19,190,55,3641,0.090909,0.256757,0.134276
+phase3_v2_visual_retention,val,landscape_features,Walkway - Brick,87,28,0,28,87,3790,0.0,0.0,0.0
+phase3_v2_visual_retention,val,landscape_features,Fence - Historic,60,2,1,1,59,3844,0.5,0.016667,0.032258
+phase3_v2_visual_retention,val,window,Window Type: Double/Single Hung,2839,2637,2353,284,486,782,0.892302,0.828813,0.859386
+phase3_v2_visual_retention,val,window,Window Type: Fixed,2817,2042,1699,343,1118,745,0.832027,0.603124,0.699321
+phase3_v2_visual_retention,val,window,Window Type: Sliding,2197,1859,1331,528,866,1180,0.715976,0.605826,0.656312
+phase3_v2_visual_retention,val,window,Window Type: Casement,736,1680,452,1228,284,1941,0.269048,0.61413,0.374172
+phase3_v2_visual_retention,val,window,Window Type: Unknown Window Type,660,1807,487,1320,173,1925,0.269507,0.737879,0.394812
+phase3_v2_visual_retention,val,window,Window Type: Hopper/Awning,369,1409,255,1154,114,2382,0.180979,0.691057,0.286839
+phase3_v2_visual_retention,val,window,Window Features: Rowlock Sill,1880,1701,1475,226,405,1799,0.867137,0.784574,0.823792
+phase3_v2_visual_retention,val,window,Window Features: None,1850,1804,1177,627,673,1428,0.652439,0.636216,0.644226
+phase3_v2_visual_retention,val,window,Window Features: Paired Windows,1525,1847,1021,826,504,1554,0.552788,0.669508,0.605575
+phase3_v2_visual_retention,val,window,Window Features: Tripartite Window,1201,1692,820,872,381,1832,0.484634,0.682764,0.566886
+phase3_v2_visual_retention,val,window,Window Features: Stone Sill,1198,1335,1020,315,178,2392,0.764045,0.851419,0.805369
+phase3_v2_visual_retention,val,window,Window Features: Divided Lights - All,1123,1694,768,926,355,1856,0.453365,0.683882,0.545261
+phase3_v2_visual_retention,val,window,Window Features: Dormer Window,873,1119,739,380,134,2652,0.660411,0.846506,0.741968
+phase3_v2_visual_retention,val,window,Window Features: Arch - Segmented,724,1097,635,462,89,2719,0.578851,0.877072,0.697419
+phase3_v2_visual_retention,val,window,Window Features: Decorative Surround,816,1553,599,954,217,2135,0.385705,0.734069,0.505699
+phase3_v2_visual_retention,val,window,Window Features: Grouped Windows,709,1483,483,1000,226,2196,0.325691,0.681241,0.440693
+phase3_v2_visual_retention,val,window,Window Features: Picture Window,558,1244,335,909,223,2438,0.269293,0.600358,0.371809
+phase3_v2_visual_retention,val,window,Window Features: Divided Lights - Some,466,1459,327,1132,139,2307,0.224126,0.701717,0.33974
+phase3_v2_visual_retention,val,window,Window Features: Transom,281,939,131,808,150,2816,0.13951,0.466192,0.214754
+phase3_v2_visual_retention,val,window,Window Features: Stained/Leaded Glass,294,755,214,541,80,3070,0.283444,0.727891,0.408008
+phase3_v2_visual_retention,val,window,Window Features: Arch - Rounded,203,532,146,386,57,3316,0.274436,0.719212,0.397279
+phase3_v2_visual_retention,val,window,Window Features: Cottage Window,172,626,138,488,34,3245,0.220447,0.802326,0.345865
+phase3_v2_visual_retention,val,window,Window Features: Oriel Window,107,217,17,200,90,3598,0.078341,0.158879,0.104938
+phase3_v2_visual_retention,val,window,Window Features: Stone Lintel,101,442,45,397,56,3407,0.10181,0.445545,0.165746
+phase3_v2_visual_retention,val,window,Window Features: Ribbon Windows,67,81,6,75,61,3763,0.074074,0.089552,0.081081
+phase3_v2_visual_retention,val,entrance,Entrance Location: Front Facade,3505,2471,2316,155,1189,245,0.937272,0.66077,0.7751
+phase3_v2_visual_retention,val,entrance,Entrance Location: Right Side,588,1589,359,1230,229,2087,0.225928,0.610544,0.329812
+phase3_v2_visual_retention,val,entrance,Entrance Location: Left Side,542,1474,332,1142,210,2221,0.225237,0.612546,0.329365
+phase3_v2_visual_retention,val,entrance,Entrance Location: Rear,372,1254,224,1030,148,2503,0.178628,0.602151,0.275523
+phase3_v2_visual_retention,val,entrance,Entrance Type: Porch - Partial Width - Projecting,1274,1509,735,774,539,1857,0.487078,0.576923,0.528207
+phase3_v2_visual_retention,val,entrance,Entrance Type: Porch - Full Width - Projecting,1120,1573,917,656,203,2129,0.582962,0.81875,0.681025
+phase3_v2_visual_retention,val,entrance,Entrance Type: Stoop - Low,664,1820,494,1326,170,1915,0.271429,0.743976,0.397746
+phase3_v2_visual_retention,val,entrance,Entrance Type: Flush Door - No Porch or Stoop,646,1402,364,1038,282,2221,0.259629,0.563467,0.355469
+phase3_v2_visual_retention,val,entrance,Entrance Type: Porch - Partial Width - Recessed,425,1183,331,852,94,2628,0.279797,0.778824,0.411692
+phase3_v2_visual_retention,val,entrance,Entrance Type: Stoop - High,452,1135,277,858,175,2595,0.244053,0.612832,0.349086
+phase3_v2_visual_retention,val,entrance,Entrance Type: Other Entrance Type,118,283,25,258,93,3529,0.088339,0.211864,0.124688
+phase3_v2_visual_retention,val,entrance,Entrance Type: Unknown - Not Visible,99,84,4,80,95,3726,0.047619,0.040404,0.043716
+phase3_v2_visual_retention,val,entrance,Entrance Type: Storefront,101,140,81,59,20,3745,0.578571,0.80198,0.672199
+phase3_v2_visual_retention,val,entrance,Entrance Type: Vehicular Entrance,56,107,39,68,17,3781,0.364486,0.696429,0.478528
+phase3_v2_visual_retention,val,associated_buildings,Building/Object Type: Garage - Detached,1833,2316,1375,941,458,1131,0.593696,0.750136,0.66281
+phase3_v2_visual_retention,val,associated_buildings,Building/Object Type: Shed or Storage Building,419,1740,242,1498,177,1988,0.13908,0.577566,0.224178
+phase3_v2_visual_retention,val,associated_buildings,Building/Object Type: Garage – Attached,268,930,164,766,104,2871,0.176344,0.61194,0.27379
+phase3_v2_visual_retention,val,associated_buildings,Building/Object Type: Carport - Attached,95,63,13,50,82,3760,0.206349,0.136842,0.164557
+phase3_v2_visual_retention,val,associated_buildings,Building/Object Type: Accessory Dwelling Unit (ADU),86,22,2,20,84,3799,0.090909,0.023256,0.037037
+phase3_v2_visual_retention,val,associated_buildings,Building/Object Type: Other Associated Building or Object,110,25,4,21,106,3774,0.16,0.036364,0.059259
+phase3_v2_visual_retention,val,roof_materials,Shingles - Asphalt,3465,3279,3228,51,237,389,0.984446,0.931602,0.957295
+phase3_v2_visual_retention,val,roof_materials,Unknown Roof Material,399,515,356,159,43,3347,0.691262,0.892231,0.778993
+phase3_v2_visual_retention,val,roof_materials,Terra Cotta Tile,8,101,2,99,6,3798,0.019802,0.25,0.036697
+phase3_v2_visual_retention,val,roof_materials,Metal,29,68,12,56,17,3820,0.176471,0.413793,0.247423
+phase3_v2_visual_retention,val,roof_materials,Shingles - Concrete,14,10,0,10,14,3881,0.0,0.0,0.0
+phase3_v2_visual_retention,val,roof_materials,Rare Roof Material,13,15,0,15,13,3877,0.0,0.0,0.0

@@ -1,0 +1,107 @@
+{
+  "checkpoints": [
+    "outputs/data2/phase3_v4_protected_adaptation/phase3/best_model_phase3.pth"
+  ],
+  "split": "val",
+  "threshold": 0.5,
+  "fields": [
+    "wall_features",
+    "landscape_features",
+    "window",
+    "entrance",
+    "associated_buildings",
+    "roof_materials"
+  ],
+  "summaries": [
+    {
+      "exact_match": 0.040973,
+      "jaccard": 0.338876,
+      "run": "phase3_v4_protected_adaptation",
+      "split": "val",
+      "field": "wall_features",
+      "labels": 21,
+      "samples": 3905,
+      "micro_support": 10401,
+      "micro_predicted_positive": 20131,
+      "macro_precision": 0.30522,
+      "macro_recall": 0.632238,
+      "macro_f1": 0.397599,
+      "threshold": 0.5
+    },
+    {
+      "exact_match": 0.022535,
+      "jaccard": 0.394504,
+      "run": "phase3_v4_protected_adaptation",
+      "split": "val",
+      "field": "landscape_features",
+      "labels": 17,
+      "samples": 3905,
+      "micro_support": 14127,
+      "micro_predicted_positive": 18875,
+      "macro_precision": 0.321614,
+      "macro_recall": 0.483734,
+      "macro_f1": 0.363258,
+      "threshold": 0.5
+    },
+    {
+      "exact_match": 0.008707,
+      "jaccard": 0.415765,
+      "run": "phase3_v4_protected_adaptation",
+      "split": "val",
+      "field": "window",
+      "labels": 25,
+      "samples": 3905,
+      "micro_support": 23766,
+      "micro_predicted_positive": 33026,
+      "macro_precision": 0.420749,
+      "macro_recall": 0.643533,
+      "macro_f1": 0.477237,
+      "threshold": 0.5
+    },
+    {
+      "exact_match": 0.102945,
+      "jaccard": 0.394391,
+      "run": "phase3_v4_protected_adaptation",
+      "split": "val",
+      "field": "entrance",
+      "labels": 14,
+      "samples": 3905,
+      "micro_support": 9962,
+      "micro_predicted_positive": 16815,
+      "macro_precision": 0.327445,
+      "macro_recall": 0.61233,
+      "macro_f1": 0.400858,
+      "threshold": 0.5
+    },
+    {
+      "exact_match": 0.303969,
+      "jaccard": 0.301686,
+      "run": "phase3_v4_protected_adaptation",
+      "split": "val",
+      "field": "associated_buildings",
+      "labels": 6,
+      "samples": 3905,
+      "micro_support": 2811,
+      "micro_predicted_positive": 5141,
+      "macro_precision": 0.205044,
+      "macro_recall": 0.337665,
+      "macro_f1": 0.211275,
+      "threshold": 0.5
+    },
+    {
+      "exact_match": 0.893214,
+      "jaccard": 0.908621,
+      "run": "phase3_v4_protected_adaptation",
+      "split": "val",
+      "field": "roof_materials",
+      "labels": 6,
+      "samples": 3905,
+      "micro_support": 3928,
+      "micro_predicted_positive": 4000,
+      "macro_precision": 0.309677,
+      "macro_recall": 0.442549,
+      "macro_f1": 0.33914,
+      "threshold": 0.5
+    }
+  ]
+}

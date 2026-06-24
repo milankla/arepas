@@ -1,0 +1,120 @@
+{
+  "version": "phase3_v1",
+  "source_csv": "data2/image_label_mapping_phase1.csv",
+  "building_level_counts": true,
+  "notes": [
+    "Phase 3 scope is locked to nine fields.",
+    "Multipart fields use Basic Survey subfields only for initial targets.",
+    "Counts are based on image-bearing data2 buildings deduplicated by building_id.",
+    "After the next large data drop, rerun counts and promote probation labels that cross the minimum positive threshold."
+  ],
+  "global_thresholds": {
+    "strong_positive_buildings": 300,
+    "minimum_initial_positive_buildings": 100,
+    "probation_positive_buildings": 30,
+    "rare_positive_buildings": 29
+  },
+  "fields": {
+    "wall_features": {
+      "target_type": "multi_label",
+      "source_column": "wall_features",
+      "parser": "semicolon_multi",
+      "survey_scope": "Basic + Full Survey",
+      "loss": "BCEWithLogitsLoss with per-label pos_weight in Step 3",
+      "train_labels": ["Foundation - Not Visible", "Foundation - Concrete", "Brick - Patterned", "Belt Course", "Brick - Polychromatic", "Gable Vents", "Brick - Corbeled", "Shingles in Gable - Decorative", "Half-Timbering", "Shutters", "Masonry Bay", "Foundation - Brick", "Awnings", "Engaged Columns", "Shingles in Gable - Plain", "Foundation - Stone", "Quoins", "Other Wall Details", "Rowlock Course", "Attached Sign", "Balcony"],
+      "probation_labels": ["Engaged Piers"],
+      "exclude_or_defer_labels": ["Buttresses", "Balconette", "Pilasters", "Foundation - Other", "Brick - Clinker", "Ghost Sign", "Vigas", "Tile", "None", "Mural"],
+      "grouping_rule": "Do not create a synthetic Other label for multi-label wall features in Phase 3 v1; keep low-count atomics out of the loss and track them in audit reports."
+    },
+    "landscape_features": {
+      "target_type": "multi_label",
+      "source_column": "landscape_features",
+      "parser": "semicolon_multi",
+      "survey_scope": "Major Alterations + Basic + Full Survey",
+      "loss": "BCEWithLogitsLoss with per-label pos_weight in Step 3",
+      "train_labels": ["Walkway - Concrete", "Fence - Rear", "Fence - Left Side", "Fence - Right Side", "Driveway - Solid", "Wall - Retaining", "Fence - Front", "Denver Roll", "Built-In Planters", "Walkway - Stone", "Parking Lot", "Stone Public Sidewalk", "Fence - Ornamental", "Driveway - Ribbon", "Driveway - Unpaved", "Walkway - Brick", "Fence - Historic"],
+      "probation_labels": ["Wall - Perimeter", "Walkway - Other Material"],
+      "exclude_or_defer_labels": ["Other Landscape Feature", "Fence - Other", "None", "Swimming Pool"],
+      "grouping_rule": "Do not create synthetic landscape groups in Phase 3 v1; rerun after new data and promote probation labels at 100+ positives."
+    },
+    "window": {
+      "target_type": "multi_label",
+      "source_column": "window",
+      "parser": "multipart_schema_options",
+      "survey_scope": "Basic + Full Survey top-level; Basic subfields only for Phase 3 v1",
+      "included_subfields": ["Window Type", "Window Features"],
+      "excluded_subfields": ["Window Location", "Window Material"],
+      "loss": "BCEWithLogitsLoss with per-label pos_weight in Step 3",
+      "train_labels": ["Window Type: Double/Single Hung", "Window Type: Fixed", "Window Type: Sliding", "Window Type: Casement", "Window Type: Unknown Window Type", "Window Type: Hopper/Awning", "Window Features: Rowlock Sill", "Window Features: None", "Window Features: Paired Windows", "Window Features: Tripartite Window", "Window Features: Stone Sill", "Window Features: Divided Lights - All", "Window Features: Dormer Window", "Window Features: Arch - Segmented", "Window Features: Decorative Surround", "Window Features: Grouped Windows", "Window Features: Picture Window", "Window Features: Divided Lights - Some", "Window Features: Transom", "Window Features: Stained/Leaded Glass", "Window Features: Arch - Rounded", "Window Features: Cottage Window", "Window Features: Oriel Window", "Window Features: Stone Lintel", "Window Features: Ribbon Windows"],
+      "probation_labels": ["Window Features: Slot Window"],
+      "exclude_or_defer_labels": ["Window Features: Round Window", "Window Type: Other Window Type", "Window Features: Hood", "Window Type: Clerestory", "Window Features: Palladian Window", "Window Features: Arch - Pointed", "Window Features: Vertical Stairlight", "Window Type: Roll-Up", "Window Features: Quatrefoil Window", "Window Type: Pivot"],
+      "grouping_rule": "Preserve schema option names exactly; never split labels on hyphens."
+    },
+    "entrance": {
+      "target_type": "multi_label",
+      "source_column": "entrance",
+      "parser": "multipart_schema_options",
+      "survey_scope": "Major Alterations + Basic + Full Survey top-level; Basic subfields only for Phase 3 v1",
+      "included_subfields": ["Entrance Type", "Entrance Location"],
+      "excluded_subfields": ["Entrance Features", "Door Type"],
+      "loss": "BCEWithLogitsLoss with per-label pos_weight in Step 3",
+      "train_labels": ["Entrance Location: Front Facade", "Entrance Location: Right Side", "Entrance Location: Left Side", "Entrance Location: Rear", "Entrance Type: Porch - Partial Width - Projecting", "Entrance Type: Porch - Full Width - Projecting", "Entrance Type: Stoop - Low", "Entrance Type: Flush Door - No Porch or Stoop", "Entrance Type: Porch - Partial Width - Recessed", "Entrance Type: Stoop - High", "Entrance Type: Other Entrance Type", "Entrance Type: Unknown - Not Visible", "Entrance Type: Storefront", "Entrance Type: Vehicular Entrance"],
+      "probation_labels": ["Entrance Location: Corner", "Entrance Type: Porch - Full Width - Recessed", "Entrance Type: Porch - Wrap Around - Projecting"],
+      "exclude_or_defer_labels": ["Entrance Type: Porch - Wrap Around - Recessed"],
+      "grouping_rule": "Preserve full Entrance Type schema options; do not split porch labels into Porch/Width/Projecting fragments."
+    },
+    "associated_buildings": {
+      "target_type": "multi_label",
+      "source_column": "associated_buildings",
+      "parser": "multipart_schema_options",
+      "survey_scope": "Basic + Full Survey top-level; Basic target subfield only for Phase 3 v1",
+      "included_subfields": ["Building/Object Type"],
+      "excluded_subfields": ["Building/Object Location", "Building/Object Notes"],
+      "loss": "BCEWithLogitsLoss with per-label pos_weight in Step 3",
+      "train_labels": ["Building/Object Type: Garage - Detached", "Building/Object Type: Shed or Storage Building", "Building/Object Type: Garage – Attached", "Building/Object Type: Carport - Attached", "Building/Object Type: Accessory Dwelling Unit (ADU)", "Building/Object Type: Other Associated Building or Object"],
+      "probation_labels": ["Building/Object Type: Unknown - Not Visible", "Building/Object Type: Carport - Detached"],
+      "exclude_or_defer_labels": ["Building/Object Type: Loading Dock", "Building/Object Type: Carriage House", "Building/Object Type: Porte Cochere"],
+      "grouping_rule": "Do not use notes as labels. Preserve attached/detached distinctions, but review a possible Carport super-label after the new data drop."
+    },
+    "building_category": {
+      "target_type": "single_label",
+      "source_column": "building_category",
+      "parser": "single",
+      "survey_scope": "Major Alterations + Basic + Full Survey",
+      "loss": "FocalLoss with capped balanced class weights in Step 3",
+      "train_labels": ["Residential", "Commercial", "Other / Agricultural"],
+      "class_mapping": {"Residential": "Residential", "Commercial": "Commercial", "Other": "Other / Agricultural", "Agricultural": "Other / Agricultural"},
+      "grouping_rule": "Collapse Agricultural into Other / Agricultural until it has enough positives to stand alone."
+    },
+    "current_use": {
+      "target_type": "single_label",
+      "source_column": "current_use",
+      "parser": "single",
+      "survey_scope": "Less than 30 years + Major Alterations + Basic + Full Survey",
+      "loss": "FocalLoss with capped balanced class weights in Step 3",
+      "train_labels": ["Domestic - Single Dwelling", "Domestic - Multiple Dwelling", "Commercial", "Civic / Institutional", "Other / Mixed / Vacant"],
+      "class_mapping": {"Domestic – Single Dwelling": "Domestic - Single Dwelling", "Domestic – Multiple Dwelling": "Domestic - Multiple Dwelling", "Commercial - Business/Professional": "Commercial", "Commercial - Financial Institution": "Commercial", "Commercial - Gas Station": "Commercial", "Commercial - Other": "Commercial", "Commercial - Restaurant": "Commercial", "Commercial - Retail Store": "Commercial", "Commercial - Warehouse": "Commercial", "Education - Education-Related": "Civic / Institutional", "Education - Higher Education": "Civic / Institutional", "Education - Library": "Civic / Institutional", "Education - School": "Civic / Institutional", "Government - Federal": "Civic / Institutional", "Government - Local": "Civic / Institutional", "Government - Other": "Civic / Institutional", "Government - State": "Civic / Institutional", "Health Care": "Civic / Institutional", "Recreation and Culture - Museum": "Civic / Institutional", "Recreation and Culture - Other": "Civic / Institutional", "Recreation and Culture - Theater": "Civic / Institutional", "Religious Facility": "Civic / Institutional", "Social - Meeting Hall": "Civic / Institutional", "Domestic - Hotel/Motel": "Other / Mixed / Vacant", "Domestic - Institutional Housing": "Other / Mixed / Vacant", "Domestic - Other": "Other / Mixed / Vacant", "Mixed Use": "Other / Mixed / Vacant", "Vacant Building": "Other / Mixed / Vacant", "Vacant Lot": "Other / Mixed / Vacant", "Agriculture": "Other / Mixed / Vacant", "Defense": "Other / Mixed / Vacant", "Industry/Processing": "Other / Mixed / Vacant", "Other Original Use": "Other / Mixed / Vacant", "Transportation": "Other / Mixed / Vacant", "Unknown Original Use": "Other / Mixed / Vacant"},
+      "grouping_rule": "Use broad visual/use families for Phase 3 v1; revisit fine-grained commercial/civic subtypes after the large data drop."
+    },
+    "roof_materials": {
+      "target_type": "multi_label",
+      "source_column": "roof_materials",
+      "parser": "semicolon_multi",
+      "survey_scope": "Basic + Full Survey",
+      "loss": "BCEWithLogitsLoss with per-label pos_weight in Step 3",
+      "train_labels": ["Shingles - Asphalt", "Unknown Roof Material", "Terra Cotta Tile", "Metal", "Shingles - Concrete", "Rare Roof Material"],
+      "class_mapping": {"Shingles - Asphalt": "Shingles - Asphalt", "Unknown Roof Material": "Unknown Roof Material", "Terra Cotta Tile": "Terra Cotta Tile", "Metal": "Metal", "Shingles - Concrete": "Shingles - Concrete", "Membrane": "Rare Roof Material", "Other Roof Material": "Rare Roof Material", "Shingles - Wood": "Rare Roof Material", "Shingles - Slate": "Rare Roof Material", "Gravel": "Rare Roof Material"},
+      "grouping_rule": "Keep the dominant asphalt and unknown labels separate; group sub-30 materials into Rare Roof Material until data volume improves."
+    },
+    "original_use": {
+      "target_type": "single_label",
+      "source_column": "original_use",
+      "parser": "single",
+      "survey_scope": "Less than 30 years + Major Alterations + Basic + Full Survey",
+      "loss": "FocalLoss with capped balanced class weights in Step 3",
+      "train_labels": ["Domestic - Single Dwelling", "Domestic - Multiple Dwelling", "Commercial", "Civic / Institutional", "Other / Mixed / Unknown"],
+      "class_mapping": {"Domestic – Single Dwelling": "Domestic - Single Dwelling", "Domestic – Multiple Dwelling": "Domestic - Multiple Dwelling", "Commercial - Business/Professional": "Commercial", "Commercial - Financial Institution": "Commercial", "Commercial - Gas Station": "Commercial", "Commercial - Other": "Commercial", "Commercial - Restaurant": "Commercial", "Commercial - Retail Store": "Commercial", "Commercial - Warehouse": "Commercial", "Education - Education-Related": "Civic / Institutional", "Education - Higher Education": "Civic / Institutional", "Education - Library": "Civic / Institutional", "Education - School": "Civic / Institutional", "Government - Federal": "Civic / Institutional", "Government - Local": "Civic / Institutional", "Government - Other": "Civic / Institutional", "Government - State": "Civic / Institutional", "Health Care": "Civic / Institutional", "Recreation and Culture - Museum": "Civic / Institutional", "Recreation and Culture - Other": "Civic / Institutional", "Recreation and Culture - Theater": "Civic / Institutional", "Religious Facility": "Civic / Institutional", "Social - Meeting Hall": "Civic / Institutional", "Domestic - Hotel/Motel": "Other / Mixed / Unknown", "Domestic - Institutional Housing": "Other / Mixed / Unknown", "Domestic - Other": "Other / Mixed / Unknown", "Mixed Use": "Other / Mixed / Unknown", "Agriculture": "Other / Mixed / Unknown", "Defense": "Other / Mixed / Unknown", "Industry/Processing": "Other / Mixed / Unknown", "Other Original Use": "Other / Mixed / Unknown", "Transportation": "Other / Mixed / Unknown", "Unknown Original Use": "Other / Mixed / Unknown"},
+      "grouping_rule": "Use broad historical-use families; keep this as an imbalance expansion target and evaluate macro F1 carefully."
+    }
+  }
+}

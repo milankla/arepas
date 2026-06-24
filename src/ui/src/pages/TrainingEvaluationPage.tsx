@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from "react";
 import {
   Box,
   Chip,
-  Divider,
   Tab,
   Tabs,
   Typography,
@@ -12,8 +11,7 @@ import { RunSelector } from "@/components/training/RunSelector";
 import {
   AccuracyChart,
   LossChart,
-  TaskAccuracyCharts,
-  TaskF1Charts,
+  TaskMetricCharts,
   buildRunLabels,
   type RunHistoryMap,
 } from "@/components/training/TrainingCharts";
@@ -193,17 +191,7 @@ export default function TrainingEvaluationPage() {
           {Object.keys(selectedHistories).length === 0 ? (
             <Typography color="text.secondary">Select at least one run.</Typography>
           ) : (
-            <>
-              <Typography variant="subtitle1" sx={{ mb: 2, fontWeight: 600 }}>
-                Accuracy per task
-              </Typography>
-              <TaskAccuracyCharts histories={selectedHistories} runLabels={runLabels} epochMax={epochMax} />
-              <Divider sx={{ my: 3 }} />
-              <Typography variant="subtitle1" sx={{ mb: 2, fontWeight: 600 }}>
-                Macro F1 per task
-              </Typography>
-              <TaskF1Charts histories={selectedHistories} runLabels={runLabels} epochMax={epochMax} />
-            </>
+            <TaskMetricCharts histories={selectedHistories} runLabels={runLabels} epochMax={epochMax} />
           )}
         </Box>
       )}

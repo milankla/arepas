@@ -523,6 +523,8 @@ def build_dataloaders(
     prefetch_factor: int = 2,
     cropped_root: Optional[str] = None,
     paired_views: bool = False,
+    include_phase3_labels: bool = False,
+    phase3_labels: Optional[List[str]] = None,
 ) -> Tuple[DataLoader, DataLoader, DataLoader, Dict[str, int], Dict[str, torch.Tensor]]:
     """Build train / val / test DataLoaders from any CSV + ModelConfig.
 
@@ -539,6 +541,8 @@ def build_dataloaders(
         batch_size:      Samples per GPU batch.
         num_workers:     DataLoader worker processes.
         prefetch_factor: Batches to prefetch per worker.
+        include_phase3_labels: Load the nine Phase 3 label-definition fields.
+        phase3_labels: Optional subset of Phase 3 labels to load.
 
     Returns:
         (train_loader, val_loader, test_loader, num_classes, class_weights)
@@ -550,6 +554,8 @@ def build_dataloaders(
         model_config=model_config,
         cropped_root=cropped_root,
         paired_views=paired_views,
+        include_phase3_labels=include_phase3_labels,
+        phase3_labels=phase3_labels,
     )
     logger.info(
         f"Dataset splits — train: {len(train_ds)}, "
@@ -629,6 +635,7 @@ def progressive_training_pipeline(
     force_overwrite: bool = False,
     resume_from_epoch: int = 0,
     scheduler: str = 'plateau',
+    phase3_labels: str = '',
 ) -> None:
     """Dataset- and model-agnostic progressive training pipeline.
 
@@ -666,6 +673,7 @@ def progressive_training_pipeline(
     gate_overrides = _parse_task_float_map(paired_gate_overrides)
     residual_scales = _parse_task_float_map(paired_residual_scales)
     crop_bypass_tasks = _parse_task_list(paired_crop_bypass_tasks)
+    phase3_label_list = _parse_task_list(phase3_labels)
 
     # Build loaders once — image size and norm stats come from model_config.
     train_loader, val_loader, _, num_classes, class_weights = build_dataloaders(
@@ -676,6 +684,8 @@ def progressive_training_pipeline(
         prefetch_factor=prefetch_factor,
         cropped_root=cropped_root,
         paired_views=paired_views,
+        include_phase3_labels=end_phase >= 3,
+        phase3_labels=phase3_label_list or None,
     )
 
     # Build a RunConfig to capture all parameters that define this run.
@@ -686,6 +696,7 @@ def progressive_training_pipeline(
         model_config_path=model_config_path or "config/models/resnet50.json",
         start_phase=start_phase,
         end_phase=end_phase,
+        phase3_labels=phase3_labels,
         epochs=epochs_per_phase,
         batch_size=batch_size,
         lr=lr,
@@ -747,6 +758,7 @@ def progressive_training_pipeline(
             model_config_path=run_cfg.model_config_path,
             start_phase=phase,
             end_phase=phase,
+            phase3_labels=run_cfg.phase3_labels,
             epochs=run_cfg.epochs,
             batch_size=run_cfg.batch_size,
             lr=run_cfg.lr,
@@ -880,6 +892,15 @@ if __name__ == "__main__":
     parser.add_argument(
         "--end-phase", type=int, default=1, choices=[1, 2, 3, 4],
         help="Last phase to train (inclusive).",
+    )
+    parser.add_argument(
+        "--phase3-labels",
+        default="",
+        help=(
+            "Comma-separated Phase 3 label subset to train when phase 3 is active. "
+            "Blank means all configured Phase 3 labels. Example: "
+            "wall_features,landscape_features,window,entrance,associated_buildings,building_category,roof_materials"
+        ),
     )
     parser.add_argument(
         "--epochs", type=int, default=20,
@@ -1115,4 +1136,5 @@ if __name__ == "__main__":
         force_overwrite=args.force_overwrite,
         resume_from_epoch=args.resume_from,
         scheduler=args.scheduler,
+        phase3_labels=args.phase3_labels,
     )

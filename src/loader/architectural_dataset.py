@@ -48,8 +48,10 @@ Label encoding
 
 from __future__ import annotations
 
+import json
+import re
 from pathlib import Path
-from typing import Callable, Dict, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 from urllib.parse import quote, unquote
 
 import pandas as pd
@@ -79,6 +81,7 @@ except ImportError:  # standalone / test context
 IMAGE_ROOT_DEFAULT = "."
 IMAGE_SIZE        = 224
 RANDOM_STATE      = 42
+PHASE3_LABEL_DEFINITIONS_PATH = Path(__file__).resolve().parents[2] / "config" / "phase3_label_definitions.json"
 
 # Label columns that are actively trained in the current dataset.
 # Adding a new task here (e.g. building_category) is all that's needed
@@ -99,6 +102,19 @@ TRAINING_LABEL_COLS: List[str] = [
 ]
 PHASE1_LABEL_COLS = TRAINING_LABEL_COLS  # backward-compat alias — prefer TRAINING_LABEL_COLS
 LABEL_COLS = TRAINING_LABEL_COLS   # dataset-agnostic alias
+
+
+def _load_phase3_label_definitions() -> Dict[str, Any]:
+    if not PHASE3_LABEL_DEFINITIONS_PATH.exists():
+        logger.warning(f"Phase 3 label definitions not found: {PHASE3_LABEL_DEFINITIONS_PATH}")
+        return {"fields": {}}
+    with PHASE3_LABEL_DEFINITIONS_PATH.open() as f:
+        return json.load(f)
+
+
+PHASE3_LABEL_DEFINITIONS = _load_phase3_label_definitions()
+PHASE3_FIELD_SPECS: Dict[str, Dict[str, Any]] = PHASE3_LABEL_DEFINITIONS.get("fields", {})
+PHASE3_LABEL_COLS: List[str] = list(PHASE3_FIELD_SPECS.keys())
 
 # Split column — used for stratification
 STRATIFY_COL = "architectural_style"
@@ -317,6 +333,10 @@ MULTILABEL_ATOMICS: Dict[str, List[str]] = {
     "setting": SETTING_SCHEMA_ATOMICS,
 }
 
+for _field_name, _field_spec in PHASE3_FIELD_SPECS.items():
+    if _field_spec.get("target_type") == "multi_label":
+        MULTILABEL_ATOMICS[_field_name] = list(_field_spec.get("train_labels", []))
+
 # Columns that use MultiLabelBinarizer (→ FloatTensor[n_atomics]) instead of
 # LabelEncoder (→ LongTensor scalar).  Derived from MULTILABEL_ATOMICS so the
 # two are always in sync.
@@ -336,6 +356,113 @@ PRE_ENCODE_TRANSFORMS: Dict[str, Callable[[str], str]] = {
     "primary_cladding":    normalize_cladding_label,
     "architectural_style": normalize_arch_style_label,
 }
+
+
+def _phase3_single_label_value(col: str, value: str) -> str:
+    spec = PHASE3_FIELD_SPECS.get(col, {})
+    return spec.get("class_mapping", {}).get(value, value)
+
+
+def normalize_label_value(col: str, raw: object) -> str:
+    value = normalize_value(raw)
+    if col in PHASE3_FIELD_SPECS and PHASE3_FIELD_SPECS[col].get("target_type") == "single_label":
+        return _phase3_single_label_value(col, value)
+    transform_fn = PRE_ENCODE_TRANSFORMS.get(col)
+    return transform_fn(value) if transform_fn else value
+
+
+def _split_semicolon_multi(value: str) -> List[str]:
+    return [part.strip() for part in value.split(";") if part.strip()]
+
+
+def _subfield_option_map(spec: Dict[str, Any]) -> Dict[str, List[str]]:
+    options: Dict[str, set[str]] = {subfield: set() for subfield in spec.get("included_subfields", [])}
+    labels = (
+        list(spec.get("train_labels", []))
+        + list(spec.get("probation_labels", []))
+        + list(spec.get("exclude_or_defer_labels", []))
+    )
+    for label in labels:
+        if ": " not in label:
+            continue
+        subfield, option = label.split(": ", 1)
+        if subfield in options:
+            options[subfield].add(option)
+    return {subfield: sorted(values, key=len, reverse=True) for subfield, values in options.items()}
+
+
+def _extract_multipart_subfield(record: str, subfield: str) -> str:
+    pattern = rf"{re.escape(subfield)}:\s*(.*?)(?=;\s*[A-Z][A-Za-z/ ]+:|$)"
+    match = re.search(pattern, record)
+    return match.group(1).strip() if match else ""
+
+
+def _match_schema_options(raw: str, options: List[str]) -> List[str]:
+    if not raw:
+        return []
+    if raw in options:
+        return [raw]
+
+    hits: List[str] = []
+    remaining = raw
+    for option in options:
+        pattern = r"(?<!\w)" + re.escape(option) + r"(?!\w)"
+        if re.search(pattern, remaining):
+            hits.append(option)
+            remaining = re.sub(pattern, " ", remaining)
+    return hits
+
+
+def _parse_phase3_multipart_labels(value: str, spec: Dict[str, Any]) -> List[str]:
+    labels: set[str] = set()
+    option_map = _subfield_option_map(spec)
+    for record in re.split(r"\s+\|\s+", value):
+        for subfield, options in option_map.items():
+            raw = _extract_multipart_subfield(record, subfield)
+            for option in _match_schema_options(raw, options):
+                labels.add(f"{subfield}: {option}")
+    return sorted(labels)
+
+
+def parse_multilabel_value(col: str, raw: object) -> List[str]:
+    value = normalize_value(raw)
+    if not value:
+        return []
+
+    if col not in PHASE3_FIELD_SPECS:
+        return [part.strip() for part in value.split("; ") if part.strip()]
+
+    spec = PHASE3_FIELD_SPECS[col]
+    train_labels = set(spec.get("train_labels", []))
+    class_mapping = spec.get("class_mapping", {})
+    if spec.get("parser") == "multipart_schema_options":
+        labels = _parse_phase3_multipart_labels(value, spec)
+    else:
+        labels = [class_mapping.get(label, label) for label in _split_semicolon_multi(value)]
+    return sorted({label for label in labels if label in train_labels})
+
+
+def phase3_enabled_label_cols(
+    include_phase3_labels: bool = False,
+    phase3_labels: Optional[List[str]] = None,
+) -> List[str]:
+    if not include_phase3_labels:
+        return list(TRAINING_LABEL_COLS)
+    selected_phase3_labels = list(PHASE3_LABEL_COLS) if phase3_labels is None else list(phase3_labels)
+    unknown_labels = [label for label in selected_phase3_labels if label not in PHASE3_FIELD_SPECS]
+    if unknown_labels:
+        raise ValueError(
+            f"Unknown Phase 3 labels: {unknown_labels}. "
+            f"Available labels: {PHASE3_LABEL_COLS}"
+        )
+    return list(TRAINING_LABEL_COLS) + selected_phase3_labels
+
+
+def label_requires_nonempty_value(col: str) -> bool:
+    spec = PHASE3_FIELD_SPECS.get(col)
+    if not spec:
+        return True
+    return spec.get("target_type") == "single_label"
 
 
 # ── Transforms ───────────────────────────────────────────────────────────────
@@ -410,6 +537,7 @@ class ArchitecturalDataset(Dataset):
         image_size: int = IMAGE_SIZE,
         cropped_root: Optional[str] = None,
         paired_views: bool = False,
+        label_cols: Optional[List[str]] = None,
     ) -> None:
         self.df            = df.reset_index(drop=True)
         self.label_encoders = label_encoders
@@ -418,6 +546,7 @@ class ArchitecturalDataset(Dataset):
         self.transform     = transform or build_eval_transform(image_size)
         self.cropped_root  = Path(cropped_root) if cropped_root else None
         self.paired_views  = paired_views
+        self.label_cols    = label_cols or list(TRAINING_LABEL_COLS)
 
     def _resolve_image_paths(self, raw_image_path: str) -> Tuple[Path, Optional[Path]]:
         raw_image_path = unquote(raw_image_path)
@@ -467,18 +596,16 @@ class ArchitecturalDataset(Dataset):
 
         # ── Labels ────────────────────────────────────────────────────────
         labels: Dict[str, Tensor] = {}
-        for col in TRAINING_LABEL_COLS:
+        for col in self.label_cols:
             raw   = row[col]
-            value = normalize_value(raw)        # field_parser — single source of truth
-            if col in PRE_ENCODE_TRANSFORMS:
-                value = PRE_ENCODE_TRANSFORMS[col](value)
             if col in MULTILABEL_COLS:
                 # Multi-label: split on "; " → binary vector FloatTensor[n_atomics]
-                parts = [p.strip() for p in value.split("; ")] if value else []
+                parts = parse_multilabel_value(col, raw)
                 vec = self.label_encoders[col].transform([parts])[0]
                 labels[col] = torch.tensor(vec, dtype=torch.float32)
             else:
                 # Single-label: integer class index → LongTensor scalar
+                value = normalize_label_value(col, raw)
                 idx_  = self.label_encoders[col].transform([value])[0]
                 labels[col] = torch.tensor(idx_, dtype=torch.long)
 
@@ -506,8 +633,10 @@ class ArchitecturalDataset(Dataset):
             weight[i] = n_samples / (n_classes * count[i])
 
         This up-weights rare classes so the loss function penalises errors on
-        minority classes more heavily.  Multi-label columns (e.g. ``setting``)
-        are excluded — BCEWithLogitsLoss handles them differently.
+        minority classes more heavily.  Multi-label columns receive BCE
+        ``pos_weight`` vectors:
+
+            pos_weight[i] = n_negative[i] / n_positive[i]
 
         The same normalisation pipeline applied in ``__getitem__`` (field-parser
         ``normalize_value`` + any ``PRE_ENCODE_TRANSFORMS`` function) is applied
@@ -517,17 +646,25 @@ class ArchitecturalDataset(Dataset):
             Dict mapping column name → FloatTensor of shape [n_classes].
         """
         weights: Dict[str, torch.Tensor] = {}
-        for col in TRAINING_LABEL_COLS:
+        for col in self.label_cols:
             if col in MULTILABEL_COLS:
-                continue  # BCE handles multi-label tasks directly
+                counts = torch.zeros(len(self.label_encoders[col].classes_), dtype=torch.float32)
+                for value in self.df[col]:
+                    labels = set(parse_multilabel_value(col, value))
+                    for index, label in enumerate(self.label_encoders[col].classes_):
+                        if label in labels:
+                            counts[index] += 1
+                negatives = len(self.df) - counts
+                pos_weight = torch.ones_like(counts)
+                nonzero = counts > 0
+                pos_weight[nonzero] = negatives[nonzero] / counts[nonzero]
+                weights[col] = pos_weight.clamp(max=10.0)
+                continue
 
             enc = self.label_encoders[col]
-            transform_fn = PRE_ENCODE_TRANSFORMS.get(col)
 
             # Apply the same pipeline as __getitem__
-            values: "pd.Series" = self.df[col].map(normalize_value)
-            if transform_fn:
-                values = values.map(transform_fn)
+            values: "pd.Series" = self.df[col].map(lambda value: normalize_label_value(col, value))
 
             n_classes = len(enc.classes_)
             n_samples = len(values)
@@ -551,9 +688,17 @@ class ArchitecturalDataset(Dataset):
     def class_counts(self) -> Dict[str, Dict[str, int]]:
         """Return {col: {class_name: count}} from this split."""
         result: Dict[str, Dict[str, int]] = {}
-        for col in TRAINING_LABEL_COLS:
-            counts = self.df[col].value_counts().to_dict()
-            result[col] = {str(k): int(v) for k, v in counts.items()}
+        for col in self.label_cols:
+            if col in MULTILABEL_COLS:
+                counts = {label: 0 for label in self.label_encoders[col].classes_}
+                for value in self.df[col]:
+                    for label in parse_multilabel_value(col, value):
+                        counts[label] += 1
+                result[col] = counts
+            else:
+                values = self.df[col].map(lambda value: normalize_label_value(col, value))
+                counts = values.value_counts().to_dict()
+                result[col] = {str(k): int(v) for k, v in counts.items()}
         return result
 
 
@@ -574,6 +719,8 @@ def make_splits(
     eval_transform:  Optional[transforms.Compose] = None,
     cropped_root: Optional[str] = None,
     paired_views: bool = False,
+    include_phase3_labels: bool = False,
+    phase3_labels: Optional[List[str]] = None,
 ) -> Tuple[ArchitecturalDataset, ArchitecturalDataset, ArchitecturalDataset]:
     """
     Load a label-mapping CSV, fit label encoders from its actual classes, and
@@ -620,6 +767,12 @@ def make_splits(
         paired_views:    Return both full and cropped images as a dict with keys
                  ``full`` and ``crop``. Requires cropped_root for true
                  paired training; missing crops fall back to full image.
+        include_phase3_labels: Include the nine Phase 3 label-definition fields
+                 from config/phase3_label_definitions.json. Default is
+                 False to preserve existing Phase 1/2 training behavior.
+        phase3_labels: Optional subset of Phase 3 fields to include when
+             include_phase3_labels is true. Use this for staged Phase 3
+             experiments that exclude weak or deferred fields.
 
     Returns:
         (train_ds, val_ds, test_ds)
@@ -643,16 +796,18 @@ def make_splits(
 
     df = pd.read_csv(csv_path)
     logger.info(f"Loaded {len(df)} rows from {csv_path}")
+    active_label_cols = phase3_enabled_label_cols(include_phase3_labels, phase3_labels)
 
     # ── Validate required columns ─────────────────────────────────────────
-    missing_cols = [c for c in TRAINING_LABEL_COLS if c not in df.columns]
+    missing_cols = [c for c in active_label_cols if c not in df.columns]
     if missing_cols:
         raise ValueError(f"CSV is missing required columns: {missing_cols}")
 
     # ── Drop rows with any empty label ────────────────────────────────────
     before = len(df)
-    df = df.dropna(subset=TRAINING_LABEL_COLS)
-    df = df[df[TRAINING_LABEL_COLS].apply(
+    nonempty_label_cols = [col for col in active_label_cols if label_requires_nonempty_value(col)]
+    df = df.dropna(subset=nonempty_label_cols)
+    df = df[df[nonempty_label_cols].apply(
         lambda col: col.map(normalize_value) != ""
     ).all(axis=1)]
     if len(df) < before:
@@ -660,24 +815,17 @@ def make_splits(
 
     # ── Fit encoders: MultiLabelBinarizer for multi-label cols, LabelEncoder for rest ──
     label_encoders: Dict[str, Union[LabelEncoder, MultiLabelBinarizer]] = {}
-    for col in TRAINING_LABEL_COLS:
+    for col in active_label_cols:
         if col in MULTILABEL_COLS:
             # Fixed schema atomics keep class order stable across datasets.
             mlb = MultiLabelBinarizer(classes=MULTILABEL_ATOMICS[col])
-            all_rows = [
-                [p.strip() for p in normalize_value(val).split("; ")]
-                for val in df[col]
-            ]
+            all_rows = [parse_multilabel_value(col, val) for val in df[col]]
             mlb.fit(all_rows)
             label_encoders[col] = mlb
             logger.debug(f"  {col}: {len(mlb.classes_)} atomics (multi-label)")
         else:
             enc = LabelEncoder()
-            transform_fn = PRE_ENCODE_TRANSFORMS.get(col)
-            if transform_fn:
-                enc.fit(df[col].map(normalize_value).map(transform_fn))
-            else:
-                enc.fit(df[col].map(normalize_value))
+            enc.fit(df[col].map(lambda value: normalize_label_value(col, value)))
             label_encoders[col] = enc
             logger.debug(f"  {col}: {len(enc.classes_)} classes → {list(enc.classes_)}")
 
@@ -685,7 +833,7 @@ def make_splits(
         "Encoders fitted — class counts: "
         + ", ".join(
             f"{c}: {len(label_encoders[c].classes_)}{'(multi)' if c in MULTILABEL_COLS else ''}"
-            for c in TRAINING_LABEL_COLS
+            for c in active_label_cols
         )
     )
 
@@ -752,6 +900,7 @@ def make_splits(
         image_size=image_size,
         cropped_root=cropped_root,
         paired_views=paired_views,
+        label_cols=active_label_cols,
     )
     val_ds = ArchitecturalDataset(
         df_val, label_encoders, image_root,
@@ -759,6 +908,7 @@ def make_splits(
         image_size=image_size,
         cropped_root=cropped_root,
         paired_views=paired_views,
+        label_cols=active_label_cols,
     )
     test_ds = ArchitecturalDataset(
         df_test, label_encoders, image_root,
@@ -766,6 +916,7 @@ def make_splits(
         image_size=image_size,
         cropped_root=cropped_root,
         paired_views=paired_views,
+        label_cols=active_label_cols,
     )
 
     return train_ds, val_ds, test_ds

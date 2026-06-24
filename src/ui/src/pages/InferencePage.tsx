@@ -36,7 +36,7 @@ export default function InferencePage() {
   const [checkpoints, setCheckpoints] = useState<CheckpointInfo[]>([]);
   const [loadingCkpts, setLoadingCkpts] = useState(true);
   const [selectedCkpt, setSelectedCkpt] = useState<string>("");
-  const [phaseFilter, setPhaseFilter] = useState<Set<number>>(new Set([2]));
+  const [phaseFilter, setPhaseFilter] = useState<Set<number>>(new Set([2, 3]));
 
   const [files, setFiles] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);

@@ -23,10 +23,18 @@ scripts/crop_dataset.py        ← GroundingDINO detector + 456×456 letterbox c
     ▼  crops/data2/
     │
     ▼
-src/models/train_multi_task.py ← EfficientNet-B5, phase 1 → phase 2
+src/models/train_multi_task.py ← EfficientNet-B5, phase 1 → phase 2 → phase 3 (experimental)
     │
     ▼  outputs/ checkpoints + MLflow metrics
 ```
+
+### Current Production Model
+
+**Best checkpoint:** `outputs/data2/b5/phase2_full/phase2/best_model_phase2.pth`  
+**Configuration:** EfficientNet-B5, 7 tasks (Phase 1 + 2)  
+**Performance:** 66.63% overall accuracy on validation set (Phase 2 best)
+
+> **Phase 3 status:** Phase 3 training (7 additional fine-grained attributes) has been tabled until the next data collection cycle (2000+ additional buildings). Current dataset is too small for meaningful Phase 3 learning without explicit retention mechanisms. See [docs/PROJECT_TRAINING_STATUS_JUN_2026.md](docs/PROJECT_TRAINING_STATUS_JUN_2026.md) for full analysis and forward plan.
 
 ## Getting Started
 

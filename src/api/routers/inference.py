@@ -233,9 +233,26 @@ def _load_model(checkpoint_path: str) -> tuple[MultiTaskArchitecturalClassifier,
     # Extract class lists by fitting label encoders from the CSV (fast — no images loaded)
     label_classes: dict[str, list[str]] = {}
     csv_path = run_cfg.get("csv_path", "")
+
+    # Phase 3 runs need Phase 3 label encoders enabled; otherwise class labels
+    # for tasks like `window` fall back to numeric indices ("0", "1", ...).
+    phase3_labels_cfg = run_cfg.get("phase3_labels", "")
+    if isinstance(phase3_labels_cfg, str):
+        phase3_labels = [s.strip() for s in phase3_labels_cfg.split(",") if s.strip()]
+    elif isinstance(phase3_labels_cfg, list):
+        phase3_labels = [str(s).strip() for s in phase3_labels_cfg if str(s).strip()]
+    else:
+        phase3_labels = []
+    include_phase3_labels = bool(run_cfg.get("end_phase", 1) >= 3 or phase3_labels)
+
     if csv_path and Path(csv_path).exists():
         try:
-            train_ds, _, _ = make_splits(csv_path=csv_path, model_config=model_config)
+            train_ds, _, _ = make_splits(
+                csv_path=csv_path,
+                model_config=model_config,
+                include_phase3_labels=include_phase3_labels,
+                phase3_labels=phase3_labels or None,
+            )
             label_classes = {
                 task: list(enc.classes_)
                 for task, enc in train_ds.label_encoders.items()

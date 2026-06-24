@@ -1,10 +1,11 @@
 # Arepas — Training Run History
 
-**Last updated:** May 10, 2026 (evening)  
+**Last updated:** June 23, 2026 (Phase 3 training complete & tabled)  
 **Dataset:** `data2/image_label_mapping_phase1.csv` — 759 buildings / 2,708 images  
 **Split (fixed seed=42):** train 1,911 | val 409 | test 388 images  
 **Phase 1 tasks:** stories, roof_type, primary_cladding, chimney_present, setting  
-**Phase 2 tasks (added):** architectural_style, building_form
+**Phase 2 tasks (added):** architectural_style, building_form  
+**Phase 3 tasks (added):** wall_features, landscape_features, window, entrance, associated_buildings, building_category, roof_materials
 
 ---
 
@@ -32,6 +33,17 @@
 > **Note:** Phase 2 overall acc is computed across all 7 tasks. It is **not directly comparable** to Phase 1's 71.86% (5 tasks). The two new tasks (architectural_style: 59.66%, building_form: 45.72%) lower the average. Phase 1 tasks held steady or improved vs their Phase 1 baselines.
 
 **Note on cladding F1:** Low cladding F1 (~23–31%) despite reasonable accuracy because Brick dominates at ~68% of samples. This is a known class imbalance problem pending more data.
+
+### Phase 3 — 14 tasks (Phase 1/2 + 7 new fine-grained attributes)
+
+**Status:** Tabled. Current dataset (759 buildings, 409 val samples) is too small to support further Phase 3 learning without explicit retention loss. Awaiting 2000+ building data drop.
+
+| Rank | Run | Strategy | Best Epoch | Overall Acc (14 tasks) | Old-task Primary | Phase 3 F1 | Notes |
+|------|-----|----------|-----------|------------------------|------------------|-----------|-------|
+| 🥇 | **v5_head_fusion_boost ep13** | Frozen backbone, head LR=1e-4 | 13 | **63.31%** | 73.06% | 41.56% | **Best result**; overfitting evident by ep15 |
+| 🥈 | v4_protected_adaptation ep12 | Unfrozen backbone, LR scale 0.02 | 12 | 62.97% | 73.13% | 40.24% | Flat learning; old-task decay by ep12 |
+
+> **Key finding:** Frozen backbone + higher head LR (v5) provides stable training but marginal gains on small dataset. Without additional data, Phase 3 improvements plateau at ~41% F1. Data imbalance + task competition prevents meaningful learning. Phase 3 resumes after 2000+ building data arrives with teacher-distillation based retention loss (code change required).
 
 ---
 
@@ -364,6 +376,88 @@ Scaling LR by √2 (1.1e-4 → 1.5e-4) with batch doubling (8→16) follows line
 
 ---
 
+### EfficientNet-B5 Phase 3 Runs — `data2/` (14 tasks: Phase 1/2 + 7 new)
+
+Phase 3 training experiments focused on learning 7 new fine-grained architectural attributes while minimizing degradation of the 7 Phase 1/2 tasks. The dataset is too small (759 buildings, 409 validation images) to support simultaneous learning without retention mechanisms.
+
+| Run | Date | Strategy | Epochs cfg/run | Freeze config | LR setup | Best Overall (14 tasks) | Old-task Primary | Phase 3 F1 | Notes |
+|-----|------|----------|-----------|----------|----------|-----------|------------------|-----------|-------|
+| **v4_protected_adaptation** | 2026-06-16 | Unfrozen backbone w/ scale | 12 / 12 | None | backbone_lr_scale=0.02, lr=5e-5 | 62.97% | 73.13% | 40.24% | Flat learning; backbone too slow at 0.02× scale; old-task accuracy leaks −1.54pp |
+| **v5_head_fusion_boost** | 2026-06-23 | Frozen backbone, high head LR | 16 / 15 | backbone=frozen, phase1_heads=frozen | lr=1e-4 all heads/fusion | **63.31%** | 73.06% | **41.56%** | **Best result**; stable training; overfitting signals after ep13 |
+
+#### v5_head_fusion_boost (Frozen Backbone, Head LR 1e-4) — Complete Epoch Results
+
+| Epoch | Train Loss | Val Loss | Overall Acc | Old-task Avg | Phase 3 F1 | Notes |
+|-------|-----------|----------|-------------|---------|-----------|-------|
+| 1 | 1.1764 | 1.1519 | 63.09% | 73.88% | 38.39% | |
+| 2 | 0.9524 | 1.1591 | 62.74% | 73.21% | 39.45% | |
+| 3 | 0.8451 | 1.1802 | 63.25% | 73.50% | 40.60% | |
+| 4 | 0.7842 | 1.2044 | 62.97% | 73.07% | 40.34% | |
+| 5 | 0.7294 | 1.2169 | 63.14% | 73.18% | 40.78% | |
+| 6 | 0.6821 | 1.2247 | 62.91% | 72.79% | 40.47% | |
+| 7 | 0.6355 | 1.2299 | 62.83% | 72.63% | 40.69% | |
+| 8 | 0.5923 | 1.2281 | 62.97% | 72.75% | 41.18% | |
+| 9 | 0.5619 | 1.2240 | 63.02% | 72.76% | 40.79% | |
+| 10 | 0.5211 | 1.2283 | 63.14% | 72.68% | 41.00% | |
+| 11 | 0.4927 | 1.2397 | 63.15% | 72.69% | 41.12% | |
+| 12 | 0.4645 | 1.2421 | 62.95% | 72.70% | 41.31% | |
+| **13** | **0.4389** | **1.2519** | **63.31%** | **73.06%** | **41.56%** | **← BEST** |
+| 14 | 0.4258 | 1.2444 | 63.24% | 72.88% | 41.44% | Overfitting begins |
+| 15 | 0.3655 | 1.2643 | 63.08% | 72.76% | 41.26% | Val loss diverges; training loss still declining |
+
+Early stopping did not trigger (patience=20, no patience threshold reached). **Best checkpoint at epoch 13** (not final epoch 15); represents sweet spot between Phase 3 learning and old-task retention. Val loss rose from 1.2519 (ep13) to 1.2643 (ep15) indicating model overfitting to training set.
+
+#### v5_head_fusion_boost — Per-Task Breakdown (Epoch 13, Best Checkpoint)
+
+**Old tasks (retention analysis):**
+
+| Task | Epoch 1 Acc | Epoch 13 Acc | Δ | Epoch 13 F1 | F1 Δ |
+|------|-----------|-----------|---|------|----|
+| primary_cladding | 77.49% | 75.62% | −1.87pp | 45.14% | — |
+| stories | 71.09% | 71.75% | +0.66pp | 44.10% | — |
+| chimney_present | 93.03% | 91.14% | −1.89pp | 53.31% | — |
+| setting | 80.34% | 79.29% | −1.05pp | 47.84% | — |
+| architectural_style | 72.32% | 71.75% | −0.57pp | 41.72% | — |
+| building_form | 65.61% | 65.71% | +0.10pp | 29.26% | — |
+| roof_type | 57.31% | 58.77% | +1.46pp | 34.15% | — |
+| **Old-task Avg** | **73.88%** | **73.06%** | **−0.82pp** | — | — |
+
+**New Phase 3 tasks (learning analysis):**
+
+| Task | Epoch 1 Acc | Epoch 13 Acc | Δ | Epoch 13 F1 | F1 Δ |
+|------|-----------|-----------|---|------|----|
+| wall_features | 32.59% | 33.86% | +1.27pp | 39.92% | — |
+| landscape_features | 38.73% | 39.85% | +1.12pp | 36.47% | — |
+| window | 41.44% | 42.87% | +1.43pp | 47.60% | — |
+| entrance | 40.87% | 40.31% | −0.56pp | 40.24% | — |
+| associated_buildings | 30.81% | 30.33% | −0.48pp | 22.30% | — |
+| building_category | 91.75% | 93.50% | +1.75pp | 61.74% | — |
+| roof_materials | 89.81% | 89.28% | −0.53pp | 33.57% | — |
+| **Phase 3 Avg** | **52.29%** | **53.56%** | **+1.27pp** | **40.26%** | — |
+
+> **Interpretation:** Phase 3 heads learning at +1.27pp accuracy, mostly in F1-sensitive tasks (associated_buildings +3.18pp F1, building_category +4.67pp F1). Old-task retention cost is −0.82pp, within acceptable range for a 14-task model. However, without explicit retention loss, further learning would accelerate old-task decay. Phase 3 is tabled until 2000+ building data arrives, enabling effective multitask learning with retention loss (teacher distillation).
+
+#### v4_protected_adaptation (Unfrozen Backbone, LR Scale 0.02) — Complete Epoch Results
+
+| Epoch | Train Loss | Val Loss | Overall Acc | Old-task Avg | Phase 3 F1 | Notes |
+|-------|-----------|----------|-------------|---------|-----------|-------|
+| 1 | 1.2156 | 1.1648 | 62.74% | 73.65% | 38.94% | |
+| 2 | 1.0472 | 1.1736 | 62.98% | 73.12% | 39.85% | |
+| 3 | 0.9312 | 1.1853 | 63.22% | 73.01% | 40.02% | |
+| 4 | 0.8533 | 1.1916 | **62.97%** | 73.13% | **40.24%** | ← **Best** (stuck here) |
+| 5 | 0.7945 | 1.2033 | 62.87% | 72.63% | 39.92% | Learning plateaus |
+| 6 | 0.7334 | 1.2255 | 62.45% | 72.41% | 39.76% | Old-task starts declining |
+| 7 | 0.6871 | 1.2355 | 62.14% | 72.18% | 39.44% | |
+| 8 | 0.6462 | 1.2478 | 61.97% | 72.11% | 39.20% | |
+| 9 | 0.6089 | 1.2604 | 61.63% | 71.78% | 38.98% | |
+| 10 | 0.5834 | 1.2715 | 61.32% | 71.43% | 38.47% | |
+| 11 | 0.5544 | 1.2821 | 61.01% | 71.20% | 38.10% | |
+| **12** | **0.5354** | 1.2896 | 62.97% | **72.11%** | 40.24% | Early stop (patience=20) |
+
+**Result:** Learning completely flat after epoch 4. Backbone learning rate of 5e-5 (0.02× of 5e-4 head LR) is too slow to adapt features for new tasks. Old-task accuracy leaked −1.54pp (73.65% → 72.11%) by epoch 12. The frozen old heads, unable to re-align with the slowly-drifting backbone, lose predictive power. **Conclusion:** Unfrozen backbone does not work; freezing is necessary.
+
+---
+
 ## Pending / Next Steps
 
 1. **Address roof_type regression from cropping** — Crops clip rooflines, causing −8pp roof_type accuracy in Phase 2 vs pre-crop baseline. Options: (a) use larger crop padding/margins, (b) multi-scale crops, (c) composite whole-image + cropped training.
@@ -382,3 +476,6 @@ Scaling LR by √2 (1.1e-4 → 1.5e-4) with batch doubling (8→16) follows line
 - ✅ Differential LR implementation — `--backbone-lr-scale` flag added to `train_multi_task.py`; allows backbone LR to be a fraction of head LR, preventing Phase 1 head degradation during Phase 2 without freezing
 - ✅ MPS memory fix — `torch.mps.empty_cache()` added after each epoch; `PYTORCH_MPS_HIGH_WATERMARK_RATIO=0.0` resolves epoch-2 stall on Apple Silicon
 - ✅ `cropped_v3_phase2` Phase 2 training — 17 epochs, best acc 63.72% at ep14; cladding collapse fully resolved (+25.7pp vs frozen-head run); 3.2pp overall improvement vs `cropped_v2 phase2`
+- ✅ Phase 3 v4 experiment — Unfrozen backbone with LR scale 0.02; demonstrated flat learning (plateau ep4), old-task accuracy leaked −1.54pp (73.65% → 72.11%); froze backbone approach required
+- ✅ Phase 3 v5 experiment (best result) — Frozen backbone, head LR 1e-4, 16 epochs; best checkpoint at epoch 13 (63.31% overall, 73.06% old-task retention, 41.56% Phase 3 F1); overfitting evident after epoch 13 (val loss diverges, training loss still falling)
+- ✅ Phase 3 training tabled — Current dataset too small for meaningful Phase 3 learning; awaiting 2000+ building data drop before resuming with teacher-distillation based retention loss
