@@ -270,3 +270,6 @@ src/ui/coverage/
 tmp/
 temp/
 mlflow.db
+
+# Temporary shapefile location
+Berkeley_SURVEYPOINT/

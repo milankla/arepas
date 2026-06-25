@@ -116,6 +116,17 @@ PHASE3_LABEL_DEFINITIONS = _load_phase3_label_definitions()
 PHASE3_FIELD_SPECS: Dict[str, Dict[str, Any]] = PHASE3_LABEL_DEFINITIONS.get("fields", {})
 PHASE3_LABEL_COLS: List[str] = list(PHASE3_FIELD_SPECS.keys())
 
+# ── Phase 3 forward-plan tuning knobs (see docs/PHASE3_FORWARD_PLAN.md) ──
+# Multi-label BCE pos_weight cap. The current value (10.0) over-weights positives,
+# producing ~1.5-2.2x over-prediction (low precision). The forward plan calls for
+# lowering this to ~3-4 once we return to Phase 3. Kept at 10.0 here to preserve
+# current training behavior.
+MULTILABEL_POS_WEIGHT_CLAMP: float = 10.0
+# Minimum positive examples a multi-label atomic must have to stay in the loss.
+# 0 = disabled (use the full configured atomic set, current behavior). Set to e.g.
+# 100 to auto-drop dead labels (Driveway - Ribbon, Walkway - Brick, ...).
+PHASE3_MIN_POSITIVE_COUNT: int = 0
+
 # Split column — used for stratification
 STRATIFY_COL = "architectural_style"
 
@@ -465,6 +476,33 @@ def label_requires_nonempty_value(col: str) -> bool:
     return spec.get("target_type") == "single_label"
 
 
+def filter_atomics_by_min_positive(col: str, values, min_count: int) -> List[str]:
+    """Return the multi-label atomics for ``col`` with at least ``min_count`` positives.
+
+    ``values`` is an iterable of raw cell values (e.g. ``df[col]``). When
+    ``min_count <= 0`` the full configured atomic set is returned unchanged
+    (current behavior). Otherwise atomics with fewer than ``min_count`` positive
+    examples are dropped from the loss — this enforces the Phase 3 forward-plan
+    rule of excluding dead labels. See docs/PHASE3_FORWARD_PLAN.md.
+    """
+    atomics = list(MULTILABEL_ATOMICS[col])
+    if min_count <= 0:
+        return atomics
+    counts = {label: 0 for label in atomics}
+    for raw in values:
+        for label in parse_multilabel_value(col, raw):
+            if label in counts:
+                counts[label] += 1
+    kept = [label for label in atomics if counts[label] >= min_count]
+    dropped = [label for label in atomics if counts[label] < min_count]
+    if dropped:
+        logger.warning(
+            f"{col}: dropping {len(dropped)} sub-threshold atomics "
+            f"(<{min_count} positives) from the loss: {dropped}"
+        )
+    return kept
+
+
 # ── Transforms ───────────────────────────────────────────────────────────────
 
 def build_train_transform(
@@ -658,7 +696,7 @@ class ArchitecturalDataset(Dataset):
                 pos_weight = torch.ones_like(counts)
                 nonzero = counts > 0
                 pos_weight[nonzero] = negatives[nonzero] / counts[nonzero]
-                weights[col] = pos_weight.clamp(max=10.0)
+                weights[col] = pos_weight.clamp(max=MULTILABEL_POS_WEIGHT_CLAMP)
                 continue
 
             enc = self.label_encoders[col]
@@ -818,8 +856,14 @@ def make_splits(
     for col in active_label_cols:
         if col in MULTILABEL_COLS:
             # Fixed schema atomics keep class order stable across datasets.
-            mlb = MultiLabelBinarizer(classes=MULTILABEL_ATOMICS[col])
-            all_rows = [parse_multilabel_value(col, val) for val in df[col]]
+            # PHASE3_MIN_POSITIVE_COUNT (default 0 = off) can drop dead labels.
+            atomics = filter_atomics_by_min_positive(col, df[col], PHASE3_MIN_POSITIVE_COUNT)
+            atomic_set = set(atomics)
+            mlb = MultiLabelBinarizer(classes=atomics)
+            all_rows = [
+                [label for label in parse_multilabel_value(col, val) if label in atomic_set]
+                for val in df[col]
+            ]
             mlb.fit(all_rows)
             label_encoders[col] = mlb
             logger.debug(f"  {col}: {len(mlb.classes_)} atomics (multi-label)")
