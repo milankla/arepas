@@ -89,6 +89,8 @@ class MultiTaskTrainer:
         output_dir: str = './outputs',
         max_batches: Optional[int] = None,
         early_stopping_patience: Optional[int] = None,
+        early_stop_metric: str = 'val_loss',
+        early_stop_min_delta: float = 0.0,
         experiment_logger: Optional[ExperimentLogger] = None,
         class_weights: Optional[Dict[str, torch.Tensor]] = None,
         backbone_lr_scale: Optional[float] = None,
@@ -106,8 +108,12 @@ class MultiTaskTrainer:
         # If set, each epoch/validation phase stops after this many batches.
         # Useful for smoke tests without needing a separate tiny dataset.
         self.max_batches = max_batches
-        # Early stopping: stop if val_loss doesn't improve for this many epochs.
+        # Early stopping: stop if the monitored metric doesn't improve for this
+        # many consecutive epochs. Metric is 'val_loss' (lower is better) or
+        # 'accuracy' (overall_accuracy, higher is better).
         self.early_stopping_patience = early_stopping_patience
+        self.early_stop_metric = early_stop_metric
+        self.early_stop_min_delta = float(early_stop_min_delta)
         self._epochs_without_improvement = 0
         self.experiment_logger = experiment_logger
         self.grad_accum_steps = max(1, int(grad_accum_steps))
@@ -167,6 +173,11 @@ class MultiTaskTrainer:
         # Tracking — pre-populated when resuming from a crashed run.
         self.best_val_loss = float('inf')
         self.best_overall_acc = float('-inf')
+        # Reference value for the early-stopping metric (separate from the
+        # checkpoint bests so min_delta can gate the patience counter).
+        self._best_early_stop_value = (
+            float('-inf') if self.early_stop_metric == 'accuracy' else float('inf')
+        )
         self.training_history: list = []
         if resume_from_epoch > 0:
             history_path = self.output_dir / 'training_history.json'
@@ -192,6 +203,10 @@ class MultiTaskTrainer:
                         self.best_val_loss = _loss
                     if _acc > self.best_overall_acc:
                         self.best_overall_acc = _acc
+                self._best_early_stop_value = (
+                    self.best_overall_acc if self.early_stop_metric == 'accuracy'
+                    else self.best_val_loss
+                )
                 logger.info(
                     f"Resuming from epoch {resume_from_epoch}: "
                     f"loaded {len(self.training_history)} history records, "
@@ -351,10 +366,14 @@ class MultiTaskTrainer:
             if self.experiment_logger is not None:
                 self.experiment_logger.log_epoch(epoch, train_losses, val_losses, val_metrics)
 
+            overall_acc = float(val_metrics.get('overall_accuracy', 0.0))
+
+            # Checkpoint saving: both bests are always tracked, independent of
+            # which metric drives early stopping.
             if val_losses['total'] < self.best_val_loss:
                 self.best_val_loss = val_losses['total']
                 self._save_checkpoint(epoch, val_losses, val_metrics, is_best=True)
-                logger.info(f"✓ New best model saved (val_loss: {self.best_val_loss:.4f})")
+                logger.info(f"✓ New best-loss model saved (val_loss: {self.best_val_loss:.4f})")
                 if self.experiment_logger is not None:
                     _best_ckpt = str(
                         self.output_dir / f"best_model_by_loss_phase{self.model.active_phase}.pth"
@@ -362,11 +381,6 @@ class MultiTaskTrainer:
                     self.experiment_logger.log_best_checkpoint(
                         epoch, val_losses, val_metrics, _best_ckpt
                     )
-                self._epochs_without_improvement = 0
-            else:
-                self._epochs_without_improvement += 1
-
-            overall_acc = float(val_metrics.get('overall_accuracy', 0.0))
             if overall_acc > self.best_overall_acc:
                 self.best_overall_acc = overall_acc
                 self._save_checkpoint(
@@ -381,6 +395,19 @@ class MultiTaskTrainer:
                     f"(overall_acc: {self.best_overall_acc:.4f})"
                 )
 
+            # Early-stopping bookkeeping on the selected metric (min_delta gated).
+            if self.early_stop_metric == 'accuracy':
+                current_metric = overall_acc
+                improved = current_metric > self._best_early_stop_value + self.early_stop_min_delta
+            else:  # 'val_loss'
+                current_metric = val_losses['total']
+                improved = current_metric < self._best_early_stop_value - self.early_stop_min_delta
+            if improved:
+                self._best_early_stop_value = current_metric
+                self._epochs_without_improvement = 0
+            else:
+                self._epochs_without_improvement += 1
+
             if epoch % 5 == 0:
                 self._save_checkpoint(epoch, val_losses, val_metrics, is_best=False)
 
@@ -388,10 +415,14 @@ class MultiTaskTrainer:
                 self.early_stopping_patience is not None
                 and self._epochs_without_improvement >= self.early_stopping_patience
             ):
+                if self.early_stop_metric == 'accuracy':
+                    _best_label = f"val accuracy: {self.best_overall_acc:.4f}"
+                else:
+                    _best_label = f"val_loss: {self.best_val_loss:.4f}"
                 logger.info(
-                    f"Early stopping triggered: no improvement for "
-                    f"{self.early_stopping_patience} consecutive epochs. "
-                    f"Best val_loss: {self.best_val_loss:.4f}"
+                    f"Early stopping triggered: no {self.early_stop_metric} improvement "
+                    f"(min_delta={self.early_stop_min_delta}) for "
+                    f"{self.early_stopping_patience} consecutive epochs. Best {_best_label}."
                 )
                 break
 
@@ -618,6 +649,8 @@ def progressive_training_pipeline(
     prefetch_factor: int = 4,
     max_batches: Optional[int] = None,
     early_stopping_patience: Optional[int] = None,
+    early_stop_metric: str = 'val_loss',
+    early_stop_min_delta: float = 0.0,
     run_name: Optional[str] = None,
     dataset_version: str = "",
     model_config_path: str = "",
@@ -705,6 +738,8 @@ def progressive_training_pipeline(
         num_workers=num_workers,
         prefetch_factor=prefetch_factor,
         early_stopping_patience=early_stopping_patience,
+        early_stop_metric=early_stop_metric,
+        early_stop_min_delta=early_stop_min_delta,
         load_checkpoint=initial_checkpoint,
         freeze_phase1_heads=freeze_phase1_heads,
         freeze_backbone=freeze_backbone,
@@ -767,6 +802,8 @@ def progressive_training_pipeline(
             num_workers=run_cfg.num_workers,
             prefetch_factor=run_cfg.prefetch_factor,
             early_stopping_patience=run_cfg.early_stopping_patience,
+            early_stop_metric=run_cfg.early_stop_metric,
+            early_stop_min_delta=run_cfg.early_stop_min_delta,
             load_checkpoint=run_cfg.load_checkpoint,
             freeze_phase1_heads=run_cfg.freeze_phase1_heads,
             freeze_backbone=run_cfg.freeze_backbone,
@@ -845,6 +882,8 @@ def progressive_training_pipeline(
                 output_dir=str(phase_out),
                 max_batches=max_batches,
                 early_stopping_patience=early_stopping_patience,
+                early_stop_metric=run_cfg.early_stop_metric,
+                early_stop_min_delta=run_cfg.early_stop_min_delta,
                 experiment_logger=exp_logger,
                 class_weights=class_weights,
                 backbone_lr_scale=backbone_lr_scale,
@@ -960,8 +999,24 @@ if __name__ == "__main__":
     parser.add_argument(
         "--early-stopping-patience", type=int, default=None,
         help=(
-            "Stop training if val_loss does not improve for this many consecutive "
-            "epochs. Omit to disable early stopping."
+            "Stop training if the monitored metric (see --early-stop-metric) does "
+            "not improve for this many consecutive epochs. Omit to disable early stopping."
+        ),
+    )
+    parser.add_argument(
+        "--early-stop-metric", choices=["val_loss", "accuracy"], default="accuracy",
+        help=(
+            "Metric that drives early stopping and the patience counter. "
+            "'accuracy' monitors overall_accuracy (higher is better); 'val_loss' "
+            "monitors total validation loss (lower is better). Default: accuracy — "
+            "val_loss can rise from overconfidence while accuracy still improves."
+        ),
+    )
+    parser.add_argument(
+        "--early-stop-min-delta", type=float, default=0.001,
+        help=(
+            "Minimum change in the monitored metric to count as an improvement. "
+            "Guards against the patience counter resetting on trivial noise."
         ),
     )
     parser.add_argument(
@@ -1119,6 +1174,8 @@ if __name__ == "__main__":
         prefetch_factor=args.prefetch_factor,
         max_batches=args.max_batches,
         early_stopping_patience=args.early_stopping_patience,
+        early_stop_metric=args.early_stop_metric,
+        early_stop_min_delta=args.early_stop_min_delta,
         run_name=args.run_name,
         dataset_version=args.dataset_version,
         model_config_path=args.model_config,

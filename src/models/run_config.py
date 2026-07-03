@@ -41,6 +41,10 @@ def _git_commit() -> str:
 def _dataset_version(csv_path: str) -> str:
     """Infer a short dataset label from the CSV path (e.g. 'data2', 'data')."""
     parts = Path(csv_path).parts
+    # Combined manifest (data + data2 + data3 + …) lives in outputs/combined/
+    # and maps to the UI's "all" view.
+    if "combined" in parts:
+        return "all"
     # Walk up until we find a directory that isn't a pure filename component
     for part in parts:
         if part.startswith("data"):
@@ -72,6 +76,8 @@ class RunConfig:
     num_workers: int = 2
     prefetch_factor: int = 4
     early_stopping_patience: Optional[int] = None
+    early_stop_metric: str = "val_loss"      # "val_loss" | "accuracy" — metric that drives early stopping
+    early_stop_min_delta: float = 0.0        # minimum metric change counted as an improvement
 
     # ── Warm-start / transfer learning ────────────────────────────────────────
     load_checkpoint: Optional[str] = None   # path to checkpoint loaded before phase 1
