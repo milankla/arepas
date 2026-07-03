@@ -273,3 +273,7 @@ mlflow.db
 
 # Temporary shapefile location
 Berkeley_SURVEYPOINT/
+
+# Raw survey Excel exports (large binaries — not versioned)
+*.xls
+*.xlsx

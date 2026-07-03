@@ -1,0 +1,42 @@
+{
+  "summary": "EfficientNet-B5 paired-view Phase 1 run on the COMBINED dataset (data + data2 + data3: 17,269 buildings / 60,841 rows across 17 neighborhoods). Same recipe as b5_pair_v2: full image + 456px building crops, task_gated_residual fusion, crop_prior gate init, batch_size=6, grad_accum_steps=4, lr=1.5e-4, weight_decay=0.01, cosine scheduler (T_max=20). Trained in two segments: epochs 1-8 under val_loss early stopping (patience=5), which triggered at epoch 8 because val_loss bottomed at epoch 3 while accuracy was still climbing; then resumed from the epoch-8 checkpoint (9->20) after switching the early-stopping criterion to overall_accuracy, with no patience set so it ran the full schedule. Best and final overall accuracy was 74.73% at epoch 20, still improving. Switching off val_loss recovered +4.07pp versus where val_loss had stopped it (70.66% at epoch 8).",
+  "metrics": {
+    "best_epoch": 20,
+    "overall_accuracy": 0.7473,
+    "roof_type_acc": 0.674,
+    "primary_cladding_acc": 0.687,
+    "stories_acc": 0.774,
+    "chimney_present_acc": 0.756,
+    "setting_exact": 0.752,
+    "setting_jaccard": 0.845,
+    "setting_sample_f1": 0.877
+  },
+  "comparison_b5_pair_v2": {
+    "note": "b5_pair_v2 (data2 Phase 1) best = 79.44% overall at epoch 30. NOT a like-for-like comparison: different test population (data2-only 7,135 buildings vs combined 17 neighborhoods) and different label normalization (stories folded to 5 incl 3+, setting 6 atoms, primary_cladding coarsened to 8, survey-gated chimney). Treat per-task deltas as directional.",
+    "overall_delta_pp": -4.71,
+    "per_task_delta_pp": {
+      "roof_type": 1.6,
+      "stories": 3.3,
+      "primary_cladding": -8.3,
+      "chimney_present": -18.7,
+      "setting_exact": -1.0,
+      "setting_jaccard": -1.5
+    }
+  },
+  "learnings": [
+    "Metrics are not directly comparable to b5_pair_v2: the combined val set spans 17 neighborhoods (harder, more diverse) and the label taxonomy was re-normalized. The overall -4.71pp gap should not be read as 'worse model' without a same-test-set evaluation.",
+    "More data helped the geometry/detail tasks: stories +3.3pp and roof_type +1.6pp over b5_pair_v2, consistent with the hypothesis that a larger, more heterogeneous corpus improves generalization on detail-sensitive tasks.",
+    "The -4.71pp overall gap is driven almost entirely by two tasks: chimney_present (-18.7pp) and primary_cladding (-8.3pp); the other tasks are comparable or better.",
+    "chimney_present collapsing from 94.3% to 75.6% is the headline anomaly. It is survey-gated (supervised only on Full Survey buildings), and the combined full-survey population now spans data3/data with a different Yes/No balance. This most likely reflects a shifted, harder evaluation population rather than a modeling failure, but 75.6% is near the majority-class baseline and must be validated with a per-class confusion check before it is trusted.",
+    "primary_cladding -8.3pp is expected: the coarsened-to-8 vocabulary plus three heterogeneous cladding sources make the task harder than the data2-only setting.",
+    "The B5 overconfidence pattern persisted: train loss fell to 0.0077 while val loss rose to 0.437, yet overall accuracy climbed monotonically to the final epoch (74.58 -> 74.69 -> 74.73). Best-by-accuracy is the correct checkpoint; val_loss is an actively misleading stopping signal for this architecture.",
+    "The accuracy-based early-stopping change validated itself here: val_loss patience stopped the model at epoch 8 (70.66%); the accuracy criterion let it reach 74.73% (+4.07pp). The setting multi-label 'unknown class' warning fix (Set Back at Alley) also landed in this run and silenced the per-sample log spam without changing encodings."
+  ],
+  "next_steps": [
+    "Investigate the chimney_present regression first: compute per-class precision/recall and the confusion matrix on the full-survey val subset, compare the Yes/No balance against data2, and confirm the survey-gating mask (IGNORE_INDEX) is applied correctly.",
+    "Consider a longer schedule: accuracy was still rising at epoch 20. A fresh 30-epoch run with a proper cosine T_max=30 (a resume cannot cleanly extend past the baked T_max=20) may add another 1-2pp.",
+    "Run Phase 2 from outputs/combined/b5_pair_v1_phase1/phase1/best_model_phase1.pth (paired, task_gated_residual, crop_prior, differential LR, no --freeze-phase1-heads) to test the full-image payoff on architectural_style and building_form.",
+    "Stand up a same-test-set evaluation harness to compare the combined and data2 checkpoints fairly; this is the only rigorous way to test the more-data hypothesis.",
+    "Review the coarsened-8 primary_cladding mapping for the combined dataset and check per-class support, since it is the second-largest regression."
+  ]
+}
