@@ -166,6 +166,7 @@ export function BuildingPanel({ dataset, buildingId }: BuildingPanelProps) {
         {detail.address ?? detail.building_id}
       </Typography>
       <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2 }}>
+        <Chip label={detail.dataset} size="small" color="primary" variant="outlined" />
         <Chip label={detail.neighborhood} size="small" />
         {detail.address && (
           <Typography variant="caption" color="text.secondary">

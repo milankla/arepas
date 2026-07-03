@@ -18,6 +18,7 @@ interface RunSelectorProps {
   selectedIds: Set<string>;
   onToggle: (runId: string) => void;
   runLabels?: Record<string, string>;
+  activeDataset?: string;
 }
 
 function RunLabel({ run, label, medal }: { run: RunInfo; label?: string; medal?: string }) {
@@ -68,7 +69,7 @@ function groupRuns(runs: RunInfo[]): Record<string, RunInfo[]> {
   return groups;
 }
 
-export function RunSelector({ runs, loading, selectedIds, onToggle, runLabels }: RunSelectorProps) {
+export function RunSelector({ runs, loading, selectedIds, onToggle, runLabels, activeDataset }: RunSelectorProps) {
   const medalMap = useMemo(() => {
     const medals: Record<string, string> = {};
     // Rank separately within each phase so ph1 and ph2 each get their own 🥇🥈🥉
@@ -104,46 +105,70 @@ export function RunSelector({ runs, loading, selectedIds, onToggle, runLabels }:
   }
 
   const groups = groupRuns(runs);
+  const entries = Object.entries(groups);
+  const activeEntries = activeDataset
+    ? entries.filter(([, members]) => members[0]?.dataset_version === activeDataset)
+    : [];
+  const otherEntries = entries.filter(
+    ([, members]) => !activeDataset || members[0]?.dataset_version !== activeDataset
+  );
+  // Split into "active dataset" + "all other models" only when a dataset is active
+  // and there are other datasets' runs to compare against.
+  const showSplit = Boolean(activeDataset) && otherEntries.length > 0;
+
+  const renderGroup = (group: string, members: RunInfo[]) => (
+    <Box key={group}>
+      <Divider sx={{ my: 1 }} />
+      <Typography
+        variant="caption"
+        sx={{ pr: 1, color: "text.secondary", fontWeight: 600, display: "block" }}
+      >
+        {group}
+      </Typography>
+      <FormGroup>
+        {members.map((run) => (
+          <FormControlLabel
+            key={run.run_id}
+            sx={{ mx: 0, alignItems: "flex-start" }}
+            control={
+              <Checkbox
+                size="small"
+                checked={selectedIds.has(run.run_id)}
+                onChange={() => onToggle(run.run_id)}
+                sx={{ pt: 0.5, pl: 0, pr: 0.5 }}
+              />
+            }
+            label={
+              <RunLabel
+                run={run}
+                label={runLabels?.[run.run_id]}
+                medal={medalMap[run.run_id]}
+              />
+            }
+          />
+        ))}
+      </FormGroup>
+    </Box>
+  );
 
   return (
     <Box sx={{ pt: 0.5, pl: 1, pr: 0.5 }}>
       <Typography variant="overline" sx={{ color: "text.secondary" }}>
-        Runs
+        {activeDataset ? `${activeDataset} models` : "Runs"}
       </Typography>
-      {Object.entries(groups).map(([group, groupRuns]) => (
-        <Box key={group}>
-          <Divider sx={{ my: 1 }} />
-          <Typography
-            variant="caption"
-            sx={{ pr: 1, color: "text.secondary", fontWeight: 600, display: "block" }}
-          >
-            {group}
+      {(showSplit ? activeEntries : entries).map(([group, members]) =>
+        renderGroup(group, members)
+      )}
+
+      {showSplit && (
+        <>
+          <Divider sx={{ my: 1.5 }} />
+          <Typography variant="overline" sx={{ color: "text.secondary" }}>
+            All models
           </Typography>
-          <FormGroup>
-            {groupRuns.map((run) => (
-              <FormControlLabel
-                key={run.run_id}
-                sx={{ mx: 0, alignItems: "flex-start" }}
-                control={
-                  <Checkbox
-                    size="small"
-                    checked={selectedIds.has(run.run_id)}
-                    onChange={() => onToggle(run.run_id)}
-                    sx={{ pt: 0.5, pl: 0, pr: 0.5 }}
-                  />
-                }
-                label={
-                  <RunLabel
-                    run={run}
-                    label={runLabels?.[run.run_id]}
-                    medal={medalMap[run.run_id]}
-                  />
-                }
-              />
-            ))}
-          </FormGroup>
-        </Box>
-      ))}
+          {otherEntries.map(([group, members]) => renderGroup(group, members))}
+        </>
+      )}
     </Box>
   );
 }

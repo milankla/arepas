@@ -40,6 +40,7 @@ export interface BuildingDetail {
   building_id: string;
   address: string | null;
   neighborhood: string;
+  dataset: string;
   attributes: Record<string, string | null>;
   images: BuildingImage[];
 }

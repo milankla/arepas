@@ -34,27 +34,30 @@ export default function TrainingEvaluationPage() {
   const [histories, setHistories] = useState<Record<string, EpochRecord[]>>({});
   const [tab, setTab] = useState(0);
 
-  // Filter runs by active dataset
-  const visibleRuns = useMemo(
-    () => runs.filter((r) => !activeDataset || r.dataset_version === activeDataset),
-    [runs, activeDataset]
-  );
+  // Show all runs so models from different datasets can be compared. The active
+  // dataset's runs are surfaced first in the RunSelector; other datasets' models
+  // appear in a section below.
+  const visibleRuns = runs;
 
-  // Reset selection when the active dataset changes
+  // Reset selection when the active dataset changes so the next effect can re-seed
+  // it with the newly active dataset's latest run.
   useEffect(() => {
     setSelectedIds(new Set());
   }, [activeDataset]);
 
-  // Auto-select the most recent visible run when nothing in the current visible set is selected
+  // Seed the selection with the active dataset's most recent run when the current
+  // selection is empty or stale. Falls back to the globally latest run if the
+  // active dataset has no runs yet. Guarded so polling never clears a live selection.
   useEffect(() => {
-    if (visibleRuns.length === 0) return;
+    if (runs.length === 0) return;
     setSelectedIds((prev) => {
-      const stillValid = visibleRuns.some((r) => prev.has(r.run_id));
-      if (stillValid) return prev;
-      const latest = [...visibleRuns].sort((a, b) => b.timestamp.localeCompare(a.timestamp))[0];
-      return new Set([latest.run_id]);
+      if (prev.size > 0 && runs.some((r) => prev.has(r.run_id))) return prev;
+      const pool = activeDataset ? runs.filter((r) => r.dataset_version === activeDataset) : runs;
+      const seed = pool.length ? pool : runs;
+      const latest = [...seed].sort((a, b) => b.timestamp.localeCompare(a.timestamp))[0];
+      return latest ? new Set([latest.run_id]) : prev;
     });
-  }, [visibleRuns]);
+  }, [runs, activeDataset]);
 
   // Load run list on mount, then poll every 30 s for new/updated runs
   useEffect(() => {
@@ -125,6 +128,7 @@ export default function TrainingEvaluationPage() {
       selectedIds={selectedIds}
       onToggle={toggleRun}
       runLabels={runLabels}
+      activeDataset={activeDataset}
     />
   );
 

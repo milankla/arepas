@@ -39,6 +39,12 @@ ROOT = Path(__file__).resolve().parents[3]  # project root
 # ---------------------------------------------------------------------------
 _DATASET_CSV_NAME = "image_label_mapping_phase1.csv"
 
+# The combined "all" view merges every source dataset (data + data2 + data3 + …)
+# and is the manifest used for multi-dataset training. It lives outside the
+# data*/ folders (in outputs/combined/), so it is registered explicitly.
+COMBINED_DATASET_ID = "all"
+COMBINED_DIR = ROOT / "outputs" / "combined"
+
 
 def _discover_datasets() -> dict[str, dict[str, Path]]:
     """Scan the project root for dataset folders and return their metadata."""
@@ -54,16 +60,45 @@ def _discover_datasets() -> dict[str, dict[str, Path]]:
         if not csv_path.exists():
             continue
         name = candidate.name
+        crop_root = ROOT / "crops" / name
+        crop_manifest = crop_root / "crop_manifest.csv"
+        # The original `data` set was cropped earlier into crops/combined/
+        # (manifest crop_manifest_legacy.csv). Reuse it when there is no
+        # dedicated crops/data/ manifest so those buildings still show crops.
+        if not crop_manifest.exists() and name == "data":
+            legacy_manifest = ROOT / "crops" / "combined" / "crop_manifest_legacy.csv"
+            if legacy_manifest.exists():
+                crop_root = ROOT / "crops" / "combined"
+                crop_manifest = legacy_manifest
         result[name] = {
             "csv": csv_path,
             "image_root": candidate,
-            "crop_root": ROOT / "crops" / name,
-            "crop_manifest": ROOT / "crops" / name / "crop_manifest.csv",
+            "crop_root": crop_root,
+            "crop_manifest": crop_manifest,
+        }
+
+    # Combined "all" dataset — the merged manifest used for multi-dataset
+    # training. Its image_path values keep their source-dataset prefix
+    # (e.g. "data2/Cole/x.jpg"), which _image_url routes back to the correct
+    # per-dataset image mount, so no images need to be copied.
+    combined_csv = COMBINED_DIR / _DATASET_CSV_NAME
+    if combined_csv.exists():
+        result[COMBINED_DATASET_ID] = {
+            "csv": combined_csv,
+            "image_root": COMBINED_DIR,
+            "crop_root": ROOT / "crops" / "combined",
+            "crop_manifest": ROOT / "crops" / "combined" / "crop_manifest.csv",
         }
     return result
 
 
 DATASETS: dict[str, dict[str, Path]] = _discover_datasets()
+
+# Real source datasets (data, data2, data3, …) — every entry except the combined
+# "all" view. Used to route combined image_paths to the right static mount.
+SOURCE_DATASETS: frozenset = frozenset(
+    name for name in DATASETS if name != COMBINED_DATASET_ID
+)
 
 ATTRIBUTE_COLUMNS = [
     "architectural_style",
@@ -93,6 +128,18 @@ def _load_df(dataset: str) -> pd.DataFrame:
 
 @functools.lru_cache(maxsize=8)
 def _load_crop_manifest(dataset: str) -> pd.DataFrame | None:
+    if dataset == COMBINED_DATASET_ID:
+        # The combined view has no crops of its own. Aggregate the per-source
+        # manifests instead — each is already keyed by a full image_path with
+        # its source-dataset prefix, so crop lookups resolve across datasets.
+        frames = []
+        for src in sorted(SOURCE_DATASETS):
+            path = DATASETS[src]["crop_manifest"]
+            if path.exists():
+                frames.append(pd.read_csv(path))
+        if not frames:
+            return None
+        return pd.concat(frames, ignore_index=True)
     meta = DATASETS[dataset]
     path = meta["crop_manifest"]
     if path.exists():
@@ -107,13 +154,19 @@ def _get_dataset_meta(dataset: str) -> dict[str, Path]:
 
 
 def _image_url(dataset: str, image_path: str) -> str:
-    """Convert a raw image_path column value to a URL served by the static mount."""
-    # image_path in CSV: "data2/Cole/filename.jpg"
-    # static mount: /images/data2/Cole/filename.jpg
-    # Strip the leading dataset prefix if present (e.g. "data2/")
+    """Convert a raw image_path column value to a URL served by a static mount.
+
+    image_path always begins with its source dataset folder
+    (e.g. "data2/Cole/file.jpg"). We route to that dataset's mount so the
+    combined "all" view resolves images across every source dataset. For a
+    single-dataset view the prefix equals `dataset`, so behaviour is unchanged.
+    """
     parts = Path(image_path).parts
-    # parts[0] is dataset name (e.g. "data2"), rest is neighbourhood/filename
-    relative = "/".join(parts[1:]) if parts[0] == dataset else image_path
+    # Route by the path's own source-dataset prefix when it is a known dataset.
+    if parts and parts[0] in SOURCE_DATASETS:
+        return f"/images/{parts[0]}/" + "/".join(parts[1:])
+    # Fallback: legacy behaviour — strip the prefix if it matches the dataset id.
+    relative = "/".join(parts[1:]) if parts and parts[0] == dataset else image_path
     return f"/images/{dataset}/{relative}"
 
 
@@ -158,6 +211,7 @@ class BuildingDetail(BaseModel):
     building_id: str
     address: str | None
     neighborhood: str
+    dataset: str  # source dataset the building belongs to (data / data2 / data3)
     attributes: dict[str, Any]
     images: list[dict[str, str | None]]  # [{original_url, crop_url|null, filename}]
 
@@ -303,18 +357,27 @@ def get_building(dataset: str, building_id: str) -> BuildingDetail:
     for _, img_row in building_df.iterrows():
         img_path = img_row["image_path"]
         cropped_path = crop_lookup.get(img_path)
+        # Route the crop to its source dataset's mount (mirrors _image_url) so
+        # the combined "all" view shows crops from each source dataset.
+        src = Path(img_path).parts[0]
+        crop_ds = src if src in SOURCE_DATASETS else dataset
         images.append(
             {
                 "filename": Path(img_path).name,
                 "original_url": _image_url(dataset, img_path),
-                "crop_url": _crop_url(dataset, cropped_path) if cropped_path else None,
+                "crop_url": _crop_url(crop_ds, cropped_path) if cropped_path else None,
             }
         )
+
+    # Source dataset (data / data2 / data3) inferred from the image_path prefix.
+    source_dataset = Path(row["image_path"]).parts[0]
+    dataset_label = source_dataset if source_dataset in SOURCE_DATASETS else dataset
 
     return BuildingDetail(
         building_id=building_id,
         address=str(addr) if addr and str(addr) != "nan" else None,
         neighborhood=str(row["neighborhood"]),
+        dataset=dataset_label,
         attributes={k: (str(v) if not pd.isna(v) else None) for k, v in attributes.items()},
         images=images,
     )
