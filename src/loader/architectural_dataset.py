@@ -83,6 +83,18 @@ IMAGE_SIZE        = 224
 RANDOM_STATE      = 42
 PHASE3_LABEL_DEFINITIONS_PATH = Path(__file__).resolve().parents[2] / "config" / "phase3_label_definitions.json"
 
+# ── Survey-level gating for chimney_present ──────────────────────────────────
+# The schema collects the Chimney field only at surveyLevel 3 ("Full Survey").
+# In basic/partial surveys the field is out of scope, so a "No" there means
+# "not assessed", not "no chimney".  We therefore supervise chimney_present only
+# on Full-Survey buildings and mask the rest using the standard PyTorch
+# ignore_index sentinel, which CrossEntropyLoss / FocalLoss skip in the loss and
+# compute_metrics() excludes from accuracy/F1.
+IGNORE_INDEX = -100
+FULL_SURVEY_VALUE = "Full Survey"
+SURVEY_LEVEL_COL = "survey_level"
+SURVEY_GATED_COLS = frozenset({"chimney_present"})
+
 # Label columns that are actively trained in the current dataset.
 # Adding a new task here (e.g. building_category) is all that's needed
 # to make the data loader encode it and expose it to the training loop.
@@ -139,12 +151,25 @@ STRATIFY_COL = "architectural_style"
 IMAGENET_MEAN: Tuple[float, float, float] = (0.485, 0.456, 0.406)
 IMAGENET_STD:  Tuple[float, float, float] = (0.229, 0.224, 0.225)
 
+# Single-label roof_type classes with < 50 buildings in the combined
+# (data + data2 + data3) set are folded into "Other": too few to learn or to
+# evaluate reliably (a ~15% test split leaves only a handful of buildings).
+# Counts as of 2026-06-29: Shed 40, Mansard 34, Barrel Roof 25, Pyramidal 21,
+# Gable 11, Unknown Roof Type 6, Monitor 2  (-> Other, ~148 buildings total).
+RARE_ROOF_TYPES: frozenset = frozenset({
+    "Shed", "Mansard", "Barrel Roof", "Pyramidal", "Gable",
+    "Unknown Roof Type", "Monitor",
+})
+
+
 def normalize_roof_type_label(value: str) -> str:
     """Collapse compound/multi-type roof strings to the single label 'Compound'.
 
     Any raw roof_type value that contains "; " (i.e. surveyors selected more
     than one type) or is the bare meta-tag "Compound Roof" is normalised to the
-    canonical single label "Compound".  All other values are returned unchanged.
+    canonical single label "Compound".  Rare single-label classes (< 50
+    buildings, see RARE_ROOF_TYPES) are folded into "Other".  All other values
+    are returned unchanged.
 
     This converts roof_type from a multi-label problem (19-bit binary vector,
     ~13% Jaccard) to a clean single-label problem (~12 classes, CrossEntropy).
@@ -154,49 +179,114 @@ def normalize_roof_type_label(value: str) -> str:
         normalize_roof_type_label("Hipped")              # → "Hipped"
         normalize_roof_type_label("Hipped; Front Gable") # → "Compound"
         normalize_roof_type_label("Compound Roof")       # → "Compound"
+        normalize_roof_type_label("Pyramidal")           # → "Other"
     """
     if "; " in value or value.strip() == "Compound Roof":
         return "Compound"
+    if value.strip() in RARE_ROOF_TYPES:
+        return "Other"
     return value
+
+
+# building_form duplicate spellings / typos -> canonical, plus the four
+# "Gas Station - *" subtypes grouped into a single "Gas Station" family class.
+BUILDING_FORM_CANON: Dict[str, str] = {
+    "Central Block With Projecting Bays": "Central Block with Projecting Bays",
+    "Central Block with Projecting Bay":  "Central Block with Projecting Bays",
+    "Central Block ith Projecting Bay":   "Central Block with Projecting Bays",
+    "Hipped Roof Box":                    "Hipped-Roof Box",
+    "Central Passage Double Pile":        "Central Passage Double-Pile",
+    "Apartment Block":                    "Apartment - Block",
+    "Apartment-Block":                    "Apartment - Block",
+    "Apartment Complex":                  "Apartment - Complex",
+    "Split-Level":                        "Split Level",
+    "High Rise":                          "High-Rise",
+    "Comercial - Other":                  "Commercial - Other",
+    "Gas Station - Oblong Box":           "Gas Station",
+    "Gas Station - Other":                "Gas Station",
+    "Gas Station - House with Canopy":    "Gas Station",
+    "Gas Station - Cottage":              "Gas Station",
+}
+
+# building_form classes kept as their own label: >= 50 buildings in the combined
+# (data + data2 + data3) set after BUILDING_FORM_CANON merging, plus the grouped
+# "Gas Station" family. Every other value folds into "Other" (63 raw -> 27).
+KEEP_BUILDING_FORMS: frozenset = frozenset({
+    "Minimal Traditional", "Ranch", "Bungalow", "Gable Front",
+    "Central Block with Projecting Bays", "Classic Cottage", "Terrace Type",
+    "Transitional Ranch", "Duplex", "Commercial/Industrial Block", "Foursquare",
+    "Hipped-Roof Box", "Apartment - Block", "One-Part Commercial Block",
+    "Bi-Level", "Gabled Ell", "Split Level", "Service Bay Business",
+    "Two-Part Commercial Block", "Commercial - Other",
+    "Central Passage Double-Pile", "Hall and Parlor", "Apartment - Garden Court",
+    "Shotgun", "Apartment - Complex", "Gas Station",
+})
+
+
+def normalize_building_form_label(value: str) -> str:
+    """Canonicalize building_form spellings and fold rare classes into "Other".
+
+    Merges duplicate spellings / typos (e.g. "Apartment Block" -> "Apartment -
+    Block"), groups the four "Gas Station - *" subtypes into a single
+    "Gas Station" class, then folds any class with < 50 buildings in the combined
+    set into "Other" (63 raw classes -> 27).
+
+    Examples::
+
+        normalize_building_form_label("Ranch")               # → "Ranch"
+        normalize_building_form_label("Apartment Block")     # → "Apartment - Block"
+        normalize_building_form_label("Gas Station - Other") # → "Gas Station"
+        normalize_building_form_label("Quonset")             # → "Other"
+    """
+    v = value.strip()
+    v = BUILDING_FORM_CANON.get(v, v)
+    if v == "" or v in KEEP_BUILDING_FORMS:
+        return v
+    return "Other"
 
 
 def normalize_stories_label(value: str) -> str:
     """Coarsen rare high-storey classes into a single '3+' bucket.
 
-    Raw class distribution in data2/ (2 708 images):
-        "1"    : 1864 (68.8%)
-        "1-1/2":  540 (19.9%)
-        "2"    :  268  (9.9%)
-        "2-1/2":   14  (0.5%)  ← too rare to learn reliably
-        "3"    :    8  (0.3%)  ← too rare
-        "4"    :    6  (0.2%)  ← too rare
-        "5-9"  :    4  (0.1%)  ← too rare
-        "10-19":    4  (0.1%)  ← too rare
+    Combined dataset distribution (building-level, 17 269 buildings):
+        "1"    : 11963 (69.3%)  ← 1-storey + the 4 "1/2" half/below-grade
+        "1-1/2":  3010 (17.4%)
+        "2"    :  1739 (10.1%)
+        "2-1/2":   423  (2.4%)  ← 2-1/2 + "2.5" decimal variant
+        "3+"   :   134  (0.8%)  ← 3, 3-1/2, 4, 5-9, 10-19, 20+ merged
 
     Coarsening strategy
     ───────────────────
-    * "2-1/2"          → "2+" (keeps fractional-storey distinction, ~0.5%)
-    * "3", "4", "5-9", "10-19" → "3+" (all tall buildings, ~0.7% combined)
+    * "1/2"                            → "1" (only 4 buildings; < 50-per-class
+                                            floor, and a raised-basement/half
+                                            storey reads closest to 1-storey)
+    * "2.5"                            → "2-1/2" (decimal-notation variant)
+    * "3", "3-1/2", "4", "5-9",
+      "10-19", "20+"                   → "3+" (all genuinely 3+ stories)
 
-    Result: 5 classes — "1" (68.8%), "1-1/2" (19.9%), "2" (9.9%),
-            "2+" (0.5%), "3+" (0.7%)
+    Result: 5 classes — "1", "1-1/2", "2", "2-1/2", "3+".
+    "2-1/2" is a real, common Denver category (Foursquares etc.) and is kept
+    separate from the open-ended "3+" tall-building bucket.
 
-    The two merged buckets still have too few samples for strong recall, but
-    macro F1 will be measured per class and class weights will up-weight them
-    so the model at least attempts to learn "not-1-storey" buildings.
+    The "3+" bucket still has too few samples for strong recall, but macro F1
+    is measured per class and class weights up-weight it so the model at least
+    attempts to learn tall buildings.
 
     Examples::
 
         normalize_stories_label("1")      # → "1"
-        normalize_stories_label("2-1/2")  # → "2+"
+        normalize_stories_label("1/2")    # → "1"
+        normalize_stories_label("2.5")    # → "2-1/2"
         normalize_stories_label("3")      # → "3+"
         normalize_stories_label("10-19")  # → "3+"
     """
-    _TALL = {"3", "4", "5-9", "10-19"}
+    _TALL = {"3", "4", "5-9", "10-19", "3-1/2", "20+"}
     if value in _TALL:
         return "3+"
-    if value == "2-1/2":
-        return "2+"
+    if value == "2.5":  # decimal-notation variant (data3)
+        return "2-1/2"
+    if value == "1/2":  # 4 buildings, below the 50-per-class floor
+        return "1"
     return value
 
 
@@ -337,6 +427,33 @@ SETTING_SCHEMA_ATOMICS: List[str] = [
     "Set Back from Sidewalk",
 ]
 
+# Canonicalise surveyor typo / casing / phrasing variants of the 6 setting
+# atomics so they bind to the schema option instead of being silently dropped
+# by the MultiLabelBinarizer (which ignores unknown labels).
+#   "Set Back at Alley" (33) is intentionally NOT mapped — it is not one of the
+#   6 schema options and is semantically distinct from "Set at Back of Lot",
+#   so it stays dropped rather than guessed.
+SETTING_ATOM_CANON: Dict[str, str] = {
+    "Set Back From Sidewalk": "Set Back from Sidewalk",   # casing
+    "et Back from Sidewalk":  "Set Back from Sidewalk",   # leading-char typo
+    "Flush with Sidewalk":    "Flush at Sidewalk",        # phrasing
+    "Attached 1 Side":        "Attached on 1 Side",       # phrasing
+    "Attached 2 Sides":       "Attached on 2 Sides",      # phrasing
+}
+
+
+def normalize_setting_atomic(atom: str) -> str:
+    """Map a raw setting atomic to its canonical schema spelling."""
+    atom = atom.strip()
+    return SETTING_ATOM_CANON.get(atom, atom)
+
+
+# Per-atomic normaliser for multi-label columns, applied in parse_multilabel_value
+# before the MultiLabelBinarizer.  Keyed by column name.
+MULTILABEL_ATOM_TRANSFORMS: Dict[str, Callable[[str], str]] = {
+    "setting": normalize_setting_atomic,
+}
+
 # Dispatch table: multi-label column → fixed ordered list of schema atomics.
 # Only 'setting' remains multi-label; roof_type was converted to single-label
 # (compound roofs are folded into the 'Compound' class via PRE_ENCODE_TRANSFORMS).
@@ -363,6 +480,7 @@ MULTILABEL_COLS: List[str] = list(MULTILABEL_ATOMICS.keys())
 # architectural_style:  coarsen 37 raw classes             → 13 + "Other Style"
 PRE_ENCODE_TRANSFORMS: Dict[str, Callable[[str], str]] = {
     "roof_type":           normalize_roof_type_label,
+    "building_form":       normalize_building_form_label,
     "stories":             normalize_stories_label,
     "primary_cladding":    normalize_cladding_label,
     "architectural_style": normalize_arch_style_label,
@@ -441,7 +559,11 @@ def parse_multilabel_value(col: str, raw: object) -> List[str]:
         return []
 
     if col not in PHASE3_FIELD_SPECS:
-        return [part.strip() for part in value.split("; ") if part.strip()]
+        parts = [part.strip() for part in value.split("; ") if part.strip()]
+        transform = MULTILABEL_ATOM_TRANSFORMS.get(col)
+        if transform:
+            parts = [transform(part) for part in parts]
+        return parts
 
     spec = PHASE3_FIELD_SPECS[col]
     train_labels = set(spec.get("train_labels", []))
@@ -634,13 +756,28 @@ class ArchitecturalDataset(Dataset):
 
         # ── Labels ────────────────────────────────────────────────────────
         labels: Dict[str, Tensor] = {}
+        # Survey level gates whether the chimney field was in scope; mask
+        # chimney_present supervision on non-Full-Survey buildings.
+        survey_level = str(row[SURVEY_LEVEL_COL]) if SURVEY_LEVEL_COL in row else ""
+        chimney_masked = survey_level != FULL_SURVEY_VALUE
         for col in self.label_cols:
             raw   = row[col]
             if col in MULTILABEL_COLS:
                 # Multi-label: split on "; " → binary vector FloatTensor[n_atomics]
+                encoder = self.label_encoders[col]
                 parts = parse_multilabel_value(col, raw)
-                vec = self.label_encoders[col].transform([parts])[0]
+                # Drop atomics outside the fitted schema (e.g. "Set Back at Alley"),
+                # same as fit-time filtering, so the MultiLabelBinarizer doesn't emit
+                # a per-sample "unknown class will be ignored" warning. The encoded
+                # vector is identical either way.
+                known = set(encoder.classes_)
+                parts = [p for p in parts if p in known]
+                vec = encoder.transform([parts])[0]
                 labels[col] = torch.tensor(vec, dtype=torch.float32)
+            elif col in SURVEY_GATED_COLS and chimney_masked:
+                # Out-of-scope for this survey level → ignore_index sentinel so
+                # the loss and metrics skip it (no building is dropped).
+                labels[col] = torch.tensor(IGNORE_INDEX, dtype=torch.long)
             else:
                 # Single-label: integer class index → LongTensor scalar
                 value = normalize_label_value(col, raw)
@@ -703,6 +840,13 @@ class ArchitecturalDataset(Dataset):
 
             # Apply the same pipeline as __getitem__
             values: "pd.Series" = self.df[col].map(lambda value: normalize_label_value(col, value))
+
+            # Survey-gated tasks (chimney_present) are supervised only on
+            # Full-Survey rows, so weight them over that subset to match the
+            # samples that actually contribute to the loss.
+            if col in SURVEY_GATED_COLS and SURVEY_LEVEL_COL in self.df.columns:
+                mask = self.df[SURVEY_LEVEL_COL] == FULL_SURVEY_VALUE
+                values = values[mask.values]
 
             n_classes = len(enc.classes_)
             n_samples = len(values)

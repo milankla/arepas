@@ -79,6 +79,18 @@ def compute_metrics(
             pred_cls = pred.argmax(dim=1).numpy()
             tgt_np   = tgt.numpy()
 
+            # Exclude masked samples (ignore_index = -100) — e.g. chimney_present
+            # on non-Full-Survey buildings, where the label is out of scope.
+            valid = tgt_np != -100
+            if not valid.all():
+                pred_cls = pred_cls[valid]
+                tgt_np   = tgt_np[valid]
+
+            if tgt_np.size == 0:
+                # No supervised samples for this task in the eval set.
+                task_metrics[task_name] = {"acc": 0.0, "f1": 0.0}
+                continue
+
             acc = float((pred_cls == tgt_np).mean())
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore")

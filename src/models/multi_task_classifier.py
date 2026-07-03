@@ -212,10 +212,12 @@ class FocalLoss(nn.Module):
         gamma: float = FOCAL_GAMMA_DEFAULT,
         reduction: str = 'mean',
         weight: Optional[torch.Tensor] = None,
+        ignore_index: int = -100,
     ):
         super().__init__()
         self.gamma = gamma
         self.reduction = reduction
+        self.ignore_index = ignore_index
         # register_buffer: tensor moves to device with .to() / .cuda(),
         # saved/loaded with state_dict, but NOT treated as a learnable param.
         # Passing None is valid — sets self.weight = None.
@@ -225,16 +227,27 @@ class FocalLoss(nn.Module):
         """
         Args:
             logits: Raw (un-normalised) class scores  [B, num_classes]
-            targets: Integer class indices             [B]
+            targets: Integer class indices             [B]. Entries equal to
+                     ``ignore_index`` are excluded from the loss (used to mask
+                     out-of-scope supervision, e.g. chimney on basic surveys).
         Returns:
             Scalar focal loss
         """
         # Pass class weights to cross_entropy for per-class upweighting.
         # weight must be on the same device as logits (guaranteed by register_buffer).
-        ce = F.cross_entropy(logits, targets, weight=self.weight, reduction='none')  # [B]
+        # ignore_index → those entries get 0 loss in the 'none' reduction.
+        ce = F.cross_entropy(
+            logits, targets, weight=self.weight,
+            reduction='none', ignore_index=self.ignore_index,
+        )  # [B]
         pt = torch.exp(-ce)                                       # probability of correct class
-        focal = (1.0 - pt) ** self.gamma * ce
-        return focal.mean() if self.reduction == 'mean' else focal.sum()
+        focal = (1.0 - pt) ** self.gamma * ce                    # ignored entries → 0
+        if self.reduction == 'sum':
+            return focal.sum()
+        # Mean over valid (non-ignored) samples only; clamp guards an
+        # all-masked batch (returns a graph-connected 0, no gradient).
+        n_valid = (targets != self.ignore_index).sum()
+        return focal.sum() / n_valid.clamp(min=1)
 
 
 class TaskDifficulty(Enum):

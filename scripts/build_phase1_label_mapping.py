@@ -21,7 +21,7 @@ Usage
 
 Output columns
 ──────────────
-  building_id          DIS identifier (quotes stripped)
+  building_id          DIS / DISVCT / DDS / 5DV identifier (quotes stripped)
   address              street address from source TSV (e.g. "455 S HIGH ST")
   dataset              e.g. "Clayton-Bungalows"
   neighborhood         from config metadata
@@ -232,6 +232,16 @@ def main(
             raw_addr = bdata["attributes"].get("address", {}).get("value", "")
             address = str(raw_addr).strip() if raw_addr and not str(raw_addr) == "nan" else ""
 
+            # Survey level gates which attributes were in scope for the surveyor.
+            # Only "Full Survey" (schema surveyLevel 3) collects the Chimney
+            # field, so chimney_present is reliable only for those buildings;
+            # downstream training masks chimney loss where this != "Full Survey".
+            # Format A (data3 ArcGIS) has no surveyLevel column — its converter
+            # injects "Full Survey" since those exports are intensive surveys.
+            survey_level = normalize_value(
+                bdata["attributes"].get("surveyLevel", {}).get("value", None)
+            ) or ""
+
             # Extract extra tier columns (no filtering applied).
             extras: dict[str, str] = {}
             for field_name, col_name in EXTRA_COLUMNS:
@@ -246,6 +256,7 @@ def main(
                         "dataset":      dataset_name,
                         "neighborhood": nbhd,
                         "style":        style,
+                        "survey_level": survey_level,
                         "image_path":   img_path,
                         **labels,
                         **extras,
@@ -259,14 +270,16 @@ def main(
     output.parent.mkdir(parents=True, exist_ok=True)
     df.to_csv(output, index=False)
 
-    # 3a. Sanity-check building IDs — all must match DIS.\d+
+    # 3a. Sanity-check building IDs — all must match a known ID scheme.
     #     A mismatch here indicates a quote-stripping regression in the loader.
+    #     Valid prefixes: DIS / DISVCT (Discover Denver), DDS (retired
+    #     transitional), 5DV (Smithsonian). See docs/DATA3_REVIEW.md (Appendix B).
     import re as _re
     _bad_ids = [bid for bid in df["building_id"].unique()
-                if not _re.fullmatch(r"DIS\.\d+", str(bid))]
+                if not _re.fullmatch(r"(?:DIS|DISVCT|DDS|5DV)\.\d+(?:\.\d+)*", str(bid))]
     if _bad_ids:
         logger.error(
-            f"❌ {len(_bad_ids)} building ID(s) do not match DIS.\\d+ — "
+            f"❌ {len(_bad_ids)} building ID(s) do not match (DIS|DISVCT|DDS|5DV).\\d+ — "
             "possible quote-stripping regression in the loader."
         )
         for _bid in _bad_ids[:10]:
