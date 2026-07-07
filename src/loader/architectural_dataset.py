@@ -351,8 +351,14 @@ CLADDING_COARSEN_MAP: Dict[str, str] = {
     # ── Brick ─────────────────────────────────────────────────────────────
     "Brick":                                 "Brick",
     # ── Stucco ────────────────────────────────────────────────────────────
+    "Stucco":                                "Stucco",   # data3 generic (no qualifier)
     "Stucco - Modern":                       "Stucco",
     "Stucco - Historic":                     "Stucco",
+    "Stucco - Smooth":                       "Stucco",
+    "Stucco-Modern":                         "Stucco",   # data3 typo variant
+    "Stucco-Smooth":                         "Stucco",   # data3 typo variant
+    "Stucco -Historic":                      "Stucco",   # data3 typo variant
+    "Stucco -Smooth":                        "Stucco",   # data3 typo variant
     # ── Vinyl siding (large enough to keep separate) ─────────────────────
     "Siding - Vinyl":                        "Siding - Vinyl",
     # ── All other siding variants → one bucket ────────────────────────────
@@ -361,59 +367,58 @@ CLADDING_COARSEN_MAP: Dict[str, str] = {
     "Siding - Aluminum":                     "Siding - Other",
     "Siding - Vertical, Unknown Material":   "Siding - Other",
     "Siding - Vertical, Wood":               "Siding - Other",
+    "Siding - Wood Horizontal":              "Siding - Other",  # data3 variant
+    "Siding - Wood Vertical":                "Siding - Other",  # data3 variant
+    "Sidint - Wood Vertical":                "Siding - Other",  # data3 typo
+    "Siding - Wood":                         "Siding - Other",  # data3 generic
+    "Wood - Horizontal":                     "Siding - Other",  # data3 variant
+    "Siding - Board and Batten":             "Siding - Other",
+    "Board and Batten":                      "Siding - Other",  # data3 without prefix
+    "Siding - Unknown Horizontal":           "Siding - Other",
+    "Siding - Angled Wood":                  "Siding - Other",
+    "Siding - Metal":                        "Siding - Other",
+    "Siding - Rolled Asphalt":               "Siding - Other",
     # ── Shingle variants ──────────────────────────────────────────────────
     "Shingles - Asbestos":                   "Shingles",
     "Shingles - Plain":                      "Shingles",
     "Shingles - Asphalt":                    "Shingles",
+    "Shingles - Unknown":                    "Shingles",
+    "Shingles - Unknown Material":           "Shingles",
+    "Shingles - Decorative":                 "Shingles",
     # ── Masonry / stone ───────────────────────────────────────────────────
     "Concrete - Block":                      "Concrete / Stone",
     "Concrete - Modular/Precast":            "Concrete / Stone",
+    "Concrete Block":                        "Concrete / Stone",  # data3 variant
+    "Concrete":                              "Concrete / Stone",  # data3 generic
+    "Screen Block":                          "Concrete / Stone",
     "Stone - Faux":                          "Concrete / Stone",
     "Stone - Smooth":                        "Concrete / Stone",
+    "Stone - Rusticated":                    "Concrete / Stone",
+    "Stone - Other":                         "Concrete / Stone",
+    "Stone - Cobble":                        "Concrete / Stone",
     # ── Sheet metal ───────────────────────────────────────────────────────
     "Sheet Metal":                           "Sheet Metal",
+    "Metal":                                 "Sheet Metal",       # data3 generic
     # ── Catch-all ─────────────────────────────────────────────────────────
     "Other Cladding":                        "Other Cladding",
+    "Unknown Cladding":                      "Other Cladding",
+    "Glass":                                 "Other Cladding",
+    "Terra Cotta":                           "Other Cladding",
 }
 
 
 def normalize_cladding_label(value: str) -> str:
-    """Coarsen 18 raw primary_cladding classes into 8 meaningful groups.
+    """Coarsen raw primary_cladding values into 8 meaningful groups.
 
-    Raw class distribution in data2/ (2 708 images):
-        Brick                                : 1836 (67.8%)
-        Siding - Vinyl                       :  236  (8.7%)
-        Stucco - Modern                      :  183  (6.8%)
-        Stucco - Historic                    :  124  (4.6%)
-        Siding - Horiz, Unknown Material     :   70  (2.6%)
-        Siding - Horizontal, Wood            :   52  (1.9%)
-        Siding - Aluminum                    :   47  (1.7%)
-        Shingles - Asbestos                  :   41  (1.5%)
-        Concrete - Block                     :   24  (0.9%)
-        Stone - Faux                         :   23  (0.8%)
-        8 further classes with < 20 samples each
+    data3 records cladding as compound strings (e.g. "Brick; Siding - Vinyl").
+    Split on '; ' and take the first token — the surveyor's primary material —
+    then look it up in CLADDING_COARSEN_MAP.  Single-material values (data2)
+    are unaffected since they contain no '; '.
 
-    After coarsening (8 classes):
-        Brick             67.8%
-        Siding - Vinyl     8.7%
-        Stucco            11.4%  (Modern + Historic merged)
-        Siding - Other     6.7%  (Wood + Aluminum + Vertical + Horiz-Unknown)
-        Shingles           1.9%  (Asbestos + Plain + Asphalt)
-        Concrete / Stone   2.0%  (Concrete Block/Precast + Stone Faux/Smooth)
-        Sheet Metal        ~1%
-        Other Cladding     ~0.5%
-
-    Any unseen value falls back to "Other Cladding".
-
-    Examples::
-
-        normalize_cladding_label("Brick")               # → "Brick"
-        normalize_cladding_label("Stucco - Modern")     # → "Stucco"
-        normalize_cladding_label("Siding - Aluminum")   # → "Siding - Other"
-        normalize_cladding_label("Stone - Faux")        # → "Concrete / Stone"
-        normalize_cladding_label("Unknown Material")    # → "Other Cladding"
+    Any remaining unseen value falls back to "Other Cladding".
     """
-    return CLADDING_COARSEN_MAP.get(value, "Other Cladding")
+    primary = value.split("; ")[0].strip()
+    return CLADDING_COARSEN_MAP.get(primary, "Other Cladding")
 
 
 # Schema 'multi' field: how the building relates to adjacent lots and the street.
