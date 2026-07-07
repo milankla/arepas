@@ -35,9 +35,9 @@ interface RowData {
   wd: number;
   batchSize: number;
   bestAcc: number;
-  bestLoss: number;
+  bestLoss: number | null;
   bestEpochAcc: number;
-  bestEpochLoss: number;
+  bestEpochLoss: number | null;
   // per-task at best-acc epoch
   stories_acc: number;
   stories_f1: number;
@@ -69,9 +69,12 @@ function buildRows(runs: RunInfo[], histories: RunHistoryMap): RowData[] {
       const bestAccEpoch = h.reduce((best, e) =>
         e.overall_accuracy > best.overall_accuracy ? e : best
       );
-      const bestLossEpoch = h.reduce((best, e) =>
-        e.val_loss_total < best.val_loss_total ? e : best
-      );
+      const lossEpochs = h.filter((e) => e.val_loss_total != null);
+      const bestLossEpoch = lossEpochs.length
+        ? lossEpochs.reduce((best, e) =>
+            e.val_loss_total < best.val_loss_total ? e : best
+          )
+        : null;
       const m = bestAccEpoch.val_metrics;
       return {
         runId: r.run_id,
@@ -82,9 +85,9 @@ function buildRows(runs: RunInfo[], histories: RunHistoryMap): RowData[] {
         wd: r.weight_decay,
         batchSize: r.batch_size,
         bestAcc: bestAccEpoch.overall_accuracy,
-        bestLoss: bestLossEpoch.val_loss_total,
+        bestLoss: bestLossEpoch?.val_loss_total ?? null,
         bestEpochAcc: bestAccEpoch.epoch,
-        bestEpochLoss: bestLossEpoch.epoch,
+        bestEpochLoss: bestLossEpoch?.epoch ?? null,
         stories_acc: taskMetric(m, "stories", "acc"),
         stories_f1: taskMetric(m, "stories", "f1"),
         roof_acc: taskMetric(m, "roof_type", "acc"),
@@ -115,7 +118,10 @@ function bestPerCol(rows: RowData[]): Partial<Record<SortKey, number>> {
     result[k] = Math.max(...rows.map((r) => r[k] as number));
   }
   for (const k of lowerIsBetter) {
-    result[k] = Math.min(...rows.map((r) => r[k] as number));
+    const vals = rows
+      .map((r) => r[k] as number | null)
+      .filter((v): v is number => v != null);
+    if (vals.length) result[k] = Math.min(...vals);
   }
   return result;
 }
@@ -238,8 +244,8 @@ export function RunCompareTable({ runs, histories, runLabels }: RunCompareTableP
               <TableCell sx={{ fontSize: 12 }}>{row.batchSize}</TableCell>
               <PC row={row} k="bestAcc" />
               <TableCell sx={{ fontSize: 12 }}>{Math.round(row.bestEpochAcc)}</TableCell>
-              <TableCell sx={{ fontSize: 12 }}>{row.bestLoss.toFixed(4)}</TableCell>
-              <TableCell sx={{ fontSize: 12 }}>{Math.round(row.bestEpochLoss)}</TableCell>
+              <TableCell sx={{ fontSize: 12 }}>{row.bestLoss != null ? row.bestLoss.toFixed(4) : "—"}</TableCell>
+              <TableCell sx={{ fontSize: 12 }}>{row.bestEpochLoss != null ? Math.round(row.bestEpochLoss) : "—"}</TableCell>
               <PC row={row} k="stories_acc" />
               <PC row={row} k="stories_f1" />
               <PC row={row} k="roof_acc" />

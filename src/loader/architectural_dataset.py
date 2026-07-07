@@ -91,6 +91,12 @@ PHASE3_LABEL_DEFINITIONS_PATH = Path(__file__).resolve().parents[2] / "config" /
 # ignore_index sentinel, which CrossEntropyLoss / FocalLoss skip in the loss and
 # compute_metrics() excludes from accuracy/F1.
 IGNORE_INDEX = -100
+# Sentinel normalized value for single-label tasks meaning "mask this task for
+# this building": excluded from the LabelEncoder's classes and from class-weight
+# counts, and emitted as IGNORE_INDEX in __getitem__ (loss & metrics skip it).
+# Used for architectural_style compound ("X; Y") entries, which are too rare
+# (<50 buildings per combo) to train and would otherwise pollute "Other Style".
+IGNORE_LABEL = "__IGNORE__"
 FULL_SURVEY_VALUE = "Full Survey"
 SURVEY_LEVEL_COL = "survey_level"
 SURVEY_GATED_COLS = frozenset({"chimney_present"})
@@ -290,8 +296,10 @@ def normalize_stories_label(value: str) -> str:
     return value
 
 
-# Viable architectural_style classes (≥100 image-level examples ≈ 27+ buildings).
-# All other raw values are collapsed into "Other Style".
+# Viable architectural_style classes: ≥50 buildings each in the combined dataset
+# (owner-approved exception: "Mission" at 46).  All other single-style raw values
+# collapse into "Other Style"; compound "X; Y" entries are masked (IGNORE_LABEL),
+# not folded here.
 ARCH_STYLE_KEEP: frozenset = frozenset({
     "No Clear Architectural Style",
     "Craftsman",
@@ -306,11 +314,16 @@ ARCH_STYLE_KEEP: frozenset = frozenset({
     "Dutch Colonial Revival",
     "Contemporary",
     "Mission",
+    "Italianate",
+    "Colonial Revival",
 })
 
 
 def normalize_arch_style_label(value: str) -> str:
-    """Coarsen 37 raw architectural_style classes into 13 viable + 'Other Style'.
+    """Coarsen raw architectural_style classes into 15 viable + 'Other Style'.
+
+    Compound "X; Y" entries are masked out of training (return IGNORE_LABEL);
+    see the guard in the function body.
 
     Raw class distribution in data2/ (26 160 images):
         No Clear Architectural Style : 12 774  (48.8%)
@@ -341,7 +354,14 @@ def normalize_arch_style_label(value: str) -> str:
         normalize_arch_style_label("Googie")           # → "Other Style"
         normalize_arch_style_label("Other Style")      # → "Other Style"
         normalize_arch_style_label("Tudor Revival")    # → "Other Style"
+        normalize_arch_style_label("Ranch; Contemporary")  # → IGNORE_LABEL
     """
+    # Compound "X; Y" survey entries mix two styles.  Each distinct combo has
+    # <50 buildings (319 buildings across 101 combos in the combined dataset),
+    # so we mask them out of the style head entirely rather than dump them in
+    # "Other Style".  The sentinel becomes IGNORE_INDEX in __getitem__.
+    if ";" in value:
+        return IGNORE_LABEL
     return value if value in ARCH_STYLE_KEEP else "Other Style"
 
 
@@ -482,7 +502,7 @@ MULTILABEL_COLS: List[str] = list(MULTILABEL_ATOMICS.keys())
 # roof_type:            collapse multi-type compound roofs → "Compound"
 # stories:              coarsen rare high-storey classes   → "2+" / "3+"
 # primary_cladding:     coarsen 18 raw classes             → 8 meaningful groups
-# architectural_style:  coarsen 37 raw classes             → 13 + "Other Style"
+# architectural_style:  coarsen raw classes → 15 + "Other Style" (compounds masked)
 PRE_ENCODE_TRANSFORMS: Dict[str, Callable[[str], str]] = {
     "roof_type":           normalize_roof_type_label,
     "building_form":       normalize_building_form_label,
@@ -786,8 +806,14 @@ class ArchitecturalDataset(Dataset):
             else:
                 # Single-label: integer class index → LongTensor scalar
                 value = normalize_label_value(col, raw)
-                idx_  = self.label_encoders[col].transform([value])[0]
-                labels[col] = torch.tensor(idx_, dtype=torch.long)
+                if value == IGNORE_LABEL:
+                    # Masked for this task (e.g. compound architectural_style):
+                    # emit the ignore sentinel so loss & metrics skip it while
+                    # the building still supervises its other tasks.
+                    labels[col] = torch.tensor(IGNORE_INDEX, dtype=torch.long)
+                else:
+                    idx_ = self.label_encoders[col].transform([value])[0]
+                    labels[col] = torch.tensor(idx_, dtype=torch.long)
 
         return image, labels
 
@@ -845,6 +871,11 @@ class ArchitecturalDataset(Dataset):
 
             # Apply the same pipeline as __getitem__
             values: "pd.Series" = self.df[col].map(lambda value: normalize_label_value(col, value))
+
+            # Drop masked (IGNORE_LABEL) rows so weights reflect only the
+            # buildings actually supervised for this task (e.g. compound
+            # architectural_style entries are masked out).
+            values = values[values != IGNORE_LABEL]
 
             # Survey-gated tasks (chimney_present) are supervised only on
             # Full-Survey rows, so weight them over that subset to match the
@@ -1018,7 +1049,11 @@ def make_splits(
             logger.debug(f"  {col}: {len(mlb.classes_)} atomics (multi-label)")
         else:
             enc = LabelEncoder()
-            enc.fit(df[col].map(lambda value: normalize_label_value(col, value)))
+            mapped = df[col].map(lambda value: normalize_label_value(col, value))
+            # Drop masked (IGNORE_LABEL) rows so the sentinel never becomes a
+            # class — e.g. architectural_style compound "X; Y" entries.
+            mapped = mapped[mapped != IGNORE_LABEL]
+            enc.fit(mapped)
             label_encoders[col] = enc
             logger.debug(f"  {col}: {len(enc.classes_)} classes → {list(enc.classes_)}")
 

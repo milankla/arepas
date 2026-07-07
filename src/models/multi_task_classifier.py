@@ -834,7 +834,15 @@ class MultiTaskLoss(nn.Module):
                 focal = self._focal_losses[task_name] if task_name in self._focal_losses else self._default_focal
                 task_loss = focal(pred, target)
             else:
-                task_loss = self.ce_loss(pred, target)
+                # Masked-mean CrossEntropy: average over valid (non-ignored)
+                # samples only. Plain nn.CrossEntropyLoss(reduction='mean')
+                # returns NaN when a whole batch is ignore_index (-100) — which
+                # happens for masked single-label tasks like architectural_style
+                # (compound styles). clamp(min=1) yields a graph-connected 0 for
+                # an all-masked batch instead, mirroring FocalLoss above.
+                ce = F.cross_entropy(pred, target, reduction='none', ignore_index=-100)
+                n_valid = (target != -100).sum()
+                task_loss = ce.sum() / n_valid.clamp(min=1)
             
             losses[task_name] = task_loss
             total_loss += weight * task_loss

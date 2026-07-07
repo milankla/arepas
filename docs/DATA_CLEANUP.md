@@ -1,6 +1,6 @@
 # Data Cleanup & Label Normalization
 
-**Scope:** Phase 1 multi-task training on the combined Denver dataset
+**Scope:** Phase 1 + Phase 2 multi-task training on the combined Denver dataset
 (`data/` + `data2/` + `data3/` → `outputs/combined/image_label_mapping_phase1.csv`,
 17,269 buildings / 60,841 image rows / 20 datasets).
 
@@ -26,15 +26,18 @@ examples to learn or evaluate reliably.
 
 ## Summary table
 
-| Field | Type | Raw → Final | Cleanup theme |
-|---|---|---|---|
-| `roof_type` | single-label | ~19 multi-bit → **11** | Flatten compound roofs; drop rare types |
-| `building_form` | single-label | 63 → **27** | Merge typos; group Gas Station; fold rare → Other |
-| `stories` | single-label | mixed notation → **5** | Normalize notation; coarsen tall buildings |
-| `architectural_style` | single-label | 37 → **14** | Keep viable classes; rest → Other Style |
-| `primary_cladding` | single-label | 18 → **8** | Coarsen material variants into groups |
-| `setting` | multi-label | 12 raw atomics → **6** | Canonicalize surveyor typos/phrasing |
-| `chimney_present` | single-label (gated) | 2 classes | Survey-level masking (false-negative fix) |
+| Field | Phase | Type | Raw → Final | Cleanup theme |
+|---|---|---|---|---|
+| `roof_type` | 1 | single-label | ~19 multi-bit → **11** | Flatten compound roofs; drop rare types |
+| `building_form` | **2** | single-label | 63 → **27** | Merge typos; group Gas Station; fold rare → Other |
+| `stories` | 1 | single-label | mixed notation → **5** | Normalize notation; coarsen tall buildings |
+| `architectural_style` | **2** | single-label | 37 → **16** | Keep viable classes; rest → Other Style; **mask compounds** |
+| `primary_cladding` | 1 | single-label | 18 → **8** | Coarsen material variants into groups |
+| `setting` | 1 | multi-label | 12 raw atomics → **6** | Canonicalize surveyor typos/phrasing |
+| `chimney_present` | 1 | single-label (gated) | 2 classes | Survey-level masking (false-negative fix) |
+
+> **Phase 2 tasks** are `architectural_style` (§4) and `building_form` (§2),
+> trained on top of the warm-started Phase 1 backbone; the rest are Phase 1.
 
 ---
 
@@ -56,7 +59,7 @@ the single class **`Compound`**, and rare single types fold into **`Other`**.
   `Other`, `Side Gable`). Min class `Dutch Hipped` = 92. Converts a
   multi-label/BCE task into a single-label/CrossEntropy task.
 
-## 2. `building_form` — merge duplicates, group Gas Station, fold rare → Other
+## 2. `building_form` (Phase 2) — merge duplicates, group Gas Station, fold rare → Other
 
 **High level:** The raw field had 63 classes polluted by spelling/casing typos,
 several "Gas Station - *" subtypes, and a long tail of rare forms. We merge
@@ -95,19 +98,27 @@ the fraction notation and collapse everything genuinely ≥ 3 stories into a sin
   (min `3+` = 134). `2-1/2` (Foursquares etc.) is a real, common Denver category
   kept separate from the open-ended `3+` tall-building bucket.
 
-## 4. `architectural_style` — keep viable classes, rest → Other Style
+## 4. `architectural_style` (Phase 2) — keep viable classes, mask compounds, rest → Other Style
 
-**High level:** 37 raw styles with a heavy long tail. We keep styles with enough
-examples to learn (≈ ≥ 100 image-level / ≥ 27 building-level) and collapse the
-rest into `Other Style`.
+**High level:** 37+ raw styles with a heavy long tail, plus a set of compound
+"X; Y" survey entries where the surveyor recorded two styles at once. We keep
+single styles with **≥ 50 buildings**, collapse the rest into `Other Style`, and
+**mask the compounds out of the style head entirely** (they neither train nor
+pollute `Other Style`) since every distinct combo is well below the floor.
 
-**Technical:**
-- `ARCH_STYLE_KEEP` (13 named styles) are retained; every other raw value —
+**Technical (`normalize_arch_style_label`):**
+- Compound values (any string containing `";"`) → the `IGNORE_LABEL` sentinel,
+  which is excluded from the `LabelEncoder`'s classes and from `class_weights`,
+  and emitted as `IGNORE_INDEX = -100` in `__getitem__`. The building is **not**
+  dropped — it still supervises `building_form` and all Phase 1 tasks; only its
+  style label is masked (same mechanism as `chimney_present`, see §7).
+- `ARCH_STYLE_KEEP` (15 named styles) are retained; every other single value —
   including the pre-existing `"Other Style"` — → `"Other Style"`.
-- `normalize_arch_style_label()`: `return value if value in ARCH_STYLE_KEEP else "Other Style"`.
-- **Result:** 14 classes (13 kept + `Other Style`). `Mission` (46 buildings) is
-  intentionally retained despite being below the 50-building floor (owner
-  decision).
+- `Italianate` (142) and `Colonial Revival` (66) were **promoted** into the keep
+  list once the combined dataset pushed them past the 50-building floor.
+- **Result:** 16 classes (15 kept + `Other Style`). **319 compound buildings**
+  across 101 combos are masked. `Mission` (46 buildings) is intentionally
+  retained despite being below the floor (owner decision).
 
 ## 5. `primary_cladding` — coarsen material variants into groups
 
@@ -179,7 +190,7 @@ After the transforms, `make_splits("outputs/combined/image_label_mapping_phase1.
 fits encoders cleanly:
 
 ```
-architectural_style: 14   building_form: 27   roof_type: 11
+architectural_style: 16   building_form: 27   roof_type: 11
 primary_cladding: 8       stories: 5          setting: 6 (multi)
 chimney_present: 2
 Split — train 12,088 buildings / 42,615 images,
@@ -199,26 +210,32 @@ over labeled buildings; `setting` is multi-label (a building may carry several
 atomics, so percentages do not sum to 100%); `chimney_present` is computed over
 the 5,457 Full-Survey buildings only (the rest are masked — see §7).
 
-### `architectural_style` — 14 classes (labeled = 17,269)
+### `architectural_style` — 16 classes (Phase 2; supervised = 16,950 of 17,269; 319 compounds masked)
 
 | Class | Count | % |
 |---|---:|---:|
 | No Clear Architectural Style | 8,905 | 51.6% |
 | Ranch | 2,868 | 16.6% |
 | Craftsman | 1,688 | 9.8% |
-| Other Style | 791 | 4.6% |
 | Victorian Cottage | 763 | 4.4% |
 | Edwardian | 485 | 2.8% |
 | Queen Anne | 447 | 2.6% |
 | Contemporary | 344 | 2.0% |
 | Modern Movement | 264 | 1.5% |
+| Other Style | 264 | 1.5% |
 | English Norman Cottage | 234 | 1.4% |
 | Classical Revival | 179 | 1.0% |
 | Mixed Style | 149 | 0.9% |
+| Italianate | 142 | 0.8% |
 | Dutch Colonial Revival | 106 | 0.6% |
+| Colonial Revival | 66 | 0.4% |
 | Mission ⚠️ | 46 | 0.3% |
 
-### `building_form` — 27 classes (labeled = 17,269)
+> _319 compound "X; Y" buildings (1.8%) are masked out of the style head (see
+> §4) — excluded from the supervised denominator above; they still train on
+> `building_form` and all Phase 1 tasks._
+
+### `building_form` — 27 classes (Phase 2; labeled = 17,269)
 
 | Class | Count | % |
 |---|---:|---:|
