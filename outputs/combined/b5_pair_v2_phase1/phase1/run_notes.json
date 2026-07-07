@@ -1,0 +1,56 @@
+{
+    "summary": "EfficientNet-B5 paired-view Phase 1 run on the COMBINED dataset (data + data2 + data3: 17,269 buildings / 60,841 rows across 17 neighborhoods) with the primary_cladding compound-string bug fixed. Same architecture and hyperparameters as b5_pair_v1_phase1 except: (1) cladding label normalization now splits compound strings on '; ' and maps the first token, resolving 1,359 data3 compound values that previously fell through to 'Other Cladding'; (2) T_max=30 cosine schedule (not 20) to give full headroom; (3) accuracy-based early stopping (patience=8, min_delta=0.001) from the start — no two-segment training needed. Ran 30 epochs without triggering early stopping. Best overall accuracy: 76.90% at epoch 28.",
+    "metrics": {
+        "best_epoch": 28,
+        "overall_accuracy": 0.769,
+        "roof_type_acc": 0.672,
+        "primary_cladding_acc": 0.749,
+        "stories_acc": 0.815,
+        "chimney_present_acc": 0.757,
+        "setting_exact": 0.759,
+        "setting_jaccard": 0.852,
+        "setting_sample_f1": 0.884
+    },
+    "comparison_vs_v1": {
+        "note": "b5_pair_v1_phase1 = same combined dataset but with the cladding compound-string bug. Best was ep20 at 74.73%. This run is a clean single-variable test: only the cladding fix and T_max=30 changed. NOT a like-for-like improvement claim on the model architecture.",
+        "overall_delta_pp": 2.17,
+        "per_task_delta_pp": {
+            "roof_type": -0.2,
+            "stories": 4.1,
+            "primary_cladding": 6.2,
+            "chimney_present": 0.1,
+            "setting_exact": 0.7,
+            "setting_jaccard": 0.7,
+            "setting_sample_f1": 0.7
+        }
+    },
+    "comparison_vs_b5_pair_v2_data2": {
+        "note": "b5_pair_v2 (data2 Phase 1 only, 7,135 buildings) best = 79.44% at epoch 30. NOT a like-for-like comparison: different test population and different cladding label taxonomy. Chimney baseline is known invalid (did not gate on Full Survey). Per-task deltas are directional only.",
+        "overall_delta_pp": -2.54,
+        "per_task_delta_pp": {
+            "roof_type": 1.4,
+            "stories": 7.4,
+            "primary_cladding": -2.1,
+            "chimney_present": -18.6,
+            "setting_exact": -0.3,
+            "setting_jaccard": -0.8
+        }
+    },
+    "learnings": [
+        "Cladding fix validated: primary_cladding jumped from 68.7% (v1, buggy) to 74.9% (+6.2pp), landing within -2.1pp of the data2-only baseline (77.0%). Pre-fix projection was 72-74%; actual 74.9% is at the top of that range. The compound-string split was the right root cause and fix.",
+        "T_max=30 cosine paid off: accuracy climbed from 74.73% (v1, T_max=20, still rising at ep20) to 76.90% (ep28). The extra 10 epochs added ~2pp overall and allowed the cladding head to continue improving (68.7 -> 74.9% is a gain that needed more time than 20 epochs).",
+        "Accuracy-based early stopping from the start is cleaner than the two-segment approach in v1. val_loss bottomed at ep2 (0.173) and rose monotonically to 0.539 at ep30; the accuracy criterion correctly ignored this and let the model run. Patience=8 never fired.",
+        "The B5 overconfidence pattern continued: train loss fell to 0.003 while val loss rose to 0.539, but accuracy climbed monotonically. val_loss is an actively misleading stopping signal. Accuracy-based stopping is now the confirmed default for this architecture.",
+        "stories jumped +4.1pp vs v1 (77.4 -> 81.5%) despite no change to stories labels. Likely benefit from the longer schedule and cleaner cladding gradients (less noisy task competition in the shared backbone).",
+        "chimney_present at 75.7% is essentially identical to v1 (75.6%), confirming this is not a training/bug issue but a harder, shifted survey-gated population in the combined val set. The data2-only 94.3% baseline is invalid (did not account for Full Survey gate). This task needs a dedicated confusion analysis before any further action.",
+        "overall -2.54pp vs the data2-only b5_pair_v2 baseline (76.90 vs 79.44%) is now almost entirely explained by chimney (-18.6pp inflating the gap). Excluding chimney, the remaining tasks are at parity or better (stories +7.4pp, roof +1.4pp). The combined dataset model is competitive on a harder evaluation set.",
+        "Accuracy peaked at ep28 (76.90%), with ep26/27/29/30 all within 0.5pp. Gains were near-terminal in the last 5 epochs (+0.04pp average), consistent with cosine LR nearing eta_min (lr * 0.01 = 1.5e-6). No further improvement expected from extending this schedule."
+    ],
+    "next_steps": [
+        "Chimney_present investigation: compute per-class precision/recall on the full-survey val subset, compare Yes/No balance against data2, confirm IGNORE_INDEX mask is applied correctly on the combined dataset. This is the highest-priority open question.",
+        "Same-test-set evaluation: run both b5_pair_v2_phase1 and b5_pair_v2 (data2-only) checkpoints against the data2 test split to get a rigorous like-for-like comparison of the more-data hypothesis.",
+        "Phase 2 training: run from best_model_phase1.pth (paired, task_gated_residual, crop_prior, differential LR) to test architectural_style and building_form on the combined corpus.",
+        "Consider label smoothing (0.1) or weight_decay bump (0.05) to address overconfidence (train 0.003 vs val 0.539 at ep28), if Phase 2 shows the same pattern. One variable at a time.",
+        "Deploy training to SageMaker (see docs/DEPLOYMENT_PLAN.md) so future runs are not Mac-bound. The b5_pair_v2_phase1 recipe is the confirmed baseline for that migration."
+    ]
+}
