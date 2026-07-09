@@ -25,3 +25,7 @@ accelerate            # optional but recommended for transformers inference
 # ── API server (Arepas UI backend) ────────────────────────────────────────────
 fastapi
 uvicorn[standard]     # ASGI server with auto-reload support
+
+# ── Cloud storage (deployment Phase 0 storage abstraction) ────────────────────
+boto3                 # S3 backend, used only when AREPAS_S3_BUCKET is set
+moto                  # dev/test: in-memory S3 for the storage parity tests

@@ -3,8 +3,6 @@ Training runs API — serves run metadata and training history from the outputs/
 """
 from __future__ import annotations
 
-import json
-import os
 import re
 from pathlib import Path
 from typing import Any
@@ -12,9 +10,11 @@ from typing import Any
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
+from src.storage import get_storage
+
 router = APIRouter()
 
-OUTPUTS_ROOT = Path("outputs")
+_storage = get_storage()
 
 
 # ---------------------------------------------------------------------------
@@ -71,16 +71,14 @@ class RunInfo(BaseModel):
 # Helpers
 # ---------------------------------------------------------------------------
 
-def _discover_runs() -> list[tuple[str, Path, Path]]:
-    """Walk outputs/ and yield (run_id, history_path, config_path) tuples."""
+def _discover_runs() -> list[tuple[str, str, str]]:
+    """Return (run_id, history_key, config_key) for every run under outputs/."""
     results = []
-    if not OUTPUTS_ROOT.exists():
-        return results
-    for history_path in sorted(OUTPUTS_ROOT.rglob("training_history.json")):
-        config_path = history_path.parent / "run_config.json"
-        rel = history_path.parent.relative_to(OUTPUTS_ROOT)
-        run_id = str(rel).replace(os.sep, "/")
-        results.append((run_id, history_path, config_path))
+    for history_key in _storage.list("outputs", suffix="/training_history.json"):
+        run_dir = history_key.rsplit("/", 1)[0]
+        config_key = f"{run_dir}/run_config.json"
+        run_id = run_dir[len("outputs/"):] if run_dir.startswith("outputs/") else run_dir
+        results.append((run_id, history_key, config_key))
     return results
 
 
@@ -110,27 +108,24 @@ def _input_type(run_id: str, config: dict[str, Any]) -> str:
 def list_runs() -> list[RunInfo]:
     """List all training runs found under outputs/."""
     runs: list[RunInfo] = []
-    for run_id, history_path, config_path in _discover_runs():
+    for run_id, history_key, config_key in _discover_runs():
         try:
-            with open(history_path) as f:
-                history = json.load(f)
+            history = _storage.read_json(history_key)
         except Exception:
             continue
 
         config: dict = {}
-        if config_path.exists():
+        if _storage.exists(config_key):
             try:
-                with open(config_path) as f:
-                    config = json.load(f)
+                config = _storage.read_json(config_key)
             except Exception:
                 pass
 
-        notes_path = history_path.parent / "run_notes.json"
+        notes_key = history_key.rsplit("/", 1)[0] + "/run_notes.json"
         notes: RunNotes | None = None
-        if notes_path.exists():
+        if _storage.exists(notes_key):
             try:
-                with open(notes_path) as f:
-                    notes = RunNotes(**json.load(f))
+                notes = RunNotes(**_storage.read_json(notes_key))
             except Exception:
                 pass
 
@@ -173,12 +168,11 @@ def list_runs() -> list[RunInfo]:
 @router.get("/runs/{run_id:path}/history", response_model=list[EpochRecord])
 def get_run_history(run_id: str) -> list[EpochRecord]:
     """Return the full epoch-by-epoch training history for a run."""
-    history_path = OUTPUTS_ROOT / run_id / "training_history.json"
-    if not history_path.exists():
+    history_key = f"outputs/{run_id}/training_history.json"
+    if not _storage.exists(history_key):
         raise HTTPException(status_code=404, detail=f"Run not found: {run_id}")
     try:
-        with open(history_path) as f:
-            history = json.load(f)
+        history = _storage.read_json(history_key)
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc))
 

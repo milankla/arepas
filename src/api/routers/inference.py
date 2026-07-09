@@ -33,10 +33,12 @@ from src.models.multi_task_classifier import (
     checkpoint_has_paired_fusion,
     normalize_paired_fusion_state_dict,
 )
+from src.storage import get_storage, normalize_key
 
 router = APIRouter()
 
 OUTPUTS_ROOT = Path("outputs")
+_storage = get_storage()
 IMAGENET_MEAN = (0.485, 0.456, 0.406)
 IMAGENET_STD  = (0.229, 0.224, 0.225)
 
@@ -106,29 +108,30 @@ def _checkpoint_input_type(run_id: str, cfg: dict[str, Any]) -> str:
 
 def _discover_checkpoints() -> list[CheckpointInfo]:
     results = []
-    for ckpt_path in sorted(OUTPUTS_ROOT.rglob("best_model_phase*.pth")):
-        run_dir = ckpt_path.parent
-        config_path = run_dir / "run_config.json"
-        if not config_path.exists():
+    ckpt_keys = [
+        k for k in _storage.list("outputs", suffix=".pth")
+        if Path(k).name.startswith("best_model_phase")
+    ]
+    for ckpt_key in ckpt_keys:
+        run_dir = ckpt_key.rsplit("/", 1)[0]
+        config_key = f"{run_dir}/run_config.json"
+        if not _storage.exists(config_key):
             continue
         try:
-            with open(config_path) as f:
-                cfg = json.load(f)
+            cfg = _storage.read_json(config_key)
         except Exception:
             continue
 
-        m = re.search(r"phase(\d+)", ckpt_path.name)
+        m = re.search(r"phase(\d+)", Path(ckpt_key).name)
         phase = int(m.group(1)) if m else cfg.get("end_phase", 1)
 
-        rel = str(ckpt_path.relative_to(OUTPUTS_ROOT))
-        run_id = str(run_dir.relative_to(OUTPUTS_ROOT))
+        run_id = run_dir[len("outputs/"):] if run_dir.startswith("outputs/") else run_dir
 
         best_acc = 0.0
-        history_path = run_dir / "training_history.json"
-        if history_path.exists():
+        history_key = f"{run_dir}/training_history.json"
+        if _storage.exists(history_key):
             try:
-                with open(history_path) as f:
-                    history = json.load(f)
+                history = _storage.read_json(history_key)
                 seen = {e["epoch"]: e for e in history}
                 deduped = sorted(seen.values(), key=lambda e: e["epoch"])
                 best_acc = max(
@@ -146,7 +149,7 @@ def _discover_checkpoints() -> list[CheckpointInfo]:
         results.append(CheckpointInfo(
             id=run_id,
             short_name=short_name,
-            checkpoint_path=str(ckpt_path),
+            checkpoint_path=ckpt_key,
             backbone=cfg.get("backbone", "unknown"),
             phase=phase,
             best_overall_acc=round(best_acc * 100, 2),
@@ -213,16 +216,15 @@ def _auto_crop_pil(img: Image.Image) -> tuple[Image.Image, bool]:
 
 @lru_cache(maxsize=4)
 def _load_model(checkpoint_path: str) -> tuple[MultiTaskArchitecturalClassifier, ModelConfig, dict[str, list[str]], set[str], dict[str, Any]]:
-    """Load and cache model + config from a checkpoint path."""
-    ckpt = torch.load(checkpoint_path, map_location="cpu", weights_only=False)
+    """Load and cache model + config from a checkpoint key."""
+    ckpt = torch.load(_storage.local_path(checkpoint_path), map_location="cpu", weights_only=False)
 
-    run_dir = Path(checkpoint_path).parent
-    run_cfg_path = run_dir / "run_config.json"
-    if not run_cfg_path.exists():
-        raise FileNotFoundError(f"run_config.json not found at {run_cfg_path}")
+    run_dir = checkpoint_path.rsplit("/", 1)[0]
+    run_cfg_key = f"{run_dir}/run_config.json"
+    if not _storage.exists(run_cfg_key):
+        raise FileNotFoundError(f"run_config.json not found at {run_cfg_key}")
 
-    with open(run_cfg_path) as f:
-        run_cfg = json.load(f)
+    run_cfg = _storage.read_json(run_cfg_key)
 
     model_config_path = run_cfg.get("model_config_path", "config/models/resnet50.json")
     model_config = ModelConfig.from_json(model_config_path)
@@ -406,22 +408,19 @@ async def run_inference(
     if not images:
         raise HTTPException(status_code=422, detail="At least one image is required.")
 
-    # Validate checkpoint path is inside outputs/ (security: prevent path traversal)
-    ckpt = Path(checkpoint_path).resolve()
-    outputs_resolved = OUTPUTS_ROOT.resolve()
-    try:
-        ckpt.relative_to(outputs_resolved)
-    except ValueError:
+    # Validate the checkpoint key stays inside outputs/ (path-traversal guard).
+    ckpt_key = normalize_key(checkpoint_path)
+    if ckpt_key.split("/", 1)[0] != "outputs":
         raise HTTPException(status_code=400, detail="Invalid checkpoint path.")
-    if not ckpt.exists():
+    if not _storage.exists(ckpt_key):
         raise HTTPException(status_code=404, detail=f"Checkpoint not found: {checkpoint_path}")
 
     try:
-        model, model_config, label_classes, trained_tasks, run_cfg = _load_model(str(ckpt))
+        model, model_config, label_classes, trained_tasks, run_cfg = _load_model(ckpt_key)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to load model: {e}")
 
-    run_id = str(ckpt.parent.relative_to(outputs_resolved))
+    run_id = ckpt_key.rsplit("/", 1)[0][len("outputs/"):]
     input_type = _checkpoint_input_type(run_id, run_cfg)
     needs_crop = input_type in {"crop", "paired"}
 

@@ -11,6 +11,7 @@ GET /api/datasets/{dataset}/buildings/search?q=&limit=
 from __future__ import annotations
 
 import functools
+import io
 from collections import Counter, defaultdict
 from pathlib import Path
 from typing import Any
@@ -19,7 +20,11 @@ import pandas as pd
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
+from src.storage import get_storage
+
 router = APIRouter()
+
+_storage = get_storage()
 
 # ---------------------------------------------------------------------------
 # Paths & constants
@@ -119,10 +124,15 @@ _NON_ATTRIBUTE_COLS = frozenset(
 # ---------------------------------------------------------------------------
 # DataFrame cache — load once per dataset
 # ---------------------------------------------------------------------------
+def _rel_key(path: Path) -> str:
+    """Project-relative logical storage key for a discovered absolute path."""
+    return str(Path(path).resolve().relative_to(ROOT))
+
+
 @functools.lru_cache(maxsize=8)
 def _load_df(dataset: str) -> pd.DataFrame:
     meta = DATASETS[dataset]
-    df = pd.read_csv(meta["csv"])
+    df = pd.read_csv(io.BytesIO(_storage.read_bytes(_rel_key(meta["csv"]))))
     return df
 
 
@@ -134,16 +144,16 @@ def _load_crop_manifest(dataset: str) -> pd.DataFrame | None:
         # its source-dataset prefix, so crop lookups resolve across datasets.
         frames = []
         for src in sorted(SOURCE_DATASETS):
-            path = DATASETS[src]["crop_manifest"]
-            if path.exists():
-                frames.append(pd.read_csv(path))
+            key = _rel_key(DATASETS[src]["crop_manifest"])
+            if _storage.exists(key):
+                frames.append(pd.read_csv(io.BytesIO(_storage.read_bytes(key))))
         if not frames:
             return None
         return pd.concat(frames, ignore_index=True)
     meta = DATASETS[dataset]
-    path = meta["crop_manifest"]
-    if path.exists():
-        return pd.read_csv(path)
+    key = _rel_key(meta["crop_manifest"])
+    if _storage.exists(key):
+        return pd.read_csv(io.BytesIO(_storage.read_bytes(key)))
     return None
 
 
