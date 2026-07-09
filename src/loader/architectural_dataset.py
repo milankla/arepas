@@ -135,15 +135,16 @@ PHASE3_FIELD_SPECS: Dict[str, Dict[str, Any]] = PHASE3_LABEL_DEFINITIONS.get("fi
 PHASE3_LABEL_COLS: List[str] = list(PHASE3_FIELD_SPECS.keys())
 
 # ── Phase 3 forward-plan tuning knobs (see docs/PHASE3_FORWARD_PLAN.md) ──
-# Multi-label BCE pos_weight cap. The current value (10.0) over-weights positives,
-# producing ~1.5-2.2x over-prediction (low precision). The forward plan calls for
-# lowering this to ~3-4 once we return to Phase 3. Kept at 10.0 here to preserve
-# current training behavior.
-MULTILABEL_POS_WEIGHT_CLAMP: float = 10.0
+# Multi-label BCE pos_weight cap. Lowered 10.0 -> 3.5 for the combined-data
+# Phase 3 run: at 10.0 the heads over-predict ~1.5-2.2x (low precision, the #1
+# bottleneck in the June audit). 3.5 keeps minority recall without the runaway
+# false positives. See docs/PHASE3_FORWARD_PLAN.md item C.
+MULTILABEL_POS_WEIGHT_CLAMP: float = 3.5
 # Minimum positive examples a multi-label atomic must have to stay in the loss.
-# 0 = disabled (use the full configured atomic set, current behavior). Set to e.g.
-# 100 to auto-drop dead labels (Driveway - Ribbon, Walkway - Brick, ...).
-PHASE3_MIN_POSITIVE_COUNT: int = 0
+# 0 = disabled. Set to 50 for the combined-data Phase 3 run: the configured
+# train_labels are already curated to >=50 buildings, so this is a safety net
+# that auto-drops any atomic that falls below the floor in the train split.
+PHASE3_MIN_POSITIVE_COUNT: int = 50
 
 # Split column — used for stratification
 STRATIFY_COL = "architectural_style"
@@ -545,10 +546,24 @@ def _subfield_option_map(spec: Dict[str, Any]) -> Dict[str, List[str]]:
     return {subfield: sorted(values, key=len, reverse=True) for subfield, values in options.items()}
 
 
-def _extract_multipart_subfield(record: str, subfield: str) -> str:
-    pattern = rf"{re.escape(subfield)}:\s*(.*?)(?=;\s*[A-Z][A-Za-z/ ]+:|$)"
-    match = re.search(pattern, record)
-    return match.group(1).strip() if match else ""
+def _extract_multipart_values(record: str, subfield: str) -> List[str]:
+    """All raw values for ``subfield`` in ``record`` (schema-qualified or alias).
+
+    Matches the schema-qualified key ("Window Type") and its bare alias with the
+    field-group prefix dropped ("Type" — data3 Format-A). Uses ``finditer`` so
+    *repeated* subfields ("Type: Fixed; Type: Sliding") all return, and searches
+    anywhere in the record so a leading record-index prefix ("Window 1: ...",
+    "Entrance 2: ...") is transparently skipped.
+    """
+    short = subfield.split(" ", 1)[-1]  # "Window Type" -> "Type"
+    values: List[str] = []
+    for key in {subfield, short}:
+        pattern = rf"(?<![A-Za-z]){re.escape(key)}:\s*(.*?)(?=;\s*[A-Z][A-Za-z/ ]+:|$)"
+        for match in re.finditer(pattern, record):
+            value = match.group(1).strip()
+            if value:
+                values.append(value)
+    return values
 
 
 def _match_schema_options(raw: str, options: List[str]) -> List[str]:
@@ -568,13 +583,30 @@ def _match_schema_options(raw: str, options: List[str]) -> List[str]:
 
 
 def _parse_phase3_multipart_labels(value: str, spec: Dict[str, Any]) -> List[str]:
+    """Parse a multipart multi-label cell into ``"Subfield: Option"`` labels.
+
+    Tolerates three source shapes without changing Format-B behaviour:
+      * Format-B: ``"Window 1: Window Type: Fixed; Window Features: Stone Sill"``
+        (schema-qualified keys, optional "Window N:" record-index prefix).
+      * Format-A: ``"Type: Fixed; Type: Sliding; Material: Vinyl"`` — bare
+        subfield aliases and *repeated* subfields.
+      * Bare values: ``"Stoop - Low"`` (no ``key:`` prefix at all) — matched
+        against every included subfield's option set.
+    Keyed segments whose subfield is not included (e.g. Material/Location for
+    ``window``) contribute nothing, so their values cannot leak into a head.
+    """
     labels: set[str] = set()
     option_map = _subfield_option_map(spec)
     for record in re.split(r"\s+\|\s+", value):
         for subfield, options in option_map.items():
-            raw = _extract_multipart_subfield(record, subfield)
-            for option in _match_schema_options(raw, options):
-                labels.add(f"{subfield}: {option}")
+            for raw_value in _extract_multipart_values(record, subfield):
+                for option in _match_schema_options(raw_value, options):
+                    labels.add(f"{subfield}: {option}")
+        if ":" not in record:
+            # Bare value(s) with no "key:" prefix (e.g. "Stoop - Low").
+            for subfield, options in option_map.items():
+                for option in _match_schema_options(record.strip(), options):
+                    labels.add(f"{subfield}: {option}")
     return sorted(labels)
 
 

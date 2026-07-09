@@ -129,6 +129,81 @@ and photo-matched — they can be integrated with a thin conversion step. The 4
 vocabulary-mapping step (or re-export in Final-All format) before their labels
 can be trusted. A concrete integration plan follows separately.
 
+## Phase 3 Label Audit — combined data (July 9, 2026)
+
+Run of `scripts/phase3_label_audit.py` against
+`outputs/combined/image_label_mapping_phase1.csv` (**17,269 buildings**, deduped
+by `building_id`), now that data + data2 + data3 are integrated. Full output:
+`outputs/phase3_label_audit_combined/`. This supersedes the 759-building data2
+audit that drove the original forward plan — the volume constraint is resolved.
+
+### Field ranking & frequencies
+
+Atomic bins = number of atomic labels with ≥300 / 100–299 / <30 positive
+buildings.
+
+| Rank | Field | Coverage | Buildings | Atomics | ≥300 | 100–299 | <30 | Recommendation |
+|---|---|---|---|---|---|---|---|---|
+| 1 | `wall_features` | 68.1% | 11,762 | 49 | 18 | 6 | 19 | **phase3_core** |
+| 2 | `landscape_features` | 98.1% | 16,941 | 60 | 20 | 5 | 34 | **phase3_core** |
+| 3 | `window` | 71.7% | 12,385 | 56 | 31 | 8 | 10 | **phase3_core** |
+| 4 | `roof_materials` | 95.5% | 16,488 | 14 | 3 | 2 | 6 | imbalance_expansion |
+| 5 | `entrance` | 74.4% | 12,852 | 142 | 20 | 8 | 101 | visual_expansion |
+| 6 | `building_category` | 72.5% | 12,514 | 4 | 2 | 0 | 1 | imbalance_expansion |
+| 7 | `current_use` | 100% | 17,269 | 42 | 3 | 5 | 32 | imbalance_expansion |
+| 8 | `associated_buildings` | 42.0% | 7,256 | 24 | 6 | 5 | 9 | visual_expansion |
+| 9 | `roof_features` | 13.1% | 2,254 | 71 | 1 | 12 | 39 | phase4_later |
+| 10 | `additional_cladding` | 17.8% | 3,075 | 59 | 5 | 4 | 38 | phase4_later |
+| 11 | `original_use` | 100% | 17,269 | 37 | 3 | 3 | 25 | imbalance_expansion |
+| 12 | `building_plan` | 4.3% | 750 | 8 | 1 | 1 | 5 | phase4_later |
+
+### Top atomics per training-scope field (positive buildings / % of 17,269)
+
+**`wall_features`** — Foundation-Concrete 4,007 (23.2%) · Foundation-Not Visible
+3,211 (18.6%) · Brick-Patterned 3,161 (18.3%) · Belt Course 3,066 (17.8%) ·
+Brick-Polychromatic 2,282 (13.2%) · Gable Vents 1,653 (9.6%).
+
+**`landscape_features`** — Walkway-Concrete 12,276 (71.1%) · Fence-Rear 10,430
+(60.4%) · Fence-Left 5,832 (33.8%) · Fence-Right 5,794 (33.5%) · Driveway-Solid
+5,503 (31.9%) · Fence-Front 3,807 (22.1%).
+
+**`window`** — Double/Single Hung 8,838 (51.2%) · Fixed 8,251 (47.8%) · Sliding
+6,858 (39.7%) · Features:None 6,535 (37.8%) · Rowlock Sill 4,680 (27.1%) · Paired
+4,150 (24.0%).
+
+**`entrance`** — Location:Front Facade 11,349 (65.7%) · Type:Porch 8,552 (49.5%)
+· Projecting 6,963 (40.3%) · Partial Width 5,456 (31.6%) · Stoop 3,389 (19.6%) ·
+Full Width 3,101 (18.0%). *(142 atomics, but 101 are <30 support — the
+`PHASE3_MIN_POSITIVE_COUNT=100` gate prunes these from the loss.)*
+
+**`roof_materials`** — Shingles-Asphalt 10,708 (62.0%) · Shingles 3,893 (22.5%) ·
+Unknown 1,692 (9.8%); everything else <300 (Metal 140, Terra Cotta 95, …) — a
+natural Asphalt / Shingles / Other coarsening.
+
+**`building_category`** — Residential 11,511 (66.7%) · Commercial 932 (5.4%) ·
+Other 70 · Agricultural 1. Majority-class dominated (kept as a cheap auxiliary).
+
+### Findings → training scope
+
+- **Volume constraint resolved:** every core field now has thousands of
+  labelled buildings (vs. 759 before). The old "data wall" no longer applies;
+  most fields have 18–31 atomics with ≥300 support.
+- **Precision, not recall, is still the lever** — hence the `pos_weight` clamp
+  drop 10 → 3.5 planned for the run.
+- **`PHASE3_MIN_POSITIVE_COUNT=100`** cleanly removes the long sparse tails
+  (`entrance` 101 sparse, `landscape_features` 34, `wall_features` 19) from the
+  loss without hand-maintained drop-lists.
+- **Correction to the earlier plan:** `roof_features` is only **13.1% coverage**
+  (2,254 buildings, 1 strong atomic) → `phase4_later`, **dropped** from the
+  train scope (my initial scope had wrongly kept it).
+- **Recommended Phase 3 train set (6 fields):** `wall_features`,
+  `landscape_features`, `window`, `entrance`, `roof_materials`,
+  `building_category`.
+- **Dropped:** `roof_features`, `associated_buildings` (42% cov, angle-dependent),
+  `current_use`, `original_use` (history/function, not appearance),
+  `additional_cladding`, `building_plan`, `chimney_*` (all low-coverage or
+  non-visual).
+
 ## Appendix A — Format A vs Format B in detail
 
 The two formats are two *views of the same survey database* at different stages

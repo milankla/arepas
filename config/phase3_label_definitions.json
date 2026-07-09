@@ -102,9 +102,9 @@
       "parser": "semicolon_multi",
       "survey_scope": "Basic + Full Survey",
       "loss": "BCEWithLogitsLoss with per-label pos_weight in Step 3",
-      "train_labels": ["Shingles - Asphalt", "Unknown Roof Material", "Terra Cotta Tile", "Metal", "Shingles - Concrete", "Rare Roof Material"],
-      "class_mapping": {"Shingles - Asphalt": "Shingles - Asphalt", "Unknown Roof Material": "Unknown Roof Material", "Terra Cotta Tile": "Terra Cotta Tile", "Metal": "Metal", "Shingles - Concrete": "Shingles - Concrete", "Membrane": "Rare Roof Material", "Other Roof Material": "Rare Roof Material", "Shingles - Wood": "Rare Roof Material", "Shingles - Slate": "Rare Roof Material", "Gravel": "Rare Roof Material"},
-      "grouping_rule": "Keep the dominant asphalt and unknown labels separate; group sub-30 materials into Rare Roof Material until data volume improves."
+      "train_labels": ["Shingles - Asphalt", "Unknown Roof Material", "Terra Cotta Tile", "Metal", "Rare Roof Material"],
+      "class_mapping": {"Shingles - Asphalt": "Shingles - Asphalt", "Shingles": "Shingles - Asphalt", "Asphalt Shingles": "Shingles - Asphalt", "Unknown Roof Material": "Unknown Roof Material", "Terra Cotta Tile": "Terra Cotta Tile", "Tile - Clay": "Terra Cotta Tile", "Metal": "Metal", "Metal Shingles": "Metal", "Shingles - Concrete": "Rare Roof Material", "Membrane": "Rare Roof Material", "Other Roof Material": "Rare Roof Material", "Shingles - Wood": "Rare Roof Material", "Shingles - Slate": "Rare Roof Material", "Gravel": "Rare Roof Material"},
+      "grouping_rule": "Map data3 Format-A raw tokens 'Shingles'/'Asphalt Shingles' -> 'Shingles - Asphalt' (else ~3,900 buildings drop). Keep dominant asphalt/unknown/terra-cotta/metal separate; group sub-50 materials (Shingles - Concrete 47, Membrane, Wood, Slate, Gravel, Other) into Rare Roof Material until data volume improves."
     },
     "original_use": {
       "target_type": "single_label",
