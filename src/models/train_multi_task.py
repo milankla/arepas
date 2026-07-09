@@ -98,6 +98,7 @@ class MultiTaskTrainer:
         resume_checkpoint_path: Optional[str] = None,
         scheduler: str = 'plateau',
         num_epochs: int = 30,
+        label_smoothing: float = 0.0,
     ):
         self.model = model.to(device)
         self.train_loader = train_loader
@@ -150,6 +151,7 @@ class MultiTaskTrainer:
         self.criterion = MultiTaskLoss(
             active_phase=model.active_phase,
             class_weights=class_weights,
+            label_smoothing=label_smoothing,
         ).to(device)
         
         # Learning rate scheduler
@@ -669,6 +671,7 @@ def progressive_training_pipeline(
     resume_from_epoch: int = 0,
     scheduler: str = 'plateau',
     phase3_labels: str = '',
+    label_smoothing: float = 0.0,
 ) -> None:
     """Dataset- and model-agnostic progressive training pipeline.
 
@@ -752,8 +755,10 @@ def progressive_training_pipeline(
         paired_gate_overrides=paired_gate_overrides,
         paired_residual_scales=paired_residual_scales,
         paired_crop_bypass_tasks=paired_crop_bypass_tasks,
+        label_smoothing=label_smoothing,
         run_name=run_name or "",
     )
+    # Derive output dir from the auto-slug if not explicitly provided.
     # Derive output dir from the auto-slug if not explicitly provided.
     if output_dir is None:
         output_dir = f"runs/{run_cfg.run_name}"
@@ -816,6 +821,7 @@ def progressive_training_pipeline(
             paired_gate_overrides=run_cfg.paired_gate_overrides,
             paired_residual_scales=run_cfg.paired_residual_scales,
             paired_crop_bypass_tasks=run_cfg.paired_crop_bypass_tasks,
+            label_smoothing=run_cfg.label_smoothing,
             run_name=_phase_run_name,
             output_dir=str(phase_out),
         )
@@ -891,6 +897,7 @@ def progressive_training_pipeline(
                 resume_checkpoint_path=str(prev_checkpoint) if resuming else None,
                 scheduler=scheduler,
                 num_epochs=epochs_per_phase,
+                label_smoothing=label_smoothing,
             )
             trainer.train(num_epochs=epochs_per_phase)
 
@@ -1055,6 +1062,15 @@ if __name__ == "__main__":
         ),
     )
     parser.add_argument(
+        "--label-smoothing", type=float, default=0.0,
+        help=(
+            "CrossEntropy label smoothing for single-label tasks (both focal and "
+            "plain-CE paths). 0.0 (default) = off, preserving historical behavior. "
+            "Try 0.1 to regularize overconfident heads, but run it as a separate "
+            "single-variable ablation \u2014 do not stack it with other changes."
+        ),
+    )
+    parser.add_argument(
         "--cropped-root", default=None,
         help=(
             "Root directory of pre-cropped images produced by scripts/crop_dataset.py. "
@@ -1194,4 +1210,5 @@ if __name__ == "__main__":
         resume_from_epoch=args.resume_from,
         scheduler=args.scheduler,
         phase3_labels=args.phase3_labels,
+        label_smoothing=args.label_smoothing,
     )

@@ -73,6 +73,7 @@ class RunConfig:
     lr: float = 1e-4
     weight_decay: float = 0.01
     grad_accum_steps: int = 1
+    label_smoothing: float = 0.0             # CE label smoothing for single-label heads; 0.0 = off
     num_workers: int = 2
     prefetch_factor: int = 4
     early_stopping_patience: Optional[int] = None

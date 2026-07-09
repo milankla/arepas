@@ -37,6 +37,16 @@ STYLE_GROUP_DIM = 512
 # to learn minority cladding classes (Stucco, Asbestos, Aluminum) rather than
 # collapsing to the majority. gamma=2.0 is the standard Lin et al. (2017) value.
 # Source: docs/ATTRIBUTE_DEPENDENCY_ANALYSIS.md § Key Finding 5
+# Single-label task routed through class-weighted FocalLoss (see per-task
+# 'focal_loss' config keys, which are the actual dispatch mechanism). This
+# frozenset is informational/documentation only.
+#
+# NOTE (2026-07-09): focal loss + inverse-frequency class weights were trialled
+# on architectural_style and building_form (b5_pair_v2_phase2b) and REVERTED.
+# architectural_style's dominant "No Clear Style" class (51.5%) is a legitimate
+# majority, so reweighting collapsed accuracy below the majority baseline
+# (77% -> 38%) and hurt macro-F1 too. Do not re-enable without a different
+# strategy (e.g. more/better data), not loss reweighting.
 FOCAL_LOSS_TASKS = frozenset({'primary_cladding'})
 FOCAL_GAMMA_DEFAULT = 2.0
 
@@ -213,11 +223,13 @@ class FocalLoss(nn.Module):
         reduction: str = 'mean',
         weight: Optional[torch.Tensor] = None,
         ignore_index: int = -100,
+        label_smoothing: float = 0.0,
     ):
         super().__init__()
         self.gamma = gamma
         self.reduction = reduction
         self.ignore_index = ignore_index
+        self.label_smoothing = label_smoothing
         # register_buffer: tensor moves to device with .to() / .cuda(),
         # saved/loaded with state_dict, but NOT treated as a learnable param.
         # Passing None is valid — sets self.weight = None.
@@ -239,6 +251,7 @@ class FocalLoss(nn.Module):
         ce = F.cross_entropy(
             logits, targets, weight=self.weight,
             reduction='none', ignore_index=self.ignore_index,
+            label_smoothing=self.label_smoothing,
         )  # [B]
         pt = torch.exp(-ce)                                       # probability of correct class
         focal = (1.0 - pt) ** self.gamma * ce                    # ignored entries → 0
@@ -743,6 +756,7 @@ class MultiTaskLoss(nn.Module):
         active_phase: int = 1,
         focal_gamma: float = FOCAL_GAMMA_DEFAULT,
         class_weights: Optional[Dict[str, torch.Tensor]] = None,
+        label_smoothing: float = 0.0,
     ):
         """
         Args:
@@ -754,9 +768,14 @@ class MultiTaskLoss(nn.Module):
                             focal-loss task gets its own FocalLoss instance with
                             the corresponding weight tensor baked in.  Tasks not
                             present in the dict (or None dict) use unweighted FL.
+            label_smoothing: CrossEntropy label smoothing (0.0 = off) applied to
+                            single-label tasks (both focal and plain-CE paths).
+                            Regularizes overconfident heads; leave 0.0 to keep
+                            the historical default behavior.
         """
         super().__init__()
         self.active_phase = active_phase
+        self.label_smoothing = label_smoothing
         self.ce_loss = nn.CrossEntropyLoss()
         self.bce_loss = nn.BCEWithLogitsLoss()          # multi-label tasks
 
@@ -774,7 +793,9 @@ class MultiTaskLoss(nn.Module):
         for task_name, task_cfg in all_task_configs.items():
             if task_cfg.get('focal_loss', False):
                 w = (class_weights or {}).get(task_name)   # None if not provided
-                focal_modules[task_name] = FocalLoss(gamma=focal_gamma, weight=w)
+                focal_modules[task_name] = FocalLoss(
+                    gamma=focal_gamma, weight=w, label_smoothing=label_smoothing,
+                )
             if task_cfg.get('multi_label', False):
                 pos_weight = (class_weights or {}).get(task_name)
                 bce_modules[task_name] = nn.BCEWithLogitsLoss(pos_weight=pos_weight)
@@ -782,7 +803,7 @@ class MultiTaskLoss(nn.Module):
         self._bce_losses = nn.ModuleDict(bce_modules)
 
         # Fallback for any focal-loss task not pre-registered above.
-        self._default_focal = FocalLoss(gamma=focal_gamma)
+        self._default_focal = FocalLoss(gamma=focal_gamma, label_smoothing=label_smoothing)
         
     def forward(
         self,
@@ -840,7 +861,10 @@ class MultiTaskLoss(nn.Module):
                 # happens for masked single-label tasks like architectural_style
                 # (compound styles). clamp(min=1) yields a graph-connected 0 for
                 # an all-masked batch instead, mirroring FocalLoss above.
-                ce = F.cross_entropy(pred, target, reduction='none', ignore_index=-100)
+                ce = F.cross_entropy(
+                    pred, target, reduction='none', ignore_index=-100,
+                    label_smoothing=self.label_smoothing,
+                )
                 n_valid = (target != -100).sum()
                 task_loss = ce.sum() / n_valid.clamp(min=1)
             
