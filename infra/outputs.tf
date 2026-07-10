@@ -26,6 +26,16 @@ output "sagemaker_training_policy_arn" {
   value       = aws_iam_policy.sagemaker_training.arn
 }
 
+output "ecr_repository_url" {
+  description = "ECR image URL for docker push and App Runner."
+  value       = aws_ecr_repository.api.repository_url
+}
+
+output "apprunner_service_url" {
+  description = "App Runner HTTPS endpoint (no API Gateway needed)."
+  value       = "https://${aws_apprunner_service.api.service_url}"
+}
+
 output "cognito_user_pool_id" {
   description = "Set as AREPAS_COGNITO_USER_POOL_ID in the Lambda environment."
   value       = aws_cognito_user_pool.main.id

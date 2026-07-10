@@ -1,0 +1,27 @@
+# ── Data pipeline ─────────────────────────────────────────────────────────────
+pandas
+numpy<2
+Pillow
+loguru
+
+# ── ML inference stack ────────────────────────────────────────────────────────
+# CPU-only wheels for linux/amd64 (App Runner). Index URL is set in Dockerfile.
+torch==2.4.1
+torchvision==0.19.1
+timm
+scikit-learn          # imported at module level by architectural_dataset.py
+
+# ── Building detection (GroundingDINO) ────────────────────────────────────────
+transformers
+accelerate
+
+# ── API server ────────────────────────────────────────────────────────────────
+fastapi
+uvicorn[standard]
+python-multipart      # required by FastAPI Form() used in POST /inference
+
+# ── Cloud storage ─────────────────────────────────────────────────────────────
+boto3
+
+# ── Auth ──────────────────────────────────────────────────────────────────────
+pyjwt[crypto]

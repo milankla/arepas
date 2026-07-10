@@ -1,0 +1,43 @@
+# Development environment
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+
+# Data — never in the container (reads from S3 at runtime)
+data/
+data2/
+data3/
+crops/
+
+# Training outputs — reads from S3 at runtime
+outputs/
+outputs_archived/
+mlruns/
+mlruns_archived/
+
+# Sessions / docs / scripts not needed at runtime
+sessions/
+docs/
+scripts/
+charts/
+test_images/
+
+# Infra and config not needed at runtime
+infra/
+.github/
+.vscode/
+.git/
+
+# Misc
+*.log
+.DS_Store
+Berkeley_SURVEYPOINT/
+generate_before_after.py
+field_coverage_report.txt
+grid_master.log
+mlflow.db
+*.xlsx
+*.xls
+*.csv
