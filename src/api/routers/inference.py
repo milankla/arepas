@@ -247,20 +247,32 @@ def _load_model(checkpoint_path: str) -> tuple[MultiTaskArchitecturalClassifier,
         phase3_labels = []
     include_phase3_labels = bool(run_cfg.get("end_phase", 1) >= 3 or phase3_labels)
 
-    if csv_path and Path(csv_path).exists():
-        try:
-            train_ds, _, _ = make_splits(
-                csv_path=csv_path,
-                model_config=model_config,
-                include_phase3_labels=include_phase3_labels,
-                phase3_labels=phase3_labels or None,
-            )
-            label_classes = {
-                task: list(enc.classes_)
-                for task, enc in train_ds.label_encoders.items()
-            }
-        except Exception:
-            pass  # fall back to index-based labels
+    if csv_path:
+        # Resolve via storage abstraction: local if it exists on disk, otherwise
+        # download from S3 to the storage cache (covers the container case).
+        csv_resolved: str | None = None
+        if Path(csv_path).exists():
+            csv_resolved = csv_path
+        elif _storage.exists(csv_path):
+            try:
+                csv_resolved = str(_storage.local_path(csv_path))
+            except Exception:
+                csv_resolved = None
+
+        if csv_resolved:
+            try:
+                train_ds, _, _ = make_splits(
+                    csv_path=csv_resolved,
+                    model_config=model_config,
+                    include_phase3_labels=include_phase3_labels,
+                    phase3_labels=phase3_labels or None,
+                )
+                label_classes = {
+                    task: list(enc.classes_)
+                    for task, enc in train_ds.label_encoders.items()
+                }
+            except Exception:
+                pass  # fall back to index-based labels
 
     # Use num_classes stored directly in the checkpoint (data-driven, set at training time)
     num_classes: dict[str, int] = ckpt.get("num_classes", {})
