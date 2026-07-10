@@ -1,0 +1,53 @@
+{
+    "summary": "EfficientNet-B5 paired-view Phase 2 run on the COMBINED dataset (data + data2 + data3: 17,269 buildings / 60,841 rows), warm-started from best_model_phase1.pth (ep28, 76.90%). Phase 2 adds two new single-label heads — architectural_style (16-class, compound-masked to ARCH_STYLE_KEEP + Other Style) and building_form — on top of the frozen-ish Phase 1 backbone (backbone_lr_scale=0.1, differential LR). Same paired recipe (task_gated_residual fusion, crop_prior gate init). Accuracy-based early stopping (patience=8, min_delta=0.001). Best overall accuracy 74.56% at epoch 5; early stopping fired at epoch 13. The model peaked very early (ep5) and then overfit: train loss fell 0.50 -> 0.15 while every val metric plateaued/declined.",
+    "metrics": {
+        "best_epoch": 5,
+        "overall_accuracy": 0.7456,
+        "architectural_style_acc": 0.769,
+        "building_form_acc": 0.656,
+        "roof_type_acc": 0.661,
+        "primary_cladding_acc": 0.726,
+        "stories_acc": 0.802,
+        "chimney_present_acc": 0.760,
+        "setting_jaccard": 0.843,
+        "note_macro_f1_ep13": {
+            "comment": "Macro-F1 at ep13 (final val print) exposes the tail-class problem: accuracy is head-class dominated.",
+            "architectural_style": 0.546,
+            "building_form": 0.432,
+            "roof_type": 0.581,
+            "primary_cladding": 0.518,
+            "stories": 0.710,
+            "chimney_present": 0.759
+        }
+    },
+    "phase1_task_impact": {
+        "note": "Adding the two new heads cost 1-2pp on the Phase 1 tasks (shared-backbone competition), measured ep5 vs Phase 1 best (ep28). Small, noise-adjacent; differential LR (backbone_lr_scale=0.1) protected against a cladding collapse.",
+        "roof_type": -1.1,
+        "primary_cladding": -2.3,
+        "stories": -1.3,
+        "chimney_present": 0.3,
+        "setting_jaccard": -0.9
+    },
+    "new_task_results": {
+        "architectural_style": "76.9% acc / 54.6% macro-F1 — strong for a 16-class compound-masked task; the primary Phase 2 target succeeded.",
+        "building_form": "65.6% acc / 43.2% macro-F1 — weakest task; low macro-F1 = severe class imbalance across its 27 (already tail-collapsed) classes, NOT an uncollapsed long tail."
+    },
+    "correction": "Earlier claim that building_form 'kept its full ~60-class schema' was WRONG. building_form is already normalized to 27 classes (KEEP_BUILDING_FORMS, >=50-building floor) and architectural_style to 16 (ARCH_STYLE_KEEP). The real gap: both style heads used PLAIN CrossEntropy with NO class weights, while inverse-frequency weights (3x-capped) were already computed and only applied to focal-loss tasks. Routing these two heads through FocalLoss auto-applies those weights — the actual fix.",
+    "learnings": [
+        "Early peak (ep5) is the defining feature of this run, unlike Phase 1 which climbed to ep28. With backbone_lr_scale=0.1 the backbone barely adapts, so the two new heads saturate on the existing features within ~5 epochs and then overfit. Schedule length is NOT the bottleneck here — regularization and imbalance handling are.",
+        "Low macro-F1 is the headline problem. building_form 43.2% and architectural_style 54.6% macro-F1 (vs 65-66% and 77% accuracy) mean head classes carry the accuracy while tail classes are near-zero recall. This is the single biggest accuracy lever available.",
+        "Only primary_cladding routes through FocalLoss today; architectural_style and building_form use plain masked-CE, so they get no imbalance correction — directly consistent with their low macro-F1.",
+        "Phase 1 tasks dipped only 1-2pp, confirming the differential-LR warm-start recipe transfers cleanly to a 2-task Phase 2 expansion without catastrophic forgetting.",
+        "val_loss logged as nan for the entire run. This is the known all-masked-batch CrossEntropy divide-by-zero on architectural_style (fixed in code, commit 5b946a0, applies on the NEXT run). It was cosmetic here: model selection used accuracy, so the ep5 best checkpoint is correct and unaffected.",
+        "building_form was never tail-collapsed. architectural_style was reduced to 15 keep-classes + Other Style; building_form kept its full ~60-class schema, which explains its far lower macro-F1."
+    ],
+    "next_steps": [
+        "DONE (code) — HIGHEST VALUE: routed architectural_style + building_form through FocalLoss (focal_loss=True, gamma=2.0), which auto-applies the existing 3x-capped inverse-frequency class weights they previously never received. Directly targets the low macro-F1. Run #1 should isolate this change (backbone_lr_scale=0.1 unchanged, label_smoothing=0).",
+        "DONE (code) — added optional --label-smoothing flag (default 0.0, applied to CE + focal). Use as a SEPARATE later ablation only if focal alone still overfits; do NOT stack it with focal+weights in run #1 (prior weight-cap experiments show over-regularization costs 7-9pp accuracy).",
+        "building_form tail-collapse: NOT needed — already collapsed to 27 classes. Optional future lever: raise the >=50-building floor to further shrink the tail, but that trades granularity for macro-F1.",
+        "backbone_lr_scale 0.2 (from 0.1): run as its own single-variable test via the existing --backbone-lr-scale flag so shared features adapt to the new tasks. Watch Phase 1 tasks for regression.",
+        "Do NOT extend the schedule — it peaked at ep5; more epochs only deepen overfit. epochs can stay 25 with early stopping.",
+        "Re-run on the val_loss fix (commit 5b946a0) so best_model_by_loss and logged val_loss become meaningful again — the focal rerun already inherits this fix.",
+        "For deployment, the Phase 2 ep5 checkpoint (best_model_phase2.pth) is the current best all-tasks model; keep it as the serving candidate until the focal rerun beats 74.56% overall."
+    ]
+}

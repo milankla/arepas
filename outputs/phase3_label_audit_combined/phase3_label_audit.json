@@ -1,0 +1,1182 @@
+{
+  "csv_path": "outputs/combined/image_label_mapping_phase1.csv",
+  "fields": [
+    {
+      "field": "wall_features",
+      "label": "Wall Features",
+      "parser": "multi",
+      "phase3_score": 96.46,
+      "coverage_score": 19.46,
+      "atomic_score": 25.0,
+      "visibility_score": 18.0,
+      "density_score": 10.0,
+      "complement_score": 15.0,
+      "readiness_score": 9.0,
+      "n_buildings_total": 17269,
+      "n_buildings_with_label": 11762,
+      "coverage_pct": 68.11,
+      "n_atomic_labels": 49,
+      "n_strong_labels_300_plus": 18,
+      "n_usable_labels_100_299": 6,
+      "n_grouping_labels_30_99": 6,
+      "n_sparse_labels_under_30": 19,
+      "avg_labels_per_labeled_building": 2.43,
+      "max_labels_per_building": 10,
+      "top_label_share_pct": 34.07,
+      "max_association_field": "architectural_style",
+      "max_association_label": "Shingles in Gable - Decorative",
+      "max_association_cramers_v": 0.719,
+      "top_labels": [
+        {
+          "label": "Foundation - Concrete",
+          "positive_buildings": 4007,
+          "coverage_pct": 23.2
+        },
+        {
+          "label": "Foundation - Not Visible",
+          "positive_buildings": 3211,
+          "coverage_pct": 18.59
+        },
+        {
+          "label": "Brick - Patterned",
+          "positive_buildings": 3161,
+          "coverage_pct": 18.3
+        },
+        {
+          "label": "Belt Course",
+          "positive_buildings": 3066,
+          "coverage_pct": 17.75
+        },
+        {
+          "label": "Brick - Polychromatic",
+          "positive_buildings": 2282,
+          "coverage_pct": 13.21
+        },
+        {
+          "label": "Gable Vents",
+          "positive_buildings": 1653,
+          "coverage_pct": 9.57
+        },
+        {
+          "label": "Brick - Corbeled",
+          "positive_buildings": 1536,
+          "coverage_pct": 8.89
+        },
+        {
+          "label": "Shingles in Gable - Decorative",
+          "positive_buildings": 1258,
+          "coverage_pct": 7.28
+        },
+        {
+          "label": "Shutters",
+          "positive_buildings": 998,
+          "coverage_pct": 5.78
+        },
+        {
+          "label": "Masonry Bay",
+          "positive_buildings": 977,
+          "coverage_pct": 5.66
+        },
+        {
+          "label": "Half-Timbering",
+          "positive_buildings": 828,
+          "coverage_pct": 4.79
+        },
+        {
+          "label": "Awnings",
+          "positive_buildings": 825,
+          "coverage_pct": 4.78
+        },
+        {
+          "label": "Engaged Columns",
+          "positive_buildings": 667,
+          "coverage_pct": 3.86
+        },
+        {
+          "label": "Foundation - Stone",
+          "positive_buildings": 589,
+          "coverage_pct": 3.41
+        },
+        {
+          "label": "Foundation - Brick",
+          "positive_buildings": 580,
+          "coverage_pct": 3.36
+        }
+      ],
+      "notes": "Strong facade-detail candidate; likely complementary to cladding, style, and form.",
+      "rank": 1,
+      "recommendation": "phase3_core"
+    },
+    {
+      "field": "landscape_features",
+      "label": "Landscape Features",
+      "parser": "multi",
+      "phase3_score": 84.75,
+      "coverage_score": 20.0,
+      "atomic_score": 18.75,
+      "visibility_score": 14.0,
+      "density_score": 10.0,
+      "complement_score": 13.0,
+      "readiness_score": 9.0,
+      "n_buildings_total": 17269,
+      "n_buildings_with_label": 16941,
+      "coverage_pct": 98.1,
+      "n_atomic_labels": 60,
+      "n_strong_labels_300_plus": 20,
+      "n_usable_labels_100_299": 5,
+      "n_grouping_labels_30_99": 1,
+      "n_sparse_labels_under_30": 34,
+      "avg_labels_per_labeled_building": 3.56,
+      "max_labels_per_building": 10,
+      "top_label_share_pct": 72.46,
+      "max_association_field": "building_form",
+      "max_association_label": "Driveway - Solid",
+      "max_association_cramers_v": 0.539,
+      "top_labels": [
+        {
+          "label": "Walkway - Concrete",
+          "positive_buildings": 12276,
+          "coverage_pct": 71.09
+        },
+        {
+          "label": "Fence - Rear",
+          "positive_buildings": 10430,
+          "coverage_pct": 60.4
+        },
+        {
+          "label": "Fence - Left Side",
+          "positive_buildings": 5832,
+          "coverage_pct": 33.77
+        },
+        {
+          "label": "Fence - Right Side",
+          "positive_buildings": 5794,
+          "coverage_pct": 33.55
+        },
+        {
+          "label": "Driveway - Solid",
+          "positive_buildings": 5503,
+          "coverage_pct": 31.87
+        },
+        {
+          "label": "Fence - Front",
+          "positive_buildings": 3807,
+          "coverage_pct": 22.05
+        },
+        {
+          "label": "Wall - Retaining",
+          "positive_buildings": 3040,
+          "coverage_pct": 17.6
+        },
+        {
+          "label": "Denver Roll",
+          "positive_buildings": 2226,
+          "coverage_pct": 12.89
+        },
+        {
+          "label": "Walkway - Stone",
+          "positive_buildings": 1405,
+          "coverage_pct": 8.14
+        },
+        {
+          "label": "Stone Public Sidewalk",
+          "positive_buildings": 1333,
+          "coverage_pct": 7.72
+        },
+        {
+          "label": "Built-In Planters",
+          "positive_buildings": 1177,
+          "coverage_pct": 6.82
+        },
+        {
+          "label": "Parking Lot",
+          "positive_buildings": 1118,
+          "coverage_pct": 6.47
+        },
+        {
+          "label": "Fence - Rear Yard",
+          "positive_buildings": 981,
+          "coverage_pct": 5.68
+        },
+        {
+          "label": "Fence - Front Yard",
+          "positive_buildings": 870,
+          "coverage_pct": 5.04
+        },
+        {
+          "label": "Fence - Side Yard",
+          "positive_buildings": 760,
+          "coverage_pct": 4.4
+        }
+      ],
+      "notes": "Context task; useful for setting, category, and broader site interpretation.",
+      "rank": 2,
+      "recommendation": "phase3_core"
+    },
+    {
+      "field": "window",
+      "label": "Window",
+      "parser": "multipart",
+      "phase3_score": 74.75,
+      "coverage_score": 20.0,
+      "atomic_score": 18.75,
+      "visibility_score": 14.0,
+      "density_score": 7.0,
+      "complement_score": 10.0,
+      "readiness_score": 5.0,
+      "n_buildings_total": 17269,
+      "n_buildings_with_label": 12385,
+      "coverage_pct": 71.72,
+      "n_atomic_labels": 56,
+      "n_strong_labels_300_plus": 31,
+      "n_usable_labels_100_299": 8,
+      "n_grouping_labels_30_99": 7,
+      "n_sparse_labels_under_30": 10,
+      "avg_labels_per_labeled_building": 6.37,
+      "max_labels_per_building": 30,
+      "top_label_share_pct": 71.36,
+      "max_association_field": "building_form",
+      "max_association_label": "Window Features: Stone Sill",
+      "max_association_cramers_v": 0.627,
+      "top_labels": [
+        {
+          "label": "Window Type: Double/Single Hung",
+          "positive_buildings": 8838,
+          "coverage_pct": 51.18
+        },
+        {
+          "label": "Window Type: Fixed",
+          "positive_buildings": 8251,
+          "coverage_pct": 47.78
+        },
+        {
+          "label": "Window Type: Sliding",
+          "positive_buildings": 6858,
+          "coverage_pct": 39.71
+        },
+        {
+          "label": "Window Features: None",
+          "positive_buildings": 6535,
+          "coverage_pct": 37.84
+        },
+        {
+          "label": "Window Features: Rowlock Sill",
+          "positive_buildings": 4680,
+          "coverage_pct": 27.1
+        },
+        {
+          "label": "Window Features: Paired Windows",
+          "positive_buildings": 4150,
+          "coverage_pct": 24.03
+        },
+        {
+          "label": "Window Features: Stone Sill",
+          "positive_buildings": 3819,
+          "coverage_pct": 22.11
+        },
+        {
+          "label": "Window Features: Tripartite Window",
+          "positive_buildings": 3246,
+          "coverage_pct": 18.8
+        },
+        {
+          "label": "Window Features: Divided Lights",
+          "positive_buildings": 3084,
+          "coverage_pct": 17.86
+        },
+        {
+          "label": "Window Features: Arch",
+          "positive_buildings": 2989,
+          "coverage_pct": 17.31
+        },
+        {
+          "label": "Window Features: Segmented",
+          "positive_buildings": 2749,
+          "coverage_pct": 15.92
+        },
+        {
+          "label": "Window Features: All",
+          "positive_buildings": 2473,
+          "coverage_pct": 14.32
+        },
+        {
+          "label": "Window Features: Dormer Window",
+          "positive_buildings": 2355,
+          "coverage_pct": 13.64
+        },
+        {
+          "label": "Window Features: Decorative Surround",
+          "positive_buildings": 2014,
+          "coverage_pct": 11.66
+        },
+        {
+          "label": "Window Features: Grouped Windows",
+          "positive_buildings": 1926,
+          "coverage_pct": 11.15
+        }
+      ],
+      "notes": "Promising but visually smaller/noisier than entrance; needs grouping.",
+      "rank": 3,
+      "recommendation": "phase3_core"
+    },
+    {
+      "field": "roof_materials",
+      "label": "Roof Materials",
+      "parser": "multi",
+      "phase3_score": 74.75,
+      "coverage_score": 20.0,
+      "atomic_score": 24.75,
+      "visibility_score": 7.0,
+      "density_score": 10.0,
+      "complement_score": 5.0,
+      "readiness_score": 8.0,
+      "n_buildings_total": 17269,
+      "n_buildings_with_label": 16488,
+      "coverage_pct": 95.48,
+      "n_atomic_labels": 14,
+      "n_strong_labels_300_plus": 3,
+      "n_usable_labels_100_299": 2,
+      "n_grouping_labels_30_99": 3,
+      "n_sparse_labels_under_30": 6,
+      "avg_labels_per_labeled_building": 1.03,
+      "max_labels_per_building": 3,
+      "top_label_share_pct": 64.94,
+      "max_association_field": "roof_type",
+      "max_association_label": "Unknown Roof Material",
+      "max_association_cramers_v": 0.838,
+      "top_labels": [
+        {
+          "label": "Shingles - Asphalt",
+          "positive_buildings": 10708,
+          "coverage_pct": 62.01
+        },
+        {
+          "label": "Shingles",
+          "positive_buildings": 3893,
+          "coverage_pct": 22.54
+        },
+        {
+          "label": "Unknown Roof Material",
+          "positive_buildings": 1692,
+          "coverage_pct": 9.8
+        },
+        {
+          "label": "Asphalt Shingles",
+          "positive_buildings": 273,
+          "coverage_pct": 1.58
+        },
+        {
+          "label": "Metal",
+          "positive_buildings": 140,
+          "coverage_pct": 0.81
+        },
+        {
+          "label": "Terra Cotta Tile",
+          "positive_buildings": 95,
+          "coverage_pct": 0.55
+        },
+        {
+          "label": "Membrane",
+          "positive_buildings": 75,
+          "coverage_pct": 0.43
+        },
+        {
+          "label": "Shingles - Concrete",
+          "positive_buildings": 47,
+          "coverage_pct": 0.27
+        },
+        {
+          "label": "Gravel",
+          "positive_buildings": 14,
+          "coverage_pct": 0.08
+        },
+        {
+          "label": "Other Roof Material",
+          "positive_buildings": 12,
+          "coverage_pct": 0.07
+        },
+        {
+          "label": "Shingles - Wood",
+          "positive_buildings": 9,
+          "coverage_pct": 0.05
+        },
+        {
+          "label": "Shingles - Slate",
+          "positive_buildings": 6,
+          "coverage_pct": 0.03
+        },
+        {
+          "label": "Metal Shingles",
+          "positive_buildings": 1,
+          "coverage_pct": 0.01
+        },
+        {
+          "label": "Tile - Clay",
+          "positive_buildings": 1,
+          "coverage_pct": 0.01
+        }
+      ],
+      "notes": "Often dominated by asphalt/unknown and hard to verify from street-level photos.",
+      "rank": 4,
+      "recommendation": "phase3_imbalance_expansion"
+    },
+    {
+      "field": "entrance",
+      "label": "Entrance",
+      "parser": "multipart",
+      "phase3_score": 73.75,
+      "coverage_score": 20.0,
+      "atomic_score": 13.75,
+      "visibility_score": 16.0,
+      "density_score": 7.0,
+      "complement_score": 11.0,
+      "readiness_score": 6.0,
+      "n_buildings_total": 17269,
+      "n_buildings_with_label": 12852,
+      "coverage_pct": 74.42,
+      "n_atomic_labels": 142,
+      "n_strong_labels_300_plus": 20,
+      "n_usable_labels_100_299": 8,
+      "n_grouping_labels_30_99": 13,
+      "n_sparse_labels_under_30": 101,
+      "avg_labels_per_labeled_building": 4.59,
+      "max_labels_per_building": 20,
+      "top_label_share_pct": 88.31,
+      "max_association_field": "primary_cladding",
+      "max_association_label": "Entrance Location: Front Facade",
+      "max_association_cramers_v": 0.551,
+      "top_labels": [
+        {
+          "label": "Entrance Location: Front Facade",
+          "positive_buildings": 11349,
+          "coverage_pct": 65.72
+        },
+        {
+          "label": "Entrance Type: Porch",
+          "positive_buildings": 8552,
+          "coverage_pct": 49.52
+        },
+        {
+          "label": "Entrance Type: Projecting",
+          "positive_buildings": 6963,
+          "coverage_pct": 40.32
+        },
+        {
+          "label": "Entrance Type: Partial Width",
+          "positive_buildings": 5456,
+          "coverage_pct": 31.59
+        },
+        {
+          "label": "Entrance Type: Stoop",
+          "positive_buildings": 3389,
+          "coverage_pct": 19.62
+        },
+        {
+          "label": "Entrance Type: Full Width",
+          "positive_buildings": 3101,
+          "coverage_pct": 17.96
+        },
+        {
+          "label": "Entrance Type: No Porch or Stoop",
+          "positive_buildings": 2426,
+          "coverage_pct": 14.05
+        },
+        {
+          "label": "Entrance Type: Flush Door",
+          "positive_buildings": 2426,
+          "coverage_pct": 14.05
+        },
+        {
+          "label": "Entrance Type: Low",
+          "positive_buildings": 2134,
+          "coverage_pct": 12.36
+        },
+        {
+          "label": "Entrance Location: Right Side",
+          "positive_buildings": 1989,
+          "coverage_pct": 11.52
+        },
+        {
+          "label": "Entrance Location: Left Side",
+          "positive_buildings": 1835,
+          "coverage_pct": 10.63
+        },
+        {
+          "label": "Entrance Type: Recessed",
+          "positive_buildings": 1677,
+          "coverage_pct": 9.71
+        },
+        {
+          "label": "Entrance Type: High",
+          "positive_buildings": 1377,
+          "coverage_pct": 7.97
+        },
+        {
+          "label": "Entrance Location: Rear",
+          "positive_buildings": 974,
+          "coverage_pct": 5.64
+        },
+        {
+          "label": "Door Type: Single",
+          "positive_buildings": 741,
+          "coverage_pct": 4.29
+        }
+      ],
+      "notes": "Promising if grouped around broad entrance type and location.",
+      "rank": 5,
+      "recommendation": "phase3_visual_expansion"
+    },
+    {
+      "field": "building_category",
+      "label": "Building Category",
+      "parser": "single",
+      "phase3_score": 71.94,
+      "coverage_score": 20.0,
+      "atomic_score": 3.94,
+      "visibility_score": 16.0,
+      "density_score": 8.0,
+      "complement_score": 14.0,
+      "readiness_score": 10.0,
+      "n_buildings_total": 17269,
+      "n_buildings_with_label": 12514,
+      "coverage_pct": 72.47,
+      "n_atomic_labels": 4,
+      "n_strong_labels_300_plus": 2,
+      "n_usable_labels_100_299": 0,
+      "n_grouping_labels_30_99": 1,
+      "n_sparse_labels_under_30": 1,
+      "avg_labels_per_labeled_building": 1.0,
+      "max_labels_per_building": 1,
+      "top_label_share_pct": 91.98,
+      "max_association_field": "building_form",
+      "max_association_label": "Commercial",
+      "max_association_cramers_v": 0.854,
+      "top_labels": [
+        {
+          "label": "Residential",
+          "positive_buildings": 11511,
+          "coverage_pct": 66.66
+        },
+        {
+          "label": "Commercial",
+          "positive_buildings": 932,
+          "coverage_pct": 5.4
+        },
+        {
+          "label": "Other",
+          "positive_buildings": 70,
+          "coverage_pct": 0.41
+        },
+        {
+          "label": "Agricultural",
+          "positive_buildings": 1,
+          "coverage_pct": 0.01
+        }
+      ],
+      "notes": "Broad auxiliary classifier; useful if enough non-residential examples exist.",
+      "rank": 6,
+      "recommendation": "phase3_imbalance_expansion"
+    },
+    {
+      "field": "current_use",
+      "label": "Current Use",
+      "parser": "single",
+      "phase3_score": 67.75,
+      "coverage_score": 20.0,
+      "atomic_score": 13.75,
+      "visibility_score": 10.0,
+      "density_score": 8.0,
+      "complement_score": 8.0,
+      "readiness_score": 8.0,
+      "n_buildings_total": 17269,
+      "n_buildings_with_label": 17269,
+      "coverage_pct": 100.0,
+      "n_atomic_labels": 42,
+      "n_strong_labels_300_plus": 3,
+      "n_usable_labels_100_299": 5,
+      "n_grouping_labels_30_99": 2,
+      "n_sparse_labels_under_30": 32,
+      "avg_labels_per_labeled_building": 1.0,
+      "max_labels_per_building": 1,
+      "top_label_share_pct": 80.08,
+      "max_association_field": "building_form",
+      "max_association_label": "Domestic \u2013 Single Dwelling",
+      "max_association_cramers_v": 0.838,
+      "top_labels": [
+        {
+          "label": "Domestic \u2013 Single Dwelling",
+          "positive_buildings": 13829,
+          "coverage_pct": 80.08
+        },
+        {
+          "label": "Domestic \u2013 Multiple Dwelling",
+          "positive_buildings": 1888,
+          "coverage_pct": 10.93
+        },
+        {
+          "label": "Commercial - Business/Professional",
+          "positive_buildings": 301,
+          "coverage_pct": 1.74
+        },
+        {
+          "label": "Commercial - Warehouse",
+          "positive_buildings": 276,
+          "coverage_pct": 1.6
+        },
+        {
+          "label": "Commercial - Retail Store",
+          "positive_buildings": 197,
+          "coverage_pct": 1.14
+        },
+        {
+          "label": "Commercial - Restaurant",
+          "positive_buildings": 144,
+          "coverage_pct": 0.83
+        },
+        {
+          "label": "Vacant Building",
+          "positive_buildings": 131,
+          "coverage_pct": 0.76
+        },
+        {
+          "label": "Commercial - Other",
+          "positive_buildings": 128,
+          "coverage_pct": 0.74
+        },
+        {
+          "label": "Religious Facility",
+          "positive_buildings": 63,
+          "coverage_pct": 0.36
+        },
+        {
+          "label": "Mixed Use",
+          "positive_buildings": 62,
+          "coverage_pct": 0.36
+        },
+        {
+          "label": "Education - Education-Related",
+          "positive_buildings": 25,
+          "coverage_pct": 0.14
+        },
+        {
+          "label": "Industry/Processing",
+          "positive_buildings": 24,
+          "coverage_pct": 0.14
+        },
+        {
+          "label": "Education - School",
+          "positive_buildings": 24,
+          "coverage_pct": 0.14
+        },
+        {
+          "label": "Unknown Original Use",
+          "positive_buildings": 17,
+          "coverage_pct": 0.1
+        },
+        {
+          "label": "Health Care",
+          "positive_buildings": 16,
+          "coverage_pct": 0.09
+        }
+      ],
+      "notes": "Broad use categories may be visual; fine-grained use is context-heavy.",
+      "rank": 7,
+      "recommendation": "phase3_imbalance_expansion"
+    },
+    {
+      "field": "associated_buildings",
+      "label": "Associated Buildings and Objects",
+      "parser": "multipart",
+      "phase3_score": 65.75,
+      "coverage_score": 12.0,
+      "atomic_score": 18.75,
+      "visibility_score": 11.0,
+      "density_score": 10.0,
+      "complement_score": 9.0,
+      "readiness_score": 5.0,
+      "n_buildings_total": 17269,
+      "n_buildings_with_label": 7256,
+      "coverage_pct": 42.02,
+      "n_atomic_labels": 24,
+      "n_strong_labels_300_plus": 6,
+      "n_usable_labels_100_299": 5,
+      "n_grouping_labels_30_99": 4,
+      "n_sparse_labels_under_30": 9,
+      "avg_labels_per_labeled_building": 1.89,
+      "max_labels_per_building": 7,
+      "top_label_share_pct": 65.13,
+      "max_association_field": "building_form",
+      "max_association_label": "Building/Object Type: Garage",
+      "max_association_cramers_v": 0.371,
+      "top_labels": [
+        {
+          "label": "Building/Object Type: Detached",
+          "positive_buildings": 4726,
+          "coverage_pct": 27.37
+        },
+        {
+          "label": "Building/Object Type: Garage",
+          "positive_buildings": 4700,
+          "coverage_pct": 27.22
+        },
+        {
+          "label": "Building/Object Type: Shed or Storage Building",
+          "positive_buildings": 1266,
+          "coverage_pct": 7.33
+        },
+        {
+          "label": "Building/Object Type: Garage \u2013 Attached",
+          "positive_buildings": 810,
+          "coverage_pct": 4.69
+        },
+        {
+          "label": "Building/Object Type: Carport",
+          "positive_buildings": 409,
+          "coverage_pct": 2.37
+        },
+        {
+          "label": "Building/Object Location: Behind Primary Building",
+          "positive_buildings": 300,
+          "coverage_pct": 1.74
+        },
+        {
+          "label": "Building/Object Type: Attached",
+          "positive_buildings": 293,
+          "coverage_pct": 1.7
+        },
+        {
+          "label": "Building/Object Type: Other Associated Building or Object",
+          "positive_buildings": 221,
+          "coverage_pct": 1.28
+        },
+        {
+          "label": "Building/Object Type: Unknown",
+          "positive_buildings": 219,
+          "coverage_pct": 1.27
+        },
+        {
+          "label": "Building/Object Type: Not Visible",
+          "positive_buildings": 217,
+          "coverage_pct": 1.26
+        },
+        {
+          "label": "Building/Object Type: Accessory Dwelling Unit (ADU)",
+          "positive_buildings": 216,
+          "coverage_pct": 1.25
+        },
+        {
+          "label": "Building/Object Type: Loading Dock",
+          "positive_buildings": 91,
+          "coverage_pct": 0.53
+        },
+        {
+          "label": "Building/Object Type: Detached;",
+          "positive_buildings": 58,
+          "coverage_pct": 0.34
+        },
+        {
+          "label": "Building/Object Location: Right of Primary Building",
+          "positive_buildings": 48,
+          "coverage_pct": 0.28
+        },
+        {
+          "label": "Building/Object Location: Left of Primary Building",
+          "positive_buildings": 43,
+          "coverage_pct": 0.25
+        }
+      ],
+      "notes": "Context/object task; depends strongly on image angle and full-view coverage.",
+      "rank": 8,
+      "recommendation": "phase3_visual_expansion"
+    },
+    {
+      "field": "roof_features",
+      "label": "Roof Features",
+      "parser": "multi",
+      "phase3_score": 65.73,
+      "coverage_score": 3.73,
+      "atomic_score": 25.0,
+      "visibility_score": 10.0,
+      "density_score": 10.0,
+      "complement_score": 9.0,
+      "readiness_score": 8.0,
+      "n_buildings_total": 17269,
+      "n_buildings_with_label": 2254,
+      "coverage_pct": 13.05,
+      "n_atomic_labels": 71,
+      "n_strong_labels_300_plus": 1,
+      "n_usable_labels_100_299": 12,
+      "n_grouping_labels_30_99": 19,
+      "n_sparse_labels_under_30": 39,
+      "avg_labels_per_labeled_building": 1.77,
+      "max_labels_per_building": 9,
+      "top_label_share_pct": 22.67,
+      "max_association_field": "primary_cladding",
+      "max_association_label": "Rafter Tails",
+      "max_association_cramers_v": 0.454,
+      "top_labels": [
+        {
+          "label": "Rafter Tails",
+          "positive_buildings": 511,
+          "coverage_pct": 2.96
+        },
+        {
+          "label": "Boxed Eaves",
+          "positive_buildings": 250,
+          "coverage_pct": 1.45
+        },
+        {
+          "label": "Skylight",
+          "positive_buildings": 219,
+          "coverage_pct": 1.27
+        },
+        {
+          "label": "Eaves - Boxed",
+          "positive_buildings": 212,
+          "coverage_pct": 1.23
+        },
+        {
+          "label": "Cornice - Decorative",
+          "positive_buildings": 204,
+          "coverage_pct": 1.18
+        },
+        {
+          "label": "Dormer - Hipped",
+          "positive_buildings": 204,
+          "coverage_pct": 1.18
+        },
+        {
+          "label": "Dormer - Gable",
+          "positive_buildings": 189,
+          "coverage_pct": 1.09
+        },
+        {
+          "label": "Bargeboard - Decorative",
+          "positive_buildings": 185,
+          "coverage_pct": 1.07
+        },
+        {
+          "label": "Brackets - Decorative",
+          "positive_buildings": 183,
+          "coverage_pct": 1.06
+        },
+        {
+          "label": "Purlins",
+          "positive_buildings": 148,
+          "coverage_pct": 0.86
+        },
+        {
+          "label": "Parapet - Flat",
+          "positive_buildings": 134,
+          "coverage_pct": 0.78
+        },
+        {
+          "label": "Parapet - Stepped",
+          "positive_buildings": 128,
+          "coverage_pct": 0.74
+        },
+        {
+          "label": "Dentils",
+          "positive_buildings": 108,
+          "coverage_pct": 0.63
+        },
+        {
+          "label": "No Eaves",
+          "positive_buildings": 99,
+          "coverage_pct": 0.57
+        },
+        {
+          "label": "Dormer - Wall",
+          "positive_buildings": 89,
+          "coverage_pct": 0.52
+        }
+      ],
+      "notes": "Conceptually useful, but many atomics are expected to be sparse.",
+      "rank": 9,
+      "recommendation": "phase4_later"
+    },
+    {
+      "field": "additional_cladding",
+      "label": "Additional Cladding",
+      "parser": "multi",
+      "phase3_score": 62.09,
+      "coverage_score": 5.09,
+      "atomic_score": 25.0,
+      "visibility_score": 8.0,
+      "density_score": 10.0,
+      "complement_score": 6.0,
+      "readiness_score": 8.0,
+      "n_buildings_total": 17269,
+      "n_buildings_with_label": 3075,
+      "coverage_pct": 17.81,
+      "n_atomic_labels": 59,
+      "n_strong_labels_300_plus": 5,
+      "n_usable_labels_100_299": 4,
+      "n_grouping_labels_30_99": 12,
+      "n_sparse_labels_under_30": 38,
+      "avg_labels_per_labeled_building": 1.53,
+      "max_labels_per_building": 7,
+      "top_label_share_pct": 35.48,
+      "max_association_field": "building_form",
+      "max_association_label": "Foundation - Concrete",
+      "max_association_cramers_v": 0.474,
+      "top_labels": [
+        {
+          "label": "Foundation - Concrete",
+          "positive_buildings": 1091,
+          "coverage_pct": 6.32
+        },
+        {
+          "label": "Gable Vents",
+          "positive_buildings": 1002,
+          "coverage_pct": 5.8
+        },
+        {
+          "label": "Foundation - Not Visible",
+          "positive_buildings": 454,
+          "coverage_pct": 2.63
+        },
+        {
+          "label": "Belt Course",
+          "positive_buildings": 334,
+          "coverage_pct": 1.93
+        },
+        {
+          "label": "Brick - 2 or More Color",
+          "positive_buildings": 319,
+          "coverage_pct": 1.85
+        },
+        {
+          "label": "Brick - Patterned",
+          "positive_buildings": 172,
+          "coverage_pct": 1.0
+        },
+        {
+          "label": "Other Wall Details",
+          "positive_buildings": 115,
+          "coverage_pct": 0.67
+        },
+        {
+          "label": "Shingles in Gable - Decorative",
+          "positive_buildings": 112,
+          "coverage_pct": 0.65
+        },
+        {
+          "label": "Foundation - Stone",
+          "positive_buildings": 106,
+          "coverage_pct": 0.61
+        },
+        {
+          "label": "Masonry Bay",
+          "positive_buildings": 88,
+          "coverage_pct": 0.51
+        },
+        {
+          "label": "Brick - Corbeled",
+          "positive_buildings": 82,
+          "coverage_pct": 0.47
+        },
+        {
+          "label": "Foundation - Brick",
+          "positive_buildings": 76,
+          "coverage_pct": 0.44
+        },
+        {
+          "label": "Quoins",
+          "positive_buildings": 64,
+          "coverage_pct": 0.37
+        },
+        {
+          "label": "Engaged Columns",
+          "positive_buildings": 61,
+          "coverage_pct": 0.35
+        },
+        {
+          "label": "Half-Timbering",
+          "positive_buildings": 52,
+          "coverage_pct": 0.3
+        }
+      ],
+      "notes": "Secondary material task; likely sparse and better deferred unless counts surprise.",
+      "rank": 10,
+      "recommendation": "phase4_later"
+    },
+    {
+      "field": "original_use",
+      "label": "Original Use",
+      "parser": "single",
+      "phase3_score": 57.75,
+      "coverage_score": 20.0,
+      "atomic_score": 13.75,
+      "visibility_score": 4.0,
+      "density_score": 8.0,
+      "complement_score": 4.0,
+      "readiness_score": 8.0,
+      "n_buildings_total": 17269,
+      "n_buildings_with_label": 17269,
+      "coverage_pct": 100.0,
+      "n_atomic_labels": 37,
+      "n_strong_labels_300_plus": 3,
+      "n_usable_labels_100_299": 3,
+      "n_grouping_labels_30_99": 6,
+      "n_sparse_labels_under_30": 25,
+      "avg_labels_per_labeled_building": 1.0,
+      "max_labels_per_building": 1,
+      "top_label_share_pct": 82.29,
+      "max_association_field": "building_form",
+      "max_association_label": "Domestic \u2013 Single Dwelling",
+      "max_association_cramers_v": 0.885,
+      "top_labels": [
+        {
+          "label": "Domestic \u2013 Single Dwelling",
+          "positive_buildings": 14210,
+          "coverage_pct": 82.29
+        },
+        {
+          "label": "Domestic \u2013 Multiple Dwelling",
+          "positive_buildings": 1668,
+          "coverage_pct": 9.66
+        },
+        {
+          "label": "Commercial - Warehouse",
+          "positive_buildings": 350,
+          "coverage_pct": 2.03
+        },
+        {
+          "label": "Commercial - Retail Store",
+          "positive_buildings": 257,
+          "coverage_pct": 1.49
+        },
+        {
+          "label": "Commercial - Other",
+          "positive_buildings": 180,
+          "coverage_pct": 1.04
+        },
+        {
+          "label": "Commercial - Business/Professional",
+          "positive_buildings": 142,
+          "coverage_pct": 0.82
+        },
+        {
+          "label": "Industry/Processing",
+          "positive_buildings": 78,
+          "coverage_pct": 0.45
+        },
+        {
+          "label": "Unknown Original Use",
+          "positive_buildings": 71,
+          "coverage_pct": 0.41
+        },
+        {
+          "label": "Mixed Use",
+          "positive_buildings": 53,
+          "coverage_pct": 0.31
+        },
+        {
+          "label": "Religious Facility",
+          "positive_buildings": 48,
+          "coverage_pct": 0.28
+        },
+        {
+          "label": "Commercial - Restaurant",
+          "positive_buildings": 39,
+          "coverage_pct": 0.23
+        },
+        {
+          "label": "Commercial - Gas Station",
+          "positive_buildings": 35,
+          "coverage_pct": 0.2
+        },
+        {
+          "label": "Education - School",
+          "positive_buildings": 19,
+          "coverage_pct": 0.11
+        },
+        {
+          "label": "Domestic - Other",
+          "positive_buildings": 19,
+          "coverage_pct": 0.11
+        },
+        {
+          "label": "Commercial - Specialty Store",
+          "positive_buildings": 14,
+          "coverage_pct": 0.08
+        }
+      ],
+      "notes": "Historical field; weak image-only target despite high label coverage.",
+      "rank": 11,
+      "recommendation": "phase3_imbalance_expansion"
+    },
+    {
+      "field": "building_plan",
+      "label": "Building Plan",
+      "parser": "single",
+      "phase3_score": 31.49,
+      "coverage_score": 1.24,
+      "atomic_score": 9.25,
+      "visibility_score": 5.0,
+      "density_score": 2.0,
+      "complement_score": 6.0,
+      "readiness_score": 8.0,
+      "n_buildings_total": 17269,
+      "n_buildings_with_label": 750,
+      "coverage_pct": 4.34,
+      "n_atomic_labels": 8,
+      "n_strong_labels_300_plus": 1,
+      "n_usable_labels_100_299": 1,
+      "n_grouping_labels_30_99": 1,
+      "n_sparse_labels_under_30": 5,
+      "avg_labels_per_labeled_building": 1.0,
+      "max_labels_per_building": 1,
+      "top_label_share_pct": 61.47,
+      "max_association_field": "roof_type",
+      "max_association_label": "Irregular Plan",
+      "max_association_cramers_v": 0.357,
+      "top_labels": [
+        {
+          "label": "Rectangular Plan",
+          "positive_buildings": 461,
+          "coverage_pct": 2.67
+        },
+        {
+          "label": "Irregular Plan",
+          "positive_buildings": 199,
+          "coverage_pct": 1.15
+        },
+        {
+          "label": "L-Shaped Plan",
+          "positive_buildings": 49,
+          "coverage_pct": 0.28
+        },
+        {
+          "label": "Square Plan",
+          "positive_buildings": 27,
+          "coverage_pct": 0.16
+        },
+        {
+          "label": "U-Shaped Plan",
+          "positive_buildings": 5,
+          "coverage_pct": 0.03
+        },
+        {
+          "label": "T-Shaped Plan",
+          "positive_buildings": 4,
+          "coverage_pct": 0.02
+        },
+        {
+          "label": "Other Plan",
+          "positive_buildings": 3,
+          "coverage_pct": 0.02
+        },
+        {
+          "label": "H-Shaped Plan",
+          "positive_buildings": 2,
+          "coverage_pct": 0.01
+        }
+      ],
+      "notes": "Usually needs aerial or multi-view information; front facade is often insufficient.",
+      "rank": 12,
+      "recommendation": "phase4_later"
+    }
+  ]
+}
