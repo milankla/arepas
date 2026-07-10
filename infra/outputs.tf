@@ -36,6 +36,21 @@ output "apprunner_service_url" {
   value       = "https://${aws_apprunner_service.api.service_url}"
 }
 
+output "cloudfront_url" {
+  description = "CloudFront distribution URL (the public frontend URL)."
+  value       = "https://${aws_cloudfront_distribution.frontend.domain_name}"
+}
+
+output "frontend_bucket_name" {
+  description = "S3 bucket for the React build. Deploy with scripts/deploy_ui.sh."
+  value       = aws_s3_bucket.frontend.id
+}
+
+output "cloudfront_distribution_id" {
+  description = "CloudFront distribution ID (needed for cache invalidation)."
+  value       = aws_cloudfront_distribution.frontend.id
+}
+
 output "cognito_user_pool_id" {
   description = "Set as AREPAS_COGNITO_USER_POOL_ID in the Lambda environment."
   value       = aws_cognito_user_pool.main.id

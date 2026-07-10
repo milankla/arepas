@@ -75,7 +75,12 @@ resource "aws_cognito_user_pool_client" "spa" {
   allowed_oauth_flows_user_pool_client = true
   allowed_oauth_scopes                 = ["openid", "email", "profile"]
 
-  # Callback / logout URLs — localhost for dev; add CloudFront URL in Phase 4
+  # Callback / logout URLs.
+  # Includes localhost for local dev. The CloudFront URL is added by
+  # scripts/deploy_ui.sh after the first CloudFront apply, using:
+  #   aws cognito-idp update-user-pool-client ...
+  # Do NOT add a reference to aws_cloudfront_distribution here — it creates
+  # a cycle through aws_apprunner_service.
   callback_urls = ["http://localhost:5173/callback"]
   logout_urls   = ["http://localhost:5173/logout"]
 

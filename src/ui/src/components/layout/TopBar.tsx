@@ -2,6 +2,7 @@ import {
   AppBar,
   Autocomplete,
   Box,
+  Button,
   CircularProgress,
   FormControl,
   MenuItem,
@@ -10,14 +11,17 @@ import {
   Tabs,
   TextField,
   Toolbar,
+  Tooltip,
   Typography,
 } from "@mui/material";
 import type { SelectChangeEvent } from "@mui/material";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { useAuth } from "react-oidc-context";
 import { useDataset } from "@/context/DatasetContext";
 import { useSearch } from "@/context/SearchContext";
 import { api } from "@/api/client";
+import { AUTH_ENABLED } from "@/auth/config";
 import type { BuildingSummary } from "@/types";
 
 const NAV_TABS = [
@@ -29,6 +33,7 @@ const NAV_TABS = [
 export function TopBar() {
   const { datasets, activeDataset, setActiveDataset, loading } = useDataset();
   const { selectBuilding } = useSearch();
+  const auth = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   const isExplore = location.pathname === "/";
@@ -179,6 +184,31 @@ export function TopBar() {
               ))}
             </Select>
           </FormControl>
+        )}
+
+        {/* Auth button — only shown when Cognito is configured */}
+        {AUTH_ENABLED && (
+          auth.isAuthenticated ? (
+            <Tooltip title={auth.user?.profile.email ?? "Signed in"}>
+              <Button
+                size="small"
+                variant="outlined"
+                onClick={() => auth.signoutRedirect()}
+                sx={{ color: "white", borderColor: "rgba(255,255,255,0.5)", whiteSpace: "nowrap" }}
+              >
+                Sign out
+              </Button>
+            </Tooltip>
+          ) : (
+            <Button
+              size="small"
+              variant="outlined"
+              onClick={() => auth.signinRedirect()}
+              sx={{ color: "white", borderColor: "rgba(255,255,255,0.5)", whiteSpace: "nowrap" }}
+            >
+              Sign in
+            </Button>
+          )
         )}
       </Toolbar>
     </AppBar>
