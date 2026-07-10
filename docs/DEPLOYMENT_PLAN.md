@@ -27,7 +27,7 @@ reference; no infrastructure has been provisioned yet.
 
 | Concern | Decision |
 |---|---|
-| Inference tier | **AWS Lambda** (container image, CPU, scale-to-zero) |
+| Inference + Explore API tier | **AWS App Runner** (container, **min 1 instance, always warm**) |
 | Training tier | **SageMaker Training Jobs** (on-demand GPU, auto-terminate; managed spot) |
 | Auth | **Amazon Cognito** user pool with 3 groups |
 | Guest access | **Anonymous / no login** (default role, inference only) |
@@ -35,10 +35,20 @@ reference; no infrastructure has been provisioned yet.
 | Frontend | **S3 + CloudFront** (static build) |
 | Config / secrets | **SSM Parameter Store**; IAM roles (no access keys) |
 
+> **Decision change (2026-07-10):** inference tier moved **Lambda → App Runner
+> (min 1)**. The original "rarely invoked → scale-to-zero" assumption didn't hold:
+> inference is UI-driven (~20–50/day at random times) with a **1–15 s** latency
+> expectation, and the Explore endpoints must be **always available**. That usage
+> is the worst case for Lambda cold starts (sparse but interactive; a B5 +
+> GroundingDINO container cold-starts 30–60 s). App Runner min-1 keeps the
+> container warm for ~$45–65/mo, runs the app under uvicorn unchanged (no Mangum),
+> and exposes a built-in HTTPS endpoint (**no API Gateway**). Scale-to-zero is
+> deliberately traded for a predictable ~1–3 s response.
+
 ### Assumed defaults (override if needed)
 
 - Region: **us-east-1**
-- No custom domain initially (use CloudFront + API Gateway default domains)
+- No custom domain initially (use CloudFront for the UI + the App Runner default HTTPS domain for the API)
 - Single **prod** environment first; tfvars structured to add dev later
 
 ---
@@ -49,7 +59,7 @@ reference; no infrastructure has been provisioned yet.
 flowchart TD
     U[Browser] --> CF[CloudFront]
     CF --> S3F[S3: static React UI]
-    CF --> API[API tier - FastAPI on Lambda]
+    U --> API[API tier - FastAPI on App Runner<br/>container, min 1, always warm]
     U -. login .-> COG[Cognito user pool<br/>groups: guest/user/admin]
     COG -. JWT .-> API
     API -->|read images/models| S3D[S3: photos + models]
@@ -62,7 +72,7 @@ flowchart TD
 | Concern | Service | Rationale |
 |---|---|---|
 | Frontend (React/Vite) | S3 + CloudFront | Static build; pennies/month, globally cached. |
-| Inference + Explore API | AWS Lambda (container) + API Gateway | Rarely invoked → scale-to-zero = near-zero idle cost. B5 inference runs on CPU. |
+| Inference + Explore API | AWS App Runner (container, min 1) | UI-driven inference (1–15 s SLA) + always-on Explore; sparse-but-interactive traffic is the worst case for Lambda cold starts. B5 + GroundingDINO on CPU, kept warm. ~$45–65/mo. |
 | Training | SageMaker Training Jobs | Admin submits a job → GPU spins up, runs, writes to S3, **auto-terminates**. Pay per second. |
 | Auth / users | Amazon Cognito + 3 groups | Managed JWT; role travels in the `cognito:groups` claim. |
 | Storage | S3 (photos, models, static) | Single source of truth. |
@@ -82,11 +92,12 @@ Three buckets (or one bucket with three prefixes):
 paths to the local filesystem when running locally and to S3 when
 `AREPAS_S3_BUCKET` is set. Compute uses **IAM roles** (no keys):
 
-- Lambda role → **read** photos + models.
+- API (App Runner) instance role → **read** photos + models.
 - Training role → **read** photos, **write** models.
 
-Inference loads the chosen checkpoint from `arepas-models/` on cold start and
-caches it. A one-time `aws s3 sync` seeds the buckets.
+Inference loads the chosen checkpoint from `arepas-models/` at startup and
+caches it (kept warm by the min-1 instance). A one-time `aws s3 sync` seeds the
+buckets.
 
 Measured local footprint (2026-07-06): data 0.5 GB · data2 23 GB · data3 94 GB ·
 crops 6.6 GB → **~125 GB photos+crops**; a few GB of models worth keeping.
@@ -134,9 +145,9 @@ usage-driven**, not a fixed monthly charge.
 
 | Option | Idle cost | Per 1,000 inferences | Notes |
 |---|---|---|---|
-| **Lambda (chosen)** | **~$0** | ~$1 | 10–20 s cold start on first call after idle. |
-| App Runner (min 1) | ~$25–50 | negligible | Always warm. |
-| Fargate (24/7) | ~$42–85 | negligible | Always warm; + ALB ~$16 if used. |
+| **App Runner min-1 (chosen)** | **~$45–65/mo** | negligible | Always warm → ~1–3 s responses; meets the 1–15 s UI SLA + always-on Explore. |
+| Lambda (container) | ~$0 | ~$1 | Rejected: 30–60 s cold start on the B5+GroundingDINO image; sparse-but-interactive traffic hits it constantly. |
+| Fargate (24/7) | ~$85–100 | negligible | Always warm; needs a load balancer. More infra than App Runner. |
 
 ### Training tier (per-run, $0 when not training)
 
@@ -151,19 +162,16 @@ usage-driven**, not a fixed monthly charge.
 ⚠️ **Risk:** a self-managed EC2 GPU left running by accident ≈ **$730/mo**.
 SageMaker auto-terminates when the job ends, avoiding this.
 
-### Bottom line — chosen bundle (Lambda + SageMaker spot)
+### Bottom line — chosen bundle (App Runner min-1 + SageMaker spot)
 
-| Scenario | Inference | Training (~2 runs/mo) | **Total /mo** |
-|---|---|---|---|
-| **Lean (chosen)** | ~$1–10 | ~$10–24 | **~$20–40** |
-| Always-warm (reference) | ~$42–85 | ~$20–40 | ~$70–130 |
+| Scenario | Inference/API | Training (~2 runs/mo) | Baseline | **Total /mo** |
+|---|---|---|---|---|
+| **Chosen** | ~$45–65 (always warm) | ~$10–24 | ~$5 | **~$60–95** |
+| Lambda (rejected) | ~$1–10 | ~$10–24 | ~$5 | ~$20–40 (but fails the latency SLA) |
 
-Near-zero when idle; real spend only during the occasional training run.
-
-**Cost sensitivity — the three numbers that move the total:**
-1. Inference volume (Lambda scales with it; still ~$8 even at 10k/mo).
-2. Training frequency (~$5–30/run; 4 runs/mo ≈ $20–120).
-3. Warm vs scale-to-zero inference (the $0 vs $40–85 fork).
+The ~$40–55/mo premium over Lambda buys a predictable ~1–3 s response and
+always-on Explore — the deliberate trade for a UI-facing tool. Training remains
+the only usage-driven (per-run) cost.
 
 ---
 
@@ -177,9 +185,10 @@ each with its own describe → approve → implement → edge-cases loop.
 | **0. Storage abstraction** | Path resolver (local FS vs S3 via `AREPAS_S3_BUCKET`), wired into loader/inference/runs | app code (~2–3) |
 | **1. S3 + upload** | Buckets, IAM, one-time `aws s3 sync` of photos/crops/models | `infra/s3.tf`, `providers.tf`, `variables.tf` |
 | **2. Auth** | Cognito pool + 3 groups + anonymous guest; FastAPI role dependency on routers | `infra/cognito.tf`, app auth dep |
-| **3. Inference on Lambda** | Containerize FastAPI, Lambda + API Gateway, read-model-from-S3 role | `infra/api.tf`, `Dockerfile` |
+| **3. Inference + Explore API on App Runner** | Containerize FastAPI (uvicorn); App Runner service (min 1) + IAM instance role; **S3 dataset discovery + image URLs (0c)** so Explore works with no local data | `infra/apprunner.tf`, `Dockerfile`, discovery/url code |
 | **4. Frontend** | React build → S3 + CloudFront, wire Cognito login + API URL | `infra/frontend.tf`, UI config |
 | **5. Training on SageMaker** | Job template/config + admin-only `POST /train` that submits the job | `infra/training.tf`, config JSON, new endpoint |
+| **6. Hardening** | Fail-safe + robustness pass across Phases 0–2 (see §9) | `src/api/auth.py`, `src/storage/s3.py`, `infra/s3.tf`, tests/CI |
 
 ### Proposed Terraform + config layout (names only)
 
@@ -188,7 +197,7 @@ infra/
   main.tf, variables.tf, outputs.tf, providers.tf
   s3.tf         # 3 buckets + policies
   cognito.tf    # user pool + 3 groups + app client
-  api.tf        # Lambda(container) + API Gateway + IAM role
+  apprunner.tf  # App Runner service (min 1) + IAM instance role
   frontend.tf   # CloudFront + S3 website
   training.tf   # SageMaker role / job template
   ssm.tf        # config params
@@ -204,3 +213,47 @@ config/
 - Region confirmation (assumed us-east-1).
 - Custom domain (assumed none initially).
 - Rough inferences/month and training runs/month (to tighten cost to a single number).
+
+---
+
+## 9. Hardening backlog (Phase 6)
+
+Items surfaced in the principal-level review of Phases 0–2 (2026-07-09). None are
+architectural; all are fail-safe / robustness improvements deferred to a dedicated
+hardening pass. (Remote Terraform state / locking is intentionally **excluded** —
+acceptable for a single operator.)
+
+### Correctness (highest priority)
+
+- **Auth: validate `token_use` (id vs access).** `verify_token` checks
+  `audience=client_id`, which only Cognito **ID** tokens satisfy; **access**
+  tokens have no `aud` claim. If the SPA sends the access token (common), every
+  request 401s. Add an explicit `token_use` check and accept the token type the
+  frontend actually sends. Will otherwise bite in Phase 4.
+- **Auth: fail closed in production.** The dev bypass resolves every request as
+  `admin` when no Cognito pool is configured. A prod deploy that forgets
+  `AREPAS_COGNITO_USER_POOL_ID` would silently open the API to everyone as admin.
+  Require an explicit `AREPAS_AUTH_MODE=cognito` in prod (fail closed if unset).
+
+### Robustness
+
+- **Storage: make `S3Storage.local_path` concurrency-safe.** Two processes
+  downloading the same key share one `.part` filename → race. Use a
+  per-process/`tempfile` suffix before the atomic rename.
+- **Storage: guard `open_image`** against zero-byte / non-image objects with a
+  clear error instead of a raw `PIL` exception.
+- **Auth: handle JWKS fetch/rotation failures distinctly** — a transient Cognito
+  outage should surface as 401/503, not a 500.
+
+### Data safety
+
+- **`prevent_destroy` on the data bucket.** Add a `lifecycle { prevent_destroy = true }`
+  to `aws_s3_bucket.data` so a stray `terraform destroy` cannot delete the ~125 GB
+  of irreplaceable survey photos. (Consider the same for the models bucket.)
+- **S3 access logging + lifecycle tiering** (minor at current scale/cost).
+
+### Process
+
+- **Wire the standalone test scripts into CI** (`scripts/test_storage.py`,
+  `test_auth.py`, `test_phase3_multipart_parsing.py`) so regressions are caught
+  on every change rather than by manual runs.

@@ -73,7 +73,7 @@ resource "aws_s3_bucket_policy" "frontend" {
 resource "aws_cloudfront_distribution" "frontend" {
   enabled             = true
   default_root_object = "index.html"
-  price_class         = "PriceClass_100"   # US + EU edge nodes only
+  price_class         = "PriceClass_100" # US + EU edge nodes only
   comment             = "Arepas frontend + API proxy (${var.environment})"
 
   # Origin 1: S3 (React build)
@@ -133,7 +133,10 @@ resource "aws_cloudfront_distribution" "frontend" {
     max_ttl     = 86400
   }
 
-  # SPA routing: 403/404 from S3 → return index.html (200) so React Router works
+  # SPA routing: only catch 404 (missing S3 objects) → index.html.
+  # S3 (private bucket) returns 403 for missing paths — must intercept for SPA
+  # routing. App Runner auth 403s on /api/* also become index.html as a side-effect;
+  # the React RequireAuth component handles this by showing a login prompt.
   custom_error_response {
     error_code            = 403
     response_code         = 200
@@ -152,7 +155,7 @@ resource "aws_cloudfront_distribution" "frontend" {
   }
 
   viewer_certificate {
-    cloudfront_default_certificate = true  # use the *.cloudfront.net cert; no custom domain
+    cloudfront_default_certificate = true # use the *.cloudfront.net cert; no custom domain
   }
 }
 

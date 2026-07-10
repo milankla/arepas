@@ -56,7 +56,7 @@ cd src/ui
 VITE_COGNITO_USER_POOL_ID="$POOL_ID" \
 VITE_COGNITO_CLIENT_ID="$CLIENT_ID" \
 VITE_COGNITO_DOMAIN="$COGNITO_DOMAIN" \
-  npm run build
+  npx vite build
 
 echo "=== Syncing to S3 ==="
 cd ../..
