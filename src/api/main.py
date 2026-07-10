@@ -5,10 +5,11 @@ Run from the project root:
     uvicorn src.api.main:app --reload --port 8000
 """
 
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
+from src.api.auth import require_guest, require_user
 from src.api.routers import datasets, runs
 from src.api.routers.datasets import DATASETS
 from src.api.routers import inference
@@ -43,8 +44,10 @@ for ds_name, ds_meta in DATASETS.items():
         )
 
 # ---------------------------------------------------------------------------
-# Routers
+# Routers — role enforcement at the router level.
+# require_guest: anonymous OK (inference endpoints — everyone can run inference)
+# require_user:  must be logged in (explore/training-history endpoints)
 # ---------------------------------------------------------------------------
-app.include_router(datasets.router, prefix="/api")
-app.include_router(runs.router, prefix="/api")
-app.include_router(inference.router, prefix="/api")
+app.include_router(datasets.router, prefix="/api", dependencies=[Depends(require_user)])
+app.include_router(runs.router, prefix="/api", dependencies=[Depends(require_user)])
+app.include_router(inference.router, prefix="/api", dependencies=[Depends(require_guest)])

@@ -13,3 +13,15 @@ resource "aws_ssm_parameter" "models_bucket" {
   type  = "String"
   value = aws_s3_bucket.models.id
 }
+
+resource "aws_ssm_parameter" "cognito_user_pool_id" {
+  name  = "/arepas/${var.environment}/cognito/user-pool-id"
+  type  = "String"
+  value = aws_cognito_user_pool.main.id
+}
+
+resource "aws_ssm_parameter" "cognito_client_id" {
+  name  = "/arepas/${var.environment}/cognito/client-id"
+  type  = "String"
+  value = aws_cognito_user_pool_client.spa.id
+}

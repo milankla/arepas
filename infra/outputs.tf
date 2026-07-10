@@ -25,3 +25,22 @@ output "sagemaker_training_policy_arn" {
   description = "Attach to the SageMaker execution role in Phase 5."
   value       = aws_iam_policy.sagemaker_training.arn
 }
+
+output "cognito_user_pool_id" {
+  description = "Set as AREPAS_COGNITO_USER_POOL_ID in the Lambda environment."
+  value       = aws_cognito_user_pool.main.id
+}
+
+output "cognito_user_pool_arn" {
+  value = aws_cognito_user_pool.main.arn
+}
+
+output "cognito_client_id" {
+  description = "SPA app client ID — used by the React frontend."
+  value       = aws_cognito_user_pool_client.spa.id
+}
+
+output "cognito_hosted_ui_domain" {
+  description = "Hosted UI base URL for the login page."
+  value       = "https://${aws_cognito_user_pool_domain.main.domain}.auth.${var.region}.amazoncognito.com"
+}
