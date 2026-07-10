@@ -52,24 +52,30 @@ COMBINED_DIR = ROOT / "outputs" / "combined"
 
 
 def _discover_datasets() -> dict[str, dict[str, Path]]:
-    """Scan the project root for dataset folders and return their metadata."""
+    """Discover datasets from the local filesystem, with S3 fallback.
+
+    When the local ``data*/`` folders don't exist (e.g. inside the App Runner
+    container) the function lists manifests from the S3 data bucket via the
+    storage abstraction.  Paths are synthetic (they won't exist on disk) but
+    they resolve correctly through ``_rel_key`` → ``_storage.read_bytes``.
+    """
     result: dict[str, dict[str, Path]] = {}
     import re
+
+    # ── local path ─────────────────────────────────────────────────────────
+    found_local = False
     for candidate in sorted(ROOT.iterdir()):
         if not candidate.is_dir():
             continue
-        # Accept folders named "data" or "dataN" (data2, data3, …)
         if not re.fullmatch(r"data\d*", candidate.name):
             continue
         csv_path = candidate / _DATASET_CSV_NAME
         if not csv_path.exists():
             continue
+        found_local = True
         name = candidate.name
         crop_root = ROOT / "crops" / name
         crop_manifest = crop_root / "crop_manifest.csv"
-        # The original `data` set was cropped earlier into crops/combined/
-        # (manifest crop_manifest_legacy.csv). Reuse it when there is no
-        # dedicated crops/data/ manifest so those buildings still show crops.
         if not crop_manifest.exists() and name == "data":
             legacy_manifest = ROOT / "crops" / "combined" / "crop_manifest_legacy.csv"
             if legacy_manifest.exists():
@@ -82,12 +88,32 @@ def _discover_datasets() -> dict[str, dict[str, Path]]:
             "crop_manifest": crop_manifest,
         }
 
-    # Combined "all" dataset — the merged manifest used for multi-dataset
-    # training. Its image_path values keep their source-dataset prefix
-    # (e.g. "data2/Cole/x.jpg"), which _image_url routes back to the correct
-    # per-dataset image mount, so no images need to be copied.
+    # ── S3 fallback (container / no local data) ────────────────────────────
+    if not found_local:
+        # List all image_label_mapping_phase1.csv files in the data bucket.
+        # Keys look like: "data2/image_label_mapping_phase1.csv"
+        for key in _storage.list("", suffix=f"/{_DATASET_CSV_NAME}"):
+            parts = key.split("/")
+            if len(parts) < 2:
+                continue
+            name = parts[0]
+            if not re.fullmatch(r"data\d*", name):
+                continue
+            # Synthesise Path objects that resolve back to logical S3 keys
+            # via _rel_key().  They won't exist on disk; that's fine — all
+            # reads go through _storage.read_bytes, not open().
+            base = ROOT / name
+            result[name] = {
+                "csv": base / _DATASET_CSV_NAME,
+                "image_root": base,
+                "crop_root": ROOT / "crops" / name,
+                "crop_manifest": ROOT / "crops" / name / "crop_manifest.csv",
+            }
+
+    # ── combined "all" view ────────────────────────────────────────────────
     combined_csv = COMBINED_DIR / _DATASET_CSV_NAME
-    if combined_csv.exists():
+    combined_key = f"outputs/combined/{_DATASET_CSV_NAME}"
+    if combined_csv.exists() or _storage.exists(combined_key):
         result[COMBINED_DATASET_ID] = {
             "csv": combined_csv,
             "image_root": COMBINED_DIR,
@@ -164,26 +190,35 @@ def _get_dataset_meta(dataset: str) -> dict[str, Path]:
 
 
 def _image_url(dataset: str, image_path: str) -> str:
-    """Convert a raw image_path column value to a URL served by a static mount.
+    """Return a URL for the given image.
 
-    image_path always begins with its source dataset folder
-    (e.g. "data2/Cole/file.jpg"). We route to that dataset's mount so the
-    combined "all" view resolves images across every source dataset. For a
-    single-dataset view the prefix equals `dataset`, so behaviour is unchanged.
+    * Local (``LocalStorage``): returns the ``/images/…`` static-mount path,
+      exactly as before.
+    * S3 (``S3Storage``): returns a presigned URL so the browser can fetch
+      the image directly from S3 without proxying through the API.
     """
-    parts = Path(image_path).parts
-    # Route by the path's own source-dataset prefix when it is a known dataset.
-    if parts and parts[0] in SOURCE_DATASETS:
-        return f"/images/{parts[0]}/" + "/".join(parts[1:])
-    # Fallback: legacy behaviour — strip the prefix if it matches the dataset id.
-    relative = "/".join(parts[1:]) if parts and parts[0] == dataset else image_path
-    return f"/images/{dataset}/{relative}"
+    from src.storage.local import LocalStorage
+    if isinstance(_storage, LocalStorage):
+        parts = Path(image_path).parts
+        if parts and parts[0] in SOURCE_DATASETS:
+            return f"/images/{parts[0]}/" + "/".join(parts[1:])
+        relative = "/".join(parts[1:]) if parts and parts[0] == dataset else image_path
+        return f"/images/{dataset}/{relative}"
+    # S3 path — image_path is the logical key (e.g. "data2/Cole/x.jpg")
+    return _storage.url(image_path)
 
 
 def _crop_url(dataset: str, cropped_path: str) -> str:
-    """Convert crop_manifest cropped_path to a URL served by the crops static mount."""
+    """Return a URL for the given crop image.
+
+    * Local: ``/crops/{dataset}/{cropped_path}`` (static mount).
+    * S3: presigned URL using the canonical crops key.
+    """
+    from src.storage.local import LocalStorage
+    if isinstance(_storage, LocalStorage):
+        return f"/crops/{dataset}/{cropped_path}"
     # cropped_path in manifest: "Cole/filename_crop.jpg"
-    return f"/crops/{dataset}/{cropped_path}"
+    return _storage.url(f"crops/{dataset}/{cropped_path}")
 
 
 # ---------------------------------------------------------------------------
