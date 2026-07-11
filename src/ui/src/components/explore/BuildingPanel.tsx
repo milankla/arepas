@@ -122,6 +122,61 @@ interface BuildingPanelProps {
   buildingId: string;
 }
 
+function ImageTile({ src, alt }: { src: string; alt: string }) {
+  const [status, setStatus] = useState<"loading" | "loaded" | "error">("loading");
+
+  const handleLoad = () => setStatus("loaded");
+  const handleError = () => setStatus("error");
+
+  useEffect(() => {
+    setStatus("loading");
+  }, [src]);
+
+  return (
+    <Box
+      sx={{
+        position: "relative",
+        height: 260,
+        bgcolor: "white",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        overflow: "hidden",
+      }}
+    >
+      {status === "loading" && (
+        <Skeleton
+          data-testid={`image-loading-${alt}`}
+          variant="rectangular"
+          animation="wave"
+          sx={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}
+        />
+      )}
+      {status === "error" && (
+        <Typography variant="body2" color="text.secondary">
+          Image failed to load
+        </Typography>
+      )}
+      <Box
+        component="img"
+        src={src}
+        alt={alt}
+        onLoad={handleLoad}
+        onLoadCapture={handleLoad}
+        onError={handleError}
+        onErrorCapture={handleError}
+        sx={{
+          width: "100%",
+          height: "100%",
+          display: status === "error" ? "none" : "block",
+          objectFit: "contain",
+          opacity: status === "loaded" ? 1 : 0,
+        }}
+      />
+    </Box>
+  );
+}
+
 export function BuildingPanel({ dataset, buildingId }: BuildingPanelProps) {
   const [detail, setDetail] = useState<BuildingDetail | null>(null);
   const [loading, setLoading] = useState(true);
@@ -246,12 +301,7 @@ export function BuildingPanel({ dataset, buildingId }: BuildingPanelProps) {
                     ORIGINAL
                   </Typography>
                 </Box>
-                <Box
-                  component="img"
-                  src={img.original_url}
-                  alt="original"
-                  sx={{ width: "100%", display: "block", maxHeight: 260, objectFit: "contain", bgcolor: "white" }}
-                />
+                <ImageTile src={img.original_url} alt="original" />
               </Box>
 
               {/* Crop */}
@@ -270,12 +320,7 @@ export function BuildingPanel({ dataset, buildingId }: BuildingPanelProps) {
                       CROPPED
                     </Typography>
                   </Box>
-                  <Box
-                    component="img"
-                    src={img.crop_url}
-                    alt="crop"
-                    sx={{ width: "100%", display: "block", maxHeight: 260, objectFit: "contain", bgcolor: "white" }}
-                  />
+                  <ImageTile src={img.crop_url} alt="crop" />
                 </Box>
               )}
             </Box>

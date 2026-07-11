@@ -24,7 +24,7 @@ const styles = {
   },
 } as const;
 
-export function AggregatedPanel({ tasks }: { tasks: TaskResult[] }) {
+export function AggregatedPanel({ tasks, compact = false }: { tasks: TaskResult[]; compact?: boolean }) {
   const phase12Tasks = tasks.filter((t) => !PHASE3_TASKS.has(t.task));
   const phase3Tasks = tasks.filter((t) => PHASE3_TASKS.has(t.task));
 
@@ -32,11 +32,11 @@ export function AggregatedPanel({ tasks }: { tasks: TaskResult[] }) {
     return (
       <Card variant="outlined" sx={styles.card}>
         <CardContent>
-          <Typography variant="h6" fontWeight={700} sx={styles.heading}>
+          <Typography variant="h6" sx={{ ...styles.heading, fontWeight: 700 }}>
             Aggregated (all images)
           </Typography>
           {tasks.map((t, i) => (
-            <TaskResultCard key={t.task} result={t} divider={i > 0} />
+            <TaskResultCard key={t.task} result={t} divider={i > 0} compact={compact} />
           ))}
         </CardContent>
       </Card>
@@ -46,24 +46,24 @@ export function AggregatedPanel({ tasks }: { tasks: TaskResult[] }) {
   return (
     <Card variant="outlined" sx={styles.card}>
       <CardContent>
-        <Typography variant="h6" fontWeight={700} sx={styles.heading}>
+        <Typography variant="h6" sx={{ ...styles.heading, fontWeight: 700 }}>
           Aggregated (all images)
         </Typography>
         <Box sx={styles.taskGrid}>
           <Box>
-            <Typography variant="caption" fontWeight={700} sx={styles.columnHeading}>
+            <Typography variant="caption" sx={{ ...styles.columnHeading, fontWeight: 700 }}>
               Phase 1 / 2
             </Typography>
             {phase12Tasks.map((t, i) => (
-              <TaskResultCard key={t.task} result={t} divider={i > 0} />
+              <TaskResultCard key={t.task} result={t} divider={i > 0} compact={compact} />
             ))}
           </Box>
           <Box>
-            <Typography variant="caption" fontWeight={700} sx={styles.columnHeading}>
+            <Typography variant="caption" sx={{ ...styles.columnHeading, fontWeight: 700 }}>
               Phase 3
             </Typography>
             {phase3Tasks.map((t, i) => (
-              <TaskResultCard key={t.task} result={t} divider={i > 0} />
+              <TaskResultCard key={t.task} result={t} divider={i > 0} compact={compact} />
             ))}
           </Box>
         </Box>

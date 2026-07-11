@@ -76,6 +76,7 @@ export function InferenceSidebar({
   running,
   onRun,
   medalMap,
+  anonymous = false,
 }: {
   checkpoints: CheckpointInfo[];
   loadingCkpts: boolean;
@@ -91,6 +92,7 @@ export function InferenceSidebar({
   running: boolean;
   onRun: () => void;
   medalMap: Record<string, string>;
+  anonymous?: boolean;
 }) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const visibleCheckpoints = checkpoints.filter((c) => phaseFilter.has(c.phase));
@@ -102,71 +104,75 @@ export function InferenceSidebar({
 
   return (
     <Box sx={styles.root}>
-      <Typography variant="subtitle1" fontWeight={700}>
+      <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
         Inference
       </Typography>
 
-      {/* Checkpoint selector */}
-      {loadingCkpts ? (
-        <CircularProgress size={20} />
-      ) : (
-        <FormControl fullWidth size="small">
-          <InputLabel>Model checkpoint</InputLabel>
-          <Select
-            label="Model checkpoint"
-            value={visibleCheckpoints.some((c) => c.checkpoint_path === selectedCkpt) ? selectedCkpt : ""}
-            onChange={(e: SelectChangeEvent) => onSelectCkpt(e.target.value)}
-          >
-            {visibleCheckpoints.map((ckpt) => (
-              <MenuItem key={ckpt.checkpoint_path} value={ckpt.checkpoint_path}>
-                <Box sx={{ width: "100%" }}>
-                  <Stack direction="row" alignItems="center" gap={0.75}>
-                    <Typography variant="body2" fontWeight={700} noWrap flex={1}>
-                      {ckpt.short_name}
-                    </Typography>
-                    {medalMap[ckpt.checkpoint_path] && (
-                      <Box component="span" sx={{ fontSize: "1rem", lineHeight: 1, flexShrink: 0 }}>
-                        {medalMap[ckpt.checkpoint_path]}
-                      </Box>
-                    )}
-                    <Chip
-                      label={`ph${ckpt.phase}`}
-                      size="small"
-                      variant="outlined"
-                      sx={styles.ckptChip}
-                    />
-                    <Chip
-                      label={ckpt.input_type}
-                      size="small"
-                      color={ckpt.input_type === "paired" ? "success" : ckpt.input_type === "crop" ? "info" : "default"}
-                      sx={styles.ckptChip}
-                    />
-                  </Stack>
-                </Box>
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
-      )}
+      {!anonymous && (
+        <>
+          {/* Checkpoint selector */}
+          {loadingCkpts ? (
+            <CircularProgress size={20} />
+          ) : (
+            <FormControl fullWidth size="small">
+              <InputLabel>Model checkpoint</InputLabel>
+              <Select
+                label="Model checkpoint"
+                value={visibleCheckpoints.some((c) => c.checkpoint_path === selectedCkpt) ? selectedCkpt : ""}
+                onChange={(e: SelectChangeEvent) => onSelectCkpt(e.target.value)}
+              >
+                {visibleCheckpoints.map((ckpt) => (
+                  <MenuItem key={ckpt.checkpoint_path} value={ckpt.checkpoint_path}>
+                    <Box sx={{ width: "100%" }}>
+                      <Stack direction="row" sx={{ alignItems: "center", gap: 0.75 }}>
+                        <Typography variant="body2" noWrap sx={{ flex: 1, fontWeight: 700 }}>
+                          {ckpt.short_name}
+                        </Typography>
+                        {medalMap[ckpt.checkpoint_path] && (
+                          <Box component="span" sx={{ fontSize: "1rem", lineHeight: 1, flexShrink: 0 }}>
+                            {medalMap[ckpt.checkpoint_path]}
+                          </Box>
+                        )}
+                        <Chip
+                          label={`ph${ckpt.phase}`}
+                          size="small"
+                          variant="outlined"
+                          sx={styles.ckptChip}
+                        />
+                        <Chip
+                          label={ckpt.input_type}
+                          size="small"
+                          color={ckpt.input_type === "paired" ? "success" : ckpt.input_type === "crop" ? "info" : "default"}
+                          sx={styles.ckptChip}
+                        />
+                      </Stack>
+                    </Box>
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          )}
 
-      {/* Phase filter */}
-      <Stack direction="row" gap={1}>
-        {[1, 2, 3].map((ph) => (
-          <FormControlLabel
-            key={ph}
-            label={<Typography variant="caption">Phase {ph}</Typography>}
-            control={
-              <Checkbox
-                size="small"
-                checked={phaseFilter.has(ph)}
-                onChange={() => onTogglePhase(ph)}
-                sx={{ p: 0.5 }}
+          {/* Phase filter */}
+          <Stack direction="row" sx={{ gap: 1 }}>
+            {[1, 2, 3].map((ph) => (
+              <FormControlLabel
+                key={ph}
+                label={<Typography variant="caption">Phase {ph}</Typography>}
+                control={
+                  <Checkbox
+                    size="small"
+                    checked={phaseFilter.has(ph)}
+                    onChange={() => onTogglePhase(ph)}
+                    sx={{ p: 0.5 }}
+                  />
+                }
+                sx={styles.phaseCheckbox}
               />
-            }
-            sx={styles.phaseCheckbox}
-          />
-        ))}
-      </Stack>
+            ))}
+          </Stack>
+        </>
+      )}
 
       <Divider />
 
@@ -196,11 +202,11 @@ export function InferenceSidebar({
 
       {/* Selected file list */}
       {files.length > 0 && (
-        <Stack gap={1}>
+        <Stack sx={{ gap: 1 }}>
           {files.map((f, i) => (
-            <Stack key={i} direction="row" alignItems="center" gap={0}>
+            <Stack key={i} direction="row" sx={{ alignItems: "center", gap: 0 }}>
               <Box component="img" src={previews[i]} sx={styles.thumbnail} />
-              <Typography variant="caption" flex={1} noWrap title={f.name} sx={{ alignSelf: "center" }}>
+              <Typography variant="caption" noWrap title={f.name} sx={{ alignSelf: "center", flex: 1 }}>
                 {f.name}
               </Typography>
               <Button size="small" color="error" sx={styles.removeBtn} onClick={() => onRemoveFile(i)}>

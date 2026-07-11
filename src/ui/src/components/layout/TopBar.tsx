@@ -37,13 +37,17 @@ export function TopBar() {
   const location = useLocation();
   const navigate = useNavigate();
   const isExplore = location.pathname === "/";
+  const isAnonymous = AUTH_ENABLED && !auth.isAuthenticated;
+  const visibleTabs = isAnonymous
+    ? NAV_TABS.filter((tab) => tab.path === "/inference")
+    : NAV_TABS;
 
   const [inputValue, setInputValue] = useState("");
   const [options, setOptions] = useState<BuildingSummary[]>([]);
   const [searching, setSearching] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const tabIndex = NAV_TABS.findIndex((t) => t.path === location.pathname);
+  const tabIndex = visibleTabs.findIndex((t) => t.path === location.pathname);
   const activeTab = tabIndex === -1 ? 0 : tabIndex;
 
   function handleDatasetChange(e: SelectChangeEvent) {
@@ -53,7 +57,8 @@ export function TopBar() {
   }
 
   function handleTabChange(_: React.SyntheticEvent, newValue: number) {
-    navigate(NAV_TABS[newValue].path);
+    const nextTab = visibleTabs[newValue];
+    navigate(nextTab.path);
   }
 
   const fetchOptions = useCallback((q: string) => {
@@ -103,10 +108,10 @@ export function TopBar() {
           value={activeTab}
           onChange={handleTabChange}
           textColor="inherit"
-          TabIndicatorProps={{ style: { backgroundColor: "white" } }}
+          slotProps={{ indicator: { sx: { backgroundColor: "white" } } }}
           sx={{ ml: 3 }}
         >
-          {NAV_TABS.map((tab) => (
+          {visibleTabs.map((tab) => (
             <Tab
               key={tab.path}
               label={tab.label}
@@ -167,23 +172,25 @@ export function TopBar() {
         )}
 
         {/* Dataset picker */}
-        {loading ? (
-          <CircularProgress size={20} color="inherit" />
-        ) : (
-          <FormControl size="small" sx={{ minWidth: 140 }}>
-            <Select
-              value={activeDataset}
-              onChange={handleDatasetChange}
-              displayEmpty
-              sx={{ color: "white", ".MuiOutlinedInput-notchedOutline": { borderColor: "rgba(255,255,255,0.4)" } }}
-            >
-              {datasets.map((ds) => (
-                <MenuItem key={ds.id} value={ds.id}>
-                  {ds.label} — {ds.building_count} bldgs
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
+        {!isAnonymous && (
+          loading ? (
+            <CircularProgress size={20} color="inherit" />
+          ) : (
+            <FormControl size="small" sx={{ minWidth: 140 }}>
+              <Select
+                value={activeDataset}
+                onChange={handleDatasetChange}
+                displayEmpty
+                sx={{ color: "white", ".MuiOutlinedInput-notchedOutline": { borderColor: "rgba(255,255,255,0.4)" } }}
+              >
+                {datasets.map((ds) => (
+                  <MenuItem key={ds.id} value={ds.id}>
+                    {ds.label} — {ds.building_count} bldgs
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          )
         )}
 
         {/* Auth button — only shown when Cognito is configured */}

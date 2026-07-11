@@ -34,7 +34,7 @@ export function LightboxDialog({ src, onClose }: { src: string | null; onClose: 
       open={!!src}
       onClose={onClose}
       maxWidth={false}
-      PaperProps={{ sx: styles.paper }}
+      slotProps={{ paper: { sx: styles.paper } }}
     >
       <DialogContent sx={styles.content}>
         <IconButton onClick={onClose} size="small" sx={styles.closeBtn}>

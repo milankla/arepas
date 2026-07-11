@@ -83,6 +83,8 @@ class ImageResult(BaseModel):
     tasks: list[TaskResult]
     auto_cropped: bool = False
     cropped_image_b64: str | None = None  # base64 JPEG of the auto-cropped region
+    building_detected: bool | None = None
+    message: str | None = None
 
 
 class InferenceResponse(BaseModel):
@@ -441,6 +443,8 @@ async def run_inference(
     per_image_results: list[list[TaskResult]] = []
     image_names: list[str] = []
     cropped_b64_list: list[str | None] = []
+    building_detected_list: list[bool | None] = []
+    message_list: list[str | None] = []
     any_cropped = False
 
     for upload in images:
@@ -452,15 +456,24 @@ async def run_inference(
 
         was_cropped = False
         cropped_b64: str | None = None
+        building_detected: bool | None = None
+        message: str | None = None
         full_img = img
         crop_img = img
         if needs_crop:
             crop_img, was_cropped = _auto_crop_pil(img)
-            if was_cropped:
-                any_cropped = True
-                buf = io.BytesIO()
-                crop_img.save(buf, format="JPEG", quality=85)
-                cropped_b64 = base64.b64encode(buf.getvalue()).decode()
+            building_detected = was_cropped
+            if not was_cropped:
+                per_image_results.append([])
+                image_names.append(upload.filename or "image")
+                cropped_b64_list.append(None)
+                building_detected_list.append(False)
+                message_list.append("No building detected")
+                continue
+            any_cropped = True
+            buf = io.BytesIO()
+            crop_img.save(buf, format="JPEG", quality=85)
+            cropped_b64 = base64.b64encode(buf.getvalue()).decode()
 
         tensor: torch.Tensor | dict[str, torch.Tensor]
         if input_type == "paired":
@@ -471,13 +484,29 @@ async def run_inference(
         per_image_results.append(results)
         image_names.append(upload.filename or "image")
         cropped_b64_list.append(cropped_b64)
+        building_detected_list.append(building_detected)
+        message_list.append(message)
 
     per_image = [
-        ImageResult(filename=name, tasks=tasks, auto_cropped=(needs_crop and any_cropped), cropped_image_b64=b64)
-        for name, tasks, b64 in zip(image_names, per_image_results, cropped_b64_list)
+        ImageResult(
+            filename=name,
+            tasks=tasks,
+            auto_cropped=bool(b64),
+            cropped_image_b64=b64,
+            building_detected=building_detected,
+            message=message,
+        )
+        for name, tasks, b64, building_detected, message in zip(
+            image_names,
+            per_image_results,
+            cropped_b64_list,
+            building_detected_list,
+            message_list,
+        )
     ]
 
-    aggregated = _aggregate_results(per_image_results) if len(per_image_results) > 1 else None
+    classified_results = [tasks for tasks in per_image_results if tasks]
+    aggregated = _aggregate_results(classified_results) if len(classified_results) > 1 else None
 
     return InferenceResponse(
         per_image=per_image,

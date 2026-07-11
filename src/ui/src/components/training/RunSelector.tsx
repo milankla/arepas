@@ -25,7 +25,7 @@ function RunLabel({ run, label, medal }: { run: RunInfo; label?: string; medal?:
   const displayName = label ?? run.short_name;
   return (
     <Box sx={{ py: 0.25 }}>
-      <Stack direction="row" alignItems="center" gap={0.5}>
+      <Stack direction="row" sx={{ alignItems: "center", gap: 0.5 }}>
         <Typography variant="body2" sx={{ fontWeight: 600, lineHeight: 1.3 }}>
           {displayName}
         </Typography>

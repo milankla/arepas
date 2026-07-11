@@ -1,6 +1,7 @@
 import { Alert, Box, Chip, CircularProgress, Typography } from "@mui/material";
 import CropIcon from "@mui/icons-material/Crop";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useAuth } from "react-oidc-context";
 import { AppShell } from "@/components/layout/AppShell";
 import { api } from "@/api/client";
 import type { CheckpointInfo, InferenceResponse } from "@/types";
@@ -8,6 +9,7 @@ import { AggregatedPanel } from "@/components/inference/AggregatedPanel";
 import { ImageResultPanel } from "@/components/inference/ImageResultPanel";
 import { InferenceSidebar } from "@/components/inference/InferenceSidebar";
 import { LightboxDialog } from "@/components/inference/LightboxDialog";
+import { AUTH_ENABLED } from "@/auth/config";
 
 const styles = {
   emptyState: {
@@ -32,7 +34,15 @@ const styles = {
   },
 } as const;
 
+export function defaultCheckpoint(checkpoints: CheckpointInfo[]): CheckpointInfo | null {
+  const candidates = checkpoints.filter((c) => c.phase === 3);
+  const pool = candidates.length > 0 ? candidates : checkpoints;
+  return [...pool].sort((a, b) => b.best_overall_acc - a.best_overall_acc)[0] ?? null;
+}
+
 export default function InferencePage() {
+  const auth = useAuth();
+  const isAnonymous = AUTH_ENABLED && !auth.isAuthenticated;
   const [checkpoints, setCheckpoints] = useState<CheckpointInfo[]>([]);
   const [loadingCkpts, setLoadingCkpts] = useState(true);
   const [selectedCkpt, setSelectedCkpt] = useState<string>("");
@@ -64,8 +74,8 @@ export default function InferencePage() {
     api.listCheckpoints()
       .then((ckpts) => {
         setCheckpoints(ckpts);
-        const ph2 = ckpts.find((c) => c.phase === 2) ?? ckpts[0];
-        if (ph2) setSelectedCkpt(ph2.checkpoint_path);
+        const defaultCkpt = defaultCheckpoint(ckpts);
+        if (defaultCkpt) setSelectedCkpt(defaultCkpt.checkpoint_path);
       })
       .catch(() => setError("Failed to load checkpoints."))
       .finally(() => setLoadingCkpts(false));
@@ -137,6 +147,7 @@ export default function InferencePage() {
       running={running}
       onRun={handleRun}
       medalMap={medalMap}
+      anonymous={isAnonymous}
     />
   );
 
@@ -167,7 +178,7 @@ export default function InferencePage() {
             </Alert>
           )}
 
-          {result.aggregated && <AggregatedPanel tasks={result.aggregated} />}
+          {result.aggregated && <AggregatedPanel tasks={result.aggregated} compact={isAnonymous} />}
 
           <Typography variant="subtitle2" sx={styles.perImageLabel}>
             {result.per_image.length === 1 ? "Result" : `Per-image results (${result.per_image.length})`}
@@ -196,6 +207,7 @@ export default function InferencePage() {
               previewUrl={previews[i]}
               label={result.per_image.length > 1 ? `Image ${i + 1}: ${img.filename}` : img.filename}
               onImageClick={setLightboxSrc}
+              compactResults={isAnonymous}
             />
           ))}
         </>

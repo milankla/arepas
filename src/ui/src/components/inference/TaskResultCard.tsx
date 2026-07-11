@@ -36,27 +36,37 @@ const styles = {
   },
 } as const;
 
-export function TaskResultCard({ result, divider = false }: { result: TaskResult; divider?: boolean }) {
+export function TaskResultCard({
+  result,
+  divider = false,
+  compact = false,
+}: {
+  result: TaskResult;
+  divider?: boolean;
+  compact?: boolean;
+}) {
   const conf = result.confidence;
   const color = conf >= 70 ? "success" : conf >= 45 ? "warning" : "error";
 
   return (
     <Box sx={styles.wrapper(divider)}>
-      <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 0.5 }}>
-        <Typography variant="body2" fontWeight={600} sx={styles.labelText}>
+      <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center", mb: 0.5 }}>
+        <Typography variant="body2" sx={{ ...styles.labelText, fontWeight: 600 }}>
           {taskLabel(result.task)}
         </Typography>
-        <Stack direction="row" alignItems="center" gap={1}>
-          <Typography variant="body2" color={`${color}.main`} fontWeight={700}>
+        <Stack direction="row" sx={{ alignItems: "center", gap: 1 }}>
+          <Typography variant="body2" color={`${color}.main`} sx={{ fontWeight: 700 }}>
             {result.predicted}
           </Typography>
-          <Chip
-            label={`${conf.toFixed(1)}%`}
-            size="small"
-            color={color}
-            variant="outlined"
-            sx={styles.confidenceChip}
-          />
+          {!compact && (
+            <Chip
+              label={`${conf.toFixed(1)}%`}
+              size="small"
+              color={color}
+              variant="outlined"
+              sx={styles.confidenceChip}
+            />
+          )}
         </Stack>
       </Stack>
       <LinearProgress
@@ -65,14 +75,16 @@ export function TaskResultCard({ result, divider = false }: { result: TaskResult
         color={color}
         sx={styles.progressBar}
       />
-      <Stack direction="row" gap={0} flexWrap="wrap">
-        {result.top3.map((item, i) => (
-          <Typography key={item.label} variant="caption" sx={styles.top3Item}>
-            {i > 0 && <Box component="span" sx={styles.top3Dot}>·</Box>}
-            <Box component="span" sx={{ fontWeight: 700 }}>{item.label}</Box>&nbsp;{item.confidence.toFixed(1)}%
-          </Typography>
-        ))}
-      </Stack>
+      {!compact && (
+        <Stack direction="row" sx={{ gap: 0, flexWrap: "wrap" }}>
+          {result.top3.map((item, i) => (
+            <Typography key={item.label} variant="caption" sx={styles.top3Item}>
+              {i > 0 && <Box component="span" sx={styles.top3Dot}>·</Box>}
+              <Box component="span" sx={{ fontWeight: 700 }}>{item.label}</Box>&nbsp;{item.confidence.toFixed(1)}%
+            </Typography>
+          ))}
+        </Stack>
+      )}
     </Box>
   );
 }

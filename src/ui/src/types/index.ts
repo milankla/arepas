@@ -155,6 +155,8 @@ export interface ImageResult {
   tasks: TaskResult[];
   auto_cropped: boolean;
   cropped_image_b64?: string | null;
+  building_detected?: boolean | null;
+  message?: string | null;
 }
 
 export interface InferenceResponse {

@@ -1,4 +1,4 @@
-import { Box, Card, CardContent, Chip, Stack, Typography } from "@mui/material";
+import { Alert, Box, Card, CardContent, Chip, Stack, Typography } from "@mui/material";
 import CropIcon from "@mui/icons-material/Crop";
 import type { ImageResult } from "@/types";
 import { TaskResultCard } from "./TaskResultCard";
@@ -63,11 +63,13 @@ export function ImageResultPanel({
   previewUrl,
   label,
   onImageClick,
+  compactResults = false,
 }: {
   result: ImageResult;
   previewUrl?: string;
   label: string;
   onImageClick: (src: string) => void;
+  compactResults?: boolean;
 }) {
   const croppedSrc = result.cropped_image_b64
     ? `data:image/jpeg;base64,${result.cropped_image_b64}`
@@ -75,13 +77,14 @@ export function ImageResultPanel({
   const phase12Tasks = result.tasks.filter((t) => !PHASE3_TASKS.has(t.task));
   const phase3Tasks = result.tasks.filter((t) => PHASE3_TASKS.has(t.task));
   const hasPhase3 = phase3Tasks.length > 0;
+  const noBuildingDetected = result.building_detected === false;
 
   return (
     <Card variant="outlined" sx={styles.card}>
       <CardContent>
-        <Stack direction="row" gap={3} alignItems="flex-start">
+        <Stack direction="row" sx={{ gap: 3, alignItems: "flex-start" }}>
           {/* Thumbnails — original and/or cropped */}
-          <Stack direction="row" gap={1} sx={styles.thumbnailStack}>
+          <Stack direction="row" sx={{ ...styles.thumbnailStack, gap: 1 }}>
             {previewUrl && (
               <Box sx={styles.thumbnailBox}>
                 <Box
@@ -112,9 +115,9 @@ export function ImageResultPanel({
             )}
           </Stack>
 
-          <Box flex={1}>
-            <Stack direction="row" alignItems="center" gap={1} sx={{ mb: 1.5 }}>
-              <Typography variant="subtitle1" fontWeight={700} sx={{ color: "text.primary" }}>
+          <Box sx={{ flex: 1 }}>
+            <Stack direction="row" sx={{ alignItems: "center", gap: 1, mb: 1.5 }}>
+              <Typography variant="subtitle1" sx={{ color: "text.primary", fontWeight: 700 }}>
                 {label}
               </Typography>
               {result.auto_cropped && (
@@ -128,28 +131,37 @@ export function ImageResultPanel({
                 />
               )}
             </Stack>
-            {hasPhase3 ? (
+            {noBuildingDetected ? (
+              <Alert severity="info" sx={{ mt: 1 }}>
+                <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                  {result.message ?? "No building detected"}
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  Try a clearer exterior building photo.
+                </Typography>
+              </Alert>
+            ) : hasPhase3 ? (
               <Box sx={styles.taskGrid}>
                 <Box>
-                  <Typography variant="caption" fontWeight={700} sx={styles.columnHeading}>
+                  <Typography variant="caption" sx={{ ...styles.columnHeading, fontWeight: 700 }}>
                     Phase 1 / 2
                   </Typography>
                   {phase12Tasks.map((t, i) => (
-                    <TaskResultCard key={t.task} result={t} divider={i > 0} />
+                    <TaskResultCard key={t.task} result={t} divider={i > 0} compact={compactResults} />
                   ))}
                 </Box>
                 <Box>
-                  <Typography variant="caption" fontWeight={700} sx={styles.columnHeading}>
+                  <Typography variant="caption" sx={{ ...styles.columnHeading, fontWeight: 700 }}>
                     Phase 3
                   </Typography>
                   {phase3Tasks.map((t, i) => (
-                    <TaskResultCard key={t.task} result={t} divider={i > 0} />
+                    <TaskResultCard key={t.task} result={t} divider={i > 0} compact={compactResults} />
                   ))}
                 </Box>
               </Box>
             ) : (
               result.tasks.map((t, i) => (
-                <TaskResultCard key={t.task} result={t} divider={i > 0} />
+                <TaskResultCard key={t.task} result={t} divider={i > 0} compact={compactResults} />
               ))
             )}
           </Box>
