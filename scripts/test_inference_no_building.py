@@ -13,6 +13,7 @@ from PIL import Image
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from src.api.routers import inference
+from src.image_preprocessing.detector_base import DetectionResult
 
 
 class _StorageStub:
@@ -69,8 +70,20 @@ async def _run() -> None:
     assert response.per_image[0].message == "No building detected"
 
 
+def _assert_mountain_false_positive_is_rejected() -> None:
+    result = DetectionResult(
+        image_path="PXL_20260126_115510607.MP.jpg",
+        detected=True,
+        bounding_boxes=[(8, 821, 4071, 3065)],
+        confidence_scores=[0.5291681885719299],
+    )
+
+    assert not inference._is_inference_detection_usable(result, image_size=(4080, 3072))
+
+
 def main() -> None:
     asyncio.run(_run())
+    _assert_mountain_false_positive_is_rejected()
     print("ok")
 
 

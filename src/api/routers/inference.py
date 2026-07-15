@@ -25,6 +25,7 @@ from PIL import Image
 from pydantic import BaseModel
 from torchvision import transforms
 
+from src.image_preprocessing.detector_base import DetectionResult
 from src.image_preprocessing.grounding_dino_detector import GroundingDINODetector
 from src.loader.architectural_dataset import make_splits
 from src.models.model_config import ModelConfig
@@ -180,12 +181,39 @@ def list_checkpoints() -> list[CheckpointInfo]:
 
 _detector: GroundingDINODetector | None = None
 
+_INFERENCE_FULL_WIDTH_BOX_RATIO = 0.92
+_INFERENCE_LARGE_BOX_AREA_RATIO = 0.55
+_INFERENCE_FULL_FRAME_MIN_CONFIDENCE = 0.65
+
 
 def _get_detector() -> GroundingDINODetector:
     global _detector
     if _detector is None:
         _detector = GroundingDINODetector(device="auto")
     return _detector
+
+
+def _is_inference_detection_usable(result: DetectionResult, image_size: tuple[int, int]) -> bool:
+    if not result.detected or not result.bounding_boxes:
+        return False
+
+    width, height = image_size
+    if width <= 0 or height <= 0:
+        return False
+
+    x1, y1, x2, y2 = result.bounding_boxes[0]
+    box_width = max(0, x2 - x1)
+    box_height = max(0, y2 - y1)
+    area_ratio = (box_width * box_height) / (width * height)
+    width_ratio = box_width / width
+    score = result.confidence_scores[0] if result.confidence_scores else 0.0
+
+    is_weak_full_frame_detection = (
+        width_ratio >= _INFERENCE_FULL_WIDTH_BOX_RATIO
+        and area_ratio >= _INFERENCE_LARGE_BOX_AREA_RATIO
+        and score < _INFERENCE_FULL_FRAME_MIN_CONFIDENCE
+    )
+    return not is_weak_full_frame_detection
 
 
 def _auto_crop_pil(img: Image.Image) -> tuple[Image.Image, bool]:
@@ -202,7 +230,7 @@ def _auto_crop_pil(img: Image.Image) -> tuple[Image.Image, bool]:
 
     try:
         result = detector.detect(tmp_path)
-        if not result.detected or not result.bounding_boxes:
+        if not _is_inference_detection_usable(result, img.size):
             return img, False
         cropped = detector.extract_building(tmp_path, bbox=result.bounding_boxes[0])
         return cropped, True
