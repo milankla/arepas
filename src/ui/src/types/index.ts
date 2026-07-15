@@ -147,8 +147,7 @@ export interface TaskResult {
   task: string;
   predicted: string;
   confidence: number; // 0–100
-  top3: ClassConfidence[];
-}
+  top3: ClassConfidence[];  is_multi_label?: boolean;}
 
 export interface ImageResult {
   filename: string;

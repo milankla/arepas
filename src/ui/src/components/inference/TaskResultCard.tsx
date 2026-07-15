@@ -36,6 +36,8 @@ const styles = {
   },
 } as const;
 
+const MULTI_LABEL_DISPLAY_THRESHOLD = 50;
+
 export function TaskResultCard({
   result,
   divider = false,
@@ -55,9 +57,15 @@ export function TaskResultCard({
           {taskLabel(result.task)}
         </Typography>
         <Stack direction="row" sx={{ alignItems: "center", gap: 1 }}>
-          <Typography variant="body2" color={`${color}.main`} sx={{ fontWeight: 700 }}>
-            {result.predicted}
-          </Typography>
+          {compact && result.is_multi_label ? (
+            <Typography variant="body2" color={`${color}.main`} sx={{ fontWeight: 700, textAlign: "right" }}>
+              {(result.top3.filter((t) => t.confidence >= MULTI_LABEL_DISPLAY_THRESHOLD).map((t) => t.label).join(" · ")) || result.predicted}
+            </Typography>
+          ) : (
+            <Typography variant="body2" color={`${color}.main`} sx={{ fontWeight: 700 }}>
+              {result.predicted}
+            </Typography>
+          )}
           {!compact && (
             <Chip
               label={`${conf.toFixed(1)}%`}

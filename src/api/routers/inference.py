@@ -77,6 +77,7 @@ class TaskResult(BaseModel):
     predicted: str
     confidence: float         # 0–100, top class
     top3: list[ClassConfidence]
+    is_multi_label: bool = False
 
 
 class ImageResult(BaseModel):
@@ -384,7 +385,8 @@ def _predict_single(
         cfg = model.get_task_config(task_name)
         classes = label_classes.get(task_name, [])
 
-        if cfg.get("multi_label", False):
+        is_multi_label = cfg.get("multi_label", False)
+        if is_multi_label:
             probs = torch.sigmoid(raw[0]).tolist()
             if not classes:
                 classes = [str(i) for i in range(len(probs))]
@@ -406,6 +408,7 @@ def _predict_single(
             predicted=predicted,
             confidence=confidence,
             top3=top3,
+            is_multi_label=is_multi_label,
         ))
     return results
 
@@ -429,11 +432,13 @@ def _aggregate_results(per_image: list[list[TaskResult]]) -> list[TaskResult]:
         pairs = sorted(avg.items(), key=lambda x: -x[1])
         top3 = [ClassConfidence(label=l, confidence=round(c, 1)) for l, c in pairs[:3]]
 
+        is_multi_label = per_image[0][task_idx].is_multi_label
         aggregated.append(TaskResult(
             task=task_name,
             predicted=top3[0].label if top3 else "?",
             confidence=top3[0].confidence if top3 else 0.0,
             top3=top3,
+            is_multi_label=is_multi_label,
         ))
     return aggregated
 
