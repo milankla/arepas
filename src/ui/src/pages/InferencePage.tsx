@@ -1,7 +1,6 @@
 import { Alert, Box, Chip, CircularProgress, Typography } from "@mui/material";
 import CropIcon from "@mui/icons-material/Crop";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useAuth } from "react-oidc-context";
 import { AppShell } from "@/components/layout/AppShell";
 import { api } from "@/api/client";
 import type { CheckpointInfo, InferenceResponse } from "@/types";
@@ -9,7 +8,7 @@ import { AggregatedPanel } from "@/components/inference/AggregatedPanel";
 import { ImageResultPanel } from "@/components/inference/ImageResultPanel";
 import { InferenceSidebar } from "@/components/inference/InferenceSidebar";
 import { LightboxDialog } from "@/components/inference/LightboxDialog";
-import { AUTH_ENABLED } from "@/auth/config";
+import { useUserRole } from "@/auth/useUserRole";
 
 const styles = {
   emptyState: {
@@ -41,8 +40,10 @@ export function defaultCheckpoint(checkpoints: CheckpointInfo[]): CheckpointInfo
 }
 
 export default function InferencePage() {
-  const auth = useAuth();
-  const isAnonymous = AUTH_ENABLED && !auth.isAuthenticated;
+  const role = useUserRole();
+  // Both anonymous visitors and regular "user" group members get the compact
+  // inference view — no model selector, simplified result display.
+  const isAnonymous = role !== "admin";
   const [checkpoints, setCheckpoints] = useState<CheckpointInfo[]>([]);
   const [loadingCkpts, setLoadingCkpts] = useState(true);
   const [selectedCkpt, setSelectedCkpt] = useState<string>("");

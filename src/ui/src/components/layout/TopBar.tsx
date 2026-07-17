@@ -22,6 +22,7 @@ import { useDataset } from "@/context/DatasetContext";
 import { useSearch } from "@/context/SearchContext";
 import { api } from "@/api/client";
 import { AUTH_ENABLED } from "@/auth/config";
+import { useUserRole } from "@/auth/useUserRole";
 import type { BuildingSummary } from "@/types";
 
 const NAV_TABS = [
@@ -34,13 +35,18 @@ export function TopBar() {
   const { datasets, activeDataset, setActiveDataset, loading } = useDataset();
   const { selectBuilding } = useSearch();
   const auth = useAuth();
+  const role = useUserRole();
   const location = useLocation();
   const navigate = useNavigate();
   const isExplore = location.pathname === "/";
-  const isAnonymous = AUTH_ENABLED && !auth.isAuthenticated;
-  const visibleTabs = isAnonymous
-    ? NAV_TABS.filter((tab) => tab.path === "/inference")
-    : NAV_TABS;
+  const isAnonymous = role === "anonymous";
+  // anonymous: inference only; user: explore + inference; admin: all tabs
+  const visibleTabs =
+    role === "anonymous"
+      ? NAV_TABS.filter((t) => t.path === "/inference")
+      : role === "user"
+      ? NAV_TABS.filter((t) => t.path !== "/training")
+      : NAV_TABS;
 
   const [inputValue, setInputValue] = useState("");
   const [options, setOptions] = useState<BuildingSummary[]>([]);

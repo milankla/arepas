@@ -274,6 +274,11 @@ mlflow.db
 # Temporary shapefile location
 Berkeley_SURVEYPOINT/
 
+# Highland survey data (large binaries — not versioned)
+data-Highland
+SURVEYPOINT_Updated_20250718_HIGHLAND/
+
+
 # Raw survey Excel exports (large binaries — not versioned)
 *.xls
 *.xlsx

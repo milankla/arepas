@@ -1,21 +1,28 @@
 import { Navigate, Route, Routes } from "react-router-dom";
-import { useAuth } from "react-oidc-context";
 import { TopBar } from "@/components/layout/TopBar";
 import { SearchProvider } from "@/context/SearchContext";
 import { RequireAuth } from "@/auth/RequireAuth";
 import { AuthSync } from "@/auth/AuthSync";
-import { AUTH_ENABLED } from "@/auth/config";
+import { useUserRole } from "@/auth/useUserRole";
 import ExploreDataPage from "@/pages/ExploreDataPage";
 import TrainingEvaluationPage from "@/pages/TrainingEvaluationPage";
 import InferencePage from "@/pages/InferencePage";
 
 function HomeRoute() {
-  const auth = useAuth();
-
-  if (!AUTH_ENABLED) return <ExploreDataPage />;
-  if (auth.isLoading) return null;
-  if (!auth.isAuthenticated) return <Navigate to="/inference" replace />;
+  const role = useUserRole();
+  if (role === "anonymous") return <Navigate to="/inference" replace />;
   return <ExploreDataPage />;
+}
+
+function TrainingRoute() {
+  const role = useUserRole();
+  if (role === "anonymous") return <Navigate to="/inference" replace />;
+  if (role === "user") return <Navigate to="/" replace />;
+  return (
+    <RequireAuth>
+      <TrainingEvaluationPage />
+    </RequireAuth>
+  );
 }
 
 export default function App() {
@@ -31,14 +38,7 @@ export default function App() {
           path="/"
           element={<HomeRoute />}
         />
-        <Route
-          path="/training"
-          element={
-            <RequireAuth>
-              <TrainingEvaluationPage />
-            </RequireAuth>
-          }
-        />
+        <Route path="/training" element={<TrainingRoute />} />
         {/* OIDC redirect-back route — RequireAuth handles onSigninCallback */}
         <Route path="/callback" element={<InferencePage />} />
       </Routes>
